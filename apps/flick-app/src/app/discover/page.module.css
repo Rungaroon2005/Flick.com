@@ -1,0 +1,128 @@
+.container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  padding-bottom: calc(72px + 24px + env(safe-area-inset-bottom, 0px));
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--bg-primary);
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--flick-red);
+  letter-spacing: -0.5px;
+}
+
+.headerIcons {
+  display: flex;
+  gap: 16px;
+}
+
+.iconButton {
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: background-color var(--transition-fast);
+}
+
+.mainContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.filterContainer {
+  padding: 8px 0 20px;
+  position: sticky;
+  top: 64px;
+  background: linear-gradient(to bottom, var(--bg-primary) 80%, rgba(0,0,0,0) 100%);
+  z-index: 99;
+}
+
+.genreChips {
+  display: flex;
+  gap: 12px;
+  padding: 0 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.genreChips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  padding: 8px 20px;
+  border-radius: var(--radius-xl);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.activeChip {
+  background-color: var(--flick-red);
+  border-color: var(--flick-red);
+  font-weight: 600;
+}
+
+.resultsContainer {
+  padding: 0 20px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.gridItem {
+  width: 100%;
+}
+
+.gridItem :global(.card) {
+  width: 100% !important; /* Override explicit widths to fill grid cell */
+}
+
+.emptyState {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+}
+
+.emptyText {
+  color: var(--text-muted);
+  font-size: 16px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}

@@ -1,0 +1,76 @@
+.bottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: calc(72px + env(safe-area-inset-bottom, 0px));
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border-color);
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  display: flex;
+  align-items: center;
+}
+
+.navList {
+  list-style: none;
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.navItem {
+  flex: 1;
+}
+
+.navLink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--text-muted);
+  height: 100%;
+  padding: 12px 0;
+  transition: color var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  transition: transform var(--transition-fast), fill var(--transition-fast), stroke var(--transition-fast);
+}
+
+.navText {
+  font-size: 10px;
+  font-weight: 500;
+  transition: font-weight var(--transition-fast);
+}
+
+.navLink.active {
+  color: var(--flick-red);
+}
+
+.navLink.active .icon {
+  transform: scale(1.1);
+}
+
+.navLink.active .navText {
+  font-weight: 600;
+}
+
+.navLink:active .icon {
+  transform: scale(0.95);
+}

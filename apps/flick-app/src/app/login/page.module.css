@@ -1,0 +1,147 @@
+/* src/app/login/page.module.css */
+.container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.logo {
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: var(--flick-red);
+  margin-bottom: 2rem;
+  letter-spacing: -2px;
+  animation: fadeInUp 0.6s ease;
+}
+
+.formCard {
+  width: 100%;
+  max-width: 400px;
+  animation: fadeInUp 0.8s ease;
+}
+
+.header {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.formGroup {
+  margin-bottom: 1.25rem;
+}
+
+.input {
+  width: 100%;
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: #FFFFFF;
+  color: #000000;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.input:focus {
+  border-color: var(--flick-red);
+}
+
+.optionsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.checkbox {
+  margin-right: 0.5rem;
+  accent-color: var(--flick-red);
+  width: 16px;
+  height: 16px;
+}
+
+.link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.link:hover {
+  color: var(--text-primary);
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 1rem;
+  background: var(--flick-red);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+  margin-bottom: 1.5rem;
+}
+
+.submitBtn:hover {
+  background: var(--flick-red-light);
+}
+
+.submitBtn:active {
+  transform: scale(0.98);
+}
+
+.registerLink {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.registerLink a {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.footerLinks {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 0.8rem;
+}
+
+.footerLinks a {
+  color: var(--text-muted);
+}
+
+.errorMsg {
+  color: var(--error);
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  animation: shake 0.5s;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}

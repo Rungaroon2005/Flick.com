@@ -1,0 +1,94 @@
+.card {
+  display: block;
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex-shrink: 0;
+  text-decoration: none;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  background-color: var(--bg-surface);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .card:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-card);
+    z-index: 10;
+  }
+}
+
+.card:active {
+  transform: scale(0.98);
+}
+
+/* Sizes */
+.small {
+  width: 110px;
+  aspect-ratio: 2/3;
+}
+
+.medium {
+  width: 140px;
+  aspect-ratio: 2/3;
+}
+
+.large {
+  width: 160px;
+  aspect-ratio: 2/3;
+}
+
+.imageWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.image {
+  object-fit: cover;
+  transition: filter var(--transition-normal);
+}
+
+.bookmarkBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: var(--flick-red);
+  color: #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  z-index: 2;
+}
+
+.overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+  padding: 16px 8px 8px;
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.card:hover .overlay {
+  opacity: 1;
+}
+
+.title {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}

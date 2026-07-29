@@ -1,0 +1,142 @@
+.container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  padding-bottom: 100px;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--bg-primary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.logo {
+  color: var(--flick-red);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+.headerIcons {
+  display: flex;
+  gap: 1rem;
+}
+.iconBtn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.main {
+  padding: 0 1rem;
+}
+.userInfo {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: var(--bg-surface);
+  border: 2px solid var(--border-color);
+}
+.userDetails {
+  display: flex;
+  flex-direction: column;
+}
+.name {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.username, .email {
+  margin: 0.2rem 0 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.editBtn {
+  background: none;
+  border: none;
+  color: var(--flick-red);
+  padding: 0;
+  margin-top: 0.5rem;
+  text-align: left;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.subCard {
+  background: linear-gradient(135deg, var(--bg-surface) 0%, #1a0a0a 100%);
+  border: 1px solid var(--flick-red-dark);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+.subInfo h3 {
+  margin: 0 0 0.2rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+.planName {
+  margin: 0;
+  color: var(--flick-red-light);
+  font-weight: bold;
+}
+.manageBtn {
+  background: var(--bg-surface-hover);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-xl);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.settingsGroup {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+.settingItem {
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+}
+.settingItem:last-child {
+  border-bottom: none;
+}
+.settingItem:hover {
+  background: var(--bg-surface-hover);
+}
+.chevron {
+  color: var(--text-secondary);
+}
+.version {
+  color: var(--text-muted);
+}
+.logoutBtn {
+  width: 100%;
+  background: var(--bg-surface);
+  color: white;
+  border: none;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+}
+.logoutBtn:hover {
+  background: var(--bg-surface-hover);
+}

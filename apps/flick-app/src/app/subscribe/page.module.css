@@ -1,0 +1,234 @@
+/* src/app/subscribe/page.module.css */
+.container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  padding: 2rem 1rem;
+  color: var(--text-primary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  margin-right: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.section {
+  max-width: 1200px;
+  margin: 0 auto 3rem;
+}
+
+.sectionTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+.plansGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.planCard {
+  background: rgba(26, 26, 46, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform var(--transition-normal);
+}
+
+.planCard:hover {
+  transform: translateY(-5px);
+}
+
+.planCardFree {
+  background: linear-gradient(145deg, rgba(40,40,60,0.8) 0%, rgba(20,20,30,0.8) 100%);
+}
+
+.planCardWeekly {
+  background: linear-gradient(145deg, rgba(204,51,0,0.4) 0%, rgba(26,26,46,0.8) 100%);
+  border-color: rgba(204, 51, 0, 0.5);
+}
+
+.planCardMonthly {
+  background: linear-gradient(145deg, rgba(255,179,0,0.4) 0%, rgba(26,26,46,0.8) 100%);
+  border-color: rgba(255, 179, 0, 0.5);
+}
+
+.badge {
+  position: absolute;
+  top: -12px;
+  right: 1rem;
+  background: var(--warning);
+  color: #000;
+  padding: 0.2rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(255, 179, 0, 0.3);
+}
+
+.planName {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.planPrice {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+}
+
+.featureList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  flex-grow: 1;
+}
+
+.featureList li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.8rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.checkIcon {
+  color: var(--success);
+  margin-right: 0.5rem;
+  font-weight: bold;
+}
+
+.selectBtn {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btnFree {
+  background: var(--border-light);
+  color: var(--text-primary);
+}
+
+.btnFree:hover { background: #444460; }
+
+.btnWeekly {
+  background: var(--flick-red);
+  color: white;
+}
+
+.btnWeekly:hover { background: var(--flick-red-light); }
+
+.btnMonthly {
+  background: var(--warning);
+  color: #000;
+}
+
+.btnMonthly:hover { background: #FFC107; }
+
+/* Coins Section */
+.coinsGrid {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  scrollbar-width: none;
+}
+
+.coinsGrid::-webkit-scrollbar {
+  display: none;
+}
+
+.coinCard {
+  min-width: 140px;
+  background: rgba(26, 26, 46, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.coinCard:hover {
+  transform: translateY(-3px);
+  border-color: var(--warning);
+}
+
+.coinAmount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--warning);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.coinPrice {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--success);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  box-shadow: var(--shadow-modal);
+  animation: slideUp 0.3s ease;
+  z-index: 1000;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (max-width: 480px) {
+  .planPrice { font-size: 1.5rem; }
+  .header { margin-bottom: 1.5rem; }
+}

@@ -1,0 +1,69 @@
+.container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  padding-bottom: 80px; /* space for BottomNav */
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--bg-primary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.logo {
+  color: var(--flick-red);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+.headerIcons {
+  display: flex;
+  gap: 1rem;
+}
+.iconBtn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.main {
+  padding: 0 1rem;
+}
+.pageTitle {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.emptyState {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 3rem 0;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.movieCard {
+  position: relative;
+  aspect-ratio: 2/3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+}
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.bookmarkBadge {
+  position: absolute;
+  top: 0;
+  left: 0.2rem;
+  font-size: 1.5rem;
+  color: var(--flick-red);
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}

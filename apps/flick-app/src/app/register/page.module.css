@@ -1,11 +1,27 @@
 /* src/app/register/page.module.css */
 .container {
   min-height: 100vh;
-  background-color: var(--bg-primary);
+  background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle glow behind the card */
+.container::before {
+  content: '';
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(229, 9, 20, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
 }
 
 .logo {
@@ -14,23 +30,32 @@
   color: var(--flick-red);
   margin-bottom: 2rem;
   letter-spacing: -1px;
+  z-index: 1;
 }
 
 .formCard {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
+  background: rgba(25, 25, 25, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  z-index: 1;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 }
 
 .header {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 1.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 2rem;
   text-align: center;
 }
 
 .formGroup {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
   opacity: 0;
   animation: fadeInUp 0.5s ease forwards;
 }
@@ -49,36 +74,47 @@
 
 .input {
   width: 100%;
-  padding: 1rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
-  background-color: #FFFFFF;
-  color: #000000;
+  padding: 1.1rem 1.2rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
   font-size: 1rem;
   outline: none;
-  transition: border-color var(--transition-fast);
+  transition: all var(--transition-fast);
+}
+
+.input::placeholder {
+  color: #8c8c8c;
 }
 
 .input:focus {
   border-color: var(--flick-red);
+  background-color: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.15);
 }
 
 .toggleBtn {
   position: absolute;
-  right: 10px;
+  right: 12px;
   background: none;
   border: none;
-  color: #666;
-  font-size: 0.8rem;
+  color: #a0a0a0;
+  font-size: 0.9rem;
   cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.toggleBtn:hover {
+  color: #ffffff;
 }
 
 .termsRow {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: #b3b3b3;
   opacity: 0;
   animation: fadeInUp 0.5s ease forwards;
   animation-delay: 0.6s;
@@ -88,22 +124,24 @@
   margin-right: 0.75rem;
   margin-top: 0.2rem;
   accent-color: var(--flick-red);
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }
 
 .submitBtn {
   width: 100%;
-  padding: 1rem;
+  padding: 1.1rem;
   background: var(--flick-red);
   color: #FFFFFF;
   border: none;
-  border-radius: var(--radius-sm);
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-  margin-bottom: 1.5rem;
+  transition: all var(--transition-fast);
+  margin-bottom: 2rem;
+  letter-spacing: 0.5px;
   opacity: 0;
   animation: fadeInUp 0.5s ease forwards;
   animation-delay: 0.7s;
@@ -111,10 +149,12 @@
 
 .submitBtn:hover {
   background: var(--flick-red-light);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(229, 9, 20, 0.3);
 }
 
 .submitBtn:active {
-  transform: scale(0.98);
+  transform: translateY(1px);
 }
 
 .loginLink {
@@ -122,19 +162,25 @@
   opacity: 0;
   animation: fadeInUp 0.5s ease forwards;
   animation-delay: 0.8s;
+  color: #8c8c8c;
 }
 
 .loginLink a {
-  color: var(--text-primary);
+  color: #ffffff;
   font-weight: 600;
   text-decoration: none;
+  margin-left: 0.5rem;
 }
 
 .errorMsg {
-  color: var(--error);
+  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.2);
+  padding: 0.75rem;
+  border-radius: 8px;
   text-align: center;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
   animation: shake 0.5s;
 }
 

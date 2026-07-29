@@ -10,9 +10,9 @@ import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    MoviesModule, 
-    UsersModule, 
-    AuthModule
+    MoviesModule,
+    UsersModule,
+    AuthModule,
   ],
   controllers: [AppController, PlansController],
   providers: [AppService],

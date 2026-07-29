@@ -17,8 +17,8 @@ export default function ProfilePage() {
       <header className={styles.header}>
         <div className={styles.logo}>Flick</div>
         <div className={styles.headerIcons}>
-          <button className={styles.iconBtn}>⬇️</button>
-          <button className={styles.iconBtn}>🔍</button>
+          <button className={styles.iconBtn} aria-label="Downloads">⬇️</button>
+          <button className={styles.iconBtn} aria-label="Search">🔍</button>
         </div>
       </header>
 

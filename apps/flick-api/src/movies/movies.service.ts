@@ -13,7 +13,7 @@ export class MoviesService {
 
   constructor(
     private prisma: PrismaService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async create(createMovieDto: CreateMovieDto) {
@@ -62,4 +62,3 @@ export class MoviesService {
     });
   }
 }
-

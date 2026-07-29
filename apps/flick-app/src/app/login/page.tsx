@@ -51,6 +51,7 @@ export default function LoginPage() {
               type="email" 
               className={styles.input} 
               placeholder="บัญชีผู้ใช้" 
+              aria-label="บัญชีผู้ใช้ (อีเมล)"
               value={email}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             />
@@ -62,6 +63,7 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"} 
                 className={styles.input} 
                 placeholder="รหัสผ่าน" 
+                aria-label="รหัสผ่าน"
                 value={password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 style={{ flex: 1 }}

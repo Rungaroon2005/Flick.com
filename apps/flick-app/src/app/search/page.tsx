@@ -95,7 +95,9 @@ export default function SearchPage() {
             </div>
           ) : (
             <div className={styles.emptyState}>
-              <p className={styles.emptyText}>ไม่พบผลลัพธ์ที่ตรงกับ "{query}"</p>
+              <div className={styles.noResults}>
+                <p>ไม่พบผลลัพธ์สำหรับ &quot;{query}&quot;</p>
+              </div>
             </div>
           )}
         </div>

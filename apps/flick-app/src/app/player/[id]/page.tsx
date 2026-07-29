@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -67,12 +68,12 @@ export default function PlayerPage() {
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.header}>
-        <button className={styles.backBtn} onClick={() => router.back()}>←</button>
+        <button className={styles.backBtn} onClick={() => router.back()} aria-label="Go back">←</button>
         <div className={styles.titleInfo}>
           <div className={styles.movieTitle}>{movie.title}</div>
           <div className={styles.episodeTitle}>ตอนที่ 1</div>
         </div>
-        <button className={styles.fullscreenBtn}>⛶</button>
+        <button className={styles.fullscreenBtn} aria-label="Fullscreen">⛶</button>
       </div>
 
       {/* Video Area (Simulated) */}
@@ -90,19 +91,19 @@ export default function PlayerPage() {
       {/* Floating Actions (Right) */}
       <div className={styles.floatingActions}>
         <div className={styles.actionItem}>
-          <button className={styles.iconBtn}>👍</button>
+          <button className={styles.iconBtn} aria-label="Like">👍</button>
           <span>ชื่นชอบ</span>
         </div>
         <div className={styles.actionItem}>
-          <button className={styles.iconBtn}>🔖</button>
+          <button className={styles.iconBtn} aria-label="Bookmark">🔖</button>
           <span>บันทึก</span>
         </div>
         <div className={styles.actionItem}>
-          <button className={styles.iconBtn}>⬇️</button>
+          <button className={styles.iconBtn} aria-label="Download">⬇️</button>
           <span>ดาวน์โหลด</span>
         </div>
         <div className={styles.actionItem}>
-          <button className={styles.iconBtn}>📤</button>
+          <button className={styles.iconBtn} aria-label="Share">📤</button>
           <span>แชร์</span>
         </div>
       </div>
@@ -133,7 +134,7 @@ export default function PlayerPage() {
           <div className={styles.settingsPanel} onClick={e => e.stopPropagation()}>
             <div className={styles.settingsHeader}>
               <h3>การตั้งค่า</h3>
-              <button className={styles.closeBtn} onClick={() => setShowSettings(false)}>✕</button>
+              <button className={styles.closeBtn} onClick={() => setShowSettings(false)} aria-label="Close settings">✕</button>
             </div>
             <div className={styles.settingGroup}>
               <h4>ความเร็ว</h4>

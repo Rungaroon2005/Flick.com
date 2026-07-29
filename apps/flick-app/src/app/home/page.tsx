@@ -1,70 +1,38 @@
-'use client';
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
-import MovieCard from '@/components/MovieCard';
-import API_BASE_URL from '@/lib/api';
-import { isLoggedIn, getContinueWatching, getBookmarks } from '@/lib/auth';
+import HomeClient from './HomeClient';
 import { Movie } from '@/types';
 import styles from './page.module.css';
 
-export default function HomePage() {
-  const router = useRouter();
-  const [continueWatching, setContinueWatching] = useState<Movie[]>([]);
-  const [bookmarks, setBookmarks] = useState<Movie[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [movies, setMovies] = useState<Movie[]>([]);
+// Ensure NEXT_PUBLIC_API_URL is available
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-  useEffect(() => {
-    // Check if user is logged in
-    const userLoggedIn = isLoggedIn();
-    if (!userLoggedIn) {
-      router.push('/login');
-      return;
-    }
-
-    // Load data from API
-    fetch(`${API_BASE_URL}/movies`)
-      .then((res) => res.json())
-      .then((data: Movie[]) => {
-        setMovies(data);
-        const cw = getContinueWatching() as { movieId: string }[];
-        const cwMovies = cw.map(item => data.find(m => m.id === item.movieId)).filter((m): m is Movie => m !== undefined);
-        setContinueWatching(cwMovies);
-
-        const bms = getBookmarks() as string[];
-        const bmMovies = bms.map(id => data.find(m => m.id === id)).filter((m): m is Movie => m !== undefined);
-        setBookmarks(bmMovies);
-        setIsLoading(false);
-      })
-      .catch((err: unknown) => {
-        console.error('Error fetching movies:', err);
-        setError('ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
-        setIsLoading(false);
-      });
-  }, [router]);
-
-  // Use recommended movies from API (just taking first 6 for demo)
-  const recommendedMovies = movies.slice(0, 6);
-
-  if (isLoading) {
-    return <div className={styles.loadingScreen}>กำลังโหลด...</div>;
+async function getMovies(): Promise<Movie[]> {
+  const res = await fetch(`${API_URL}/movies`, {
+    next: { revalidate: 60 }, // ISR: Revalidate every 60 seconds
+  });
+  
+  if (!res.ok) {
+    throw new Error('Failed to fetch movies');
   }
+  
+  return res.json();
+}
 
-  if (error) {
-    return (
-      <div className={styles.loadingScreen}>
-        <p>{error}</p>
-        <button onClick={() => window.location.reload()} style={{ marginTop: '1rem', padding: '0.5rem 1.5rem', borderRadius: '8px', background: '#CC3300', color: '#fff', border: 'none', cursor: 'pointer' }}>ลองใหม่</button>
-      </div>
-    );
+export default async function HomePage() {
+  let movies: Movie[] = [];
+  let error: string | null = null;
+
+  try {
+    movies = await getMovies();
+  } catch (err) {
+    console.error('Error fetching movies on server:', err);
+    error = 'ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง';
   }
 
   return (
     <div className={styles.container}>
-      {/* Top Bar */}
+      {/* Top Bar (Server rendered) */}
       <header className={styles.header}>
         <div className={styles.logo}>Flick</div>
         <div className={styles.headerIcons}>
@@ -84,62 +52,13 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className={styles.mainContent}>
-        {/* Recommended Section */}
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>แนะนำ</h2>
-            <Link href="/discover" className={styles.seeAllLink}>ทั้งหมด &gt;</Link>
-          </div>
-          <div className={styles.horizontalScroll}>
-            {recommendedMovies.map(movie => (
-              <MovieCard key={movie.id} movie={movie} size="medium" />
-            ))}
-          </div>
-        </section>
-
-        {/* Continue Watching Section */}
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>ดูต่อ</h2>
-            <Link href="/continue-watching" className={styles.seeAllLink}>ทั้งหมด &gt;</Link>
-          </div>
-          <div className={styles.horizontalScroll}>
-            {continueWatching.length > 0 ? (
-              continueWatching.map(movie => (
-                <MovieCard key={movie.id} movie={movie} size="medium" />
-              ))
-            ) : (
-              <>
-                <div className={styles.skeletonCard} />
-                <div className={styles.skeletonCard} />
-                <div className={styles.skeletonCard} />
-              </>
-            )}
-          </div>
-        </section>
-
-        {/* My List Section */}
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>รายการของฉัน</h2>
-            <Link href="/bookmarks" className={styles.seeAllLink}>ทั้งหมด &gt;</Link>
-          </div>
-          <div className={styles.horizontalScroll}>
-            {bookmarks.length > 0 ? (
-              bookmarks.map(movie => (
-                <MovieCard key={movie.id} movie={movie} size="medium" showBookmark={true} />
-              ))
-            ) : (
-              <>
-                <div className={styles.skeletonCard} />
-                <div className={styles.skeletonCard} />
-                <div className={styles.skeletonCard} />
-              </>
-            )}
-          </div>
-        </section>
-      </main>
+      {error ? (
+        <div className={styles.loadingScreen}>
+          <p>{error}</p>
+        </div>
+      ) : (
+        <HomeClient initialMovies={movies} />
+      )}
 
       <BottomNav />
     </div>

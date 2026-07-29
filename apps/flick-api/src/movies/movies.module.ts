@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
-import { redisStore } from 'cache-manager-redis-yet';
 import { MoviesService } from './movies.service';
 import { MoviesController } from './movies.controller';
 import { PrismaService } from '../prisma.service';
@@ -12,6 +11,6 @@ import { PrismaService } from '../prisma.service';
     }),
   ],
   controllers: [MoviesController],
-  providers: [MoviesService, PrismaService]
+  providers: [MoviesService, PrismaService],
 })
 export class MoviesModule {}

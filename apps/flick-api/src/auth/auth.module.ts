@@ -9,7 +9,9 @@ import { UsersModule } from '../users/users.module';
     UsersModule,
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET || 'super-secret-flick-key-for-dev-only-do-not-use-in-prod',
+      secret:
+        process.env.JWT_SECRET ||
+        'super-secret-flick-key-for-dev-only-do-not-use-in-prod',
       signOptions: { expiresIn: '1d' },
     }),
   ],

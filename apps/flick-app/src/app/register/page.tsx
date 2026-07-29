@@ -99,6 +99,7 @@ export default function RegisterPage() {
               name="name"
               className={styles.input} 
               placeholder="ชื่อที่แสดง" 
+              aria-label="ชื่อที่แสดง"
               value={formData.name}
               onChange={handleChange}
             />
@@ -110,6 +111,7 @@ export default function RegisterPage() {
               name="email"
               className={styles.input} 
               placeholder="อีเมล" 
+              aria-label="อีเมล"
               value={formData.email}
               onChange={handleChange}
             />
@@ -121,6 +123,7 @@ export default function RegisterPage() {
               name="phone"
               className={styles.input} 
               placeholder="เบอร์โทรศัพท์ (ไม่บังคับ)" 
+              aria-label="เบอร์โทรศัพท์"
               value={formData.phone}
               onChange={handleChange}
             />
@@ -133,6 +136,7 @@ export default function RegisterPage() {
                 name="password"
                 className={styles.input} 
                 placeholder="รหัสผ่าน" 
+                aria-label="รหัสผ่าน"
                 value={formData.password}
                 onChange={handleChange}
               />

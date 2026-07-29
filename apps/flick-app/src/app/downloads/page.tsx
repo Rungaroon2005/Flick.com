@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -41,8 +42,8 @@ export default function DownloadsPage() {
       <header className={styles.header}>
         <div className={styles.logo}>Flick</div>
         <div className={styles.headerIcons}>
-          <button className={styles.iconBtn}>⬇️</button>
-          <button className={styles.iconBtn}>🔍</button>
+          <button className={styles.iconBtn} aria-label="Downloads">⬇️</button>
+          <button className={styles.iconBtn} aria-label="Search">🔍</button>
         </div>
       </header>
 

@@ -1,0 +1,18 @@
+{
+  "name": "flick-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently --names API,APP --prefix-colors blue,magenta \"npm run dev:api\" \"npm run dev:app\"",
+    "dev:api": "npm run start:dev --workspace=flick-api",
+    "dev:app": "npm run dev --workspace=flick-app",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4"
+  }
+}

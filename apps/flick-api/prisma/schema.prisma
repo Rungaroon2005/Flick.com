@@ -1,0 +1,345 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  EXPIRED
+}
+
+enum TransactionType {
+  EARNED
+  PURCHASED
+  SPENT
+  REFUNDED
+  EXPIRED
+}
+
+enum InteractionType {
+  LIKE
+  DISLIKE
+}
+
+// -----------------------------------------------------------------------------
+// 1. USER & ACCESS MODULE
+// -----------------------------------------------------------------------------
+
+model User {
+  id           String  @id @default(uuid())
+  email        String? @unique
+  phone        String? @unique
+  passwordHash String
+  displayName  String
+  avatarUrl    String?
+  role         Role    @default(USER)
+  language     String  @default("th")
+  theme        String  @default("dark")
+  isVerified   Boolean @default(false)
+
+  // Cache for UI speed, but derived from UserCoin ledger
+  coinBalance Int @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+
+  subscriptions Subscription[]
+  paymentEvents PaymentEvent[]
+  userCoins     UserCoin[]
+  watchHistory  WatchHistory[]
+  bookmarks     Bookmark[]
+  downloads     Download[]
+  devices       Device[]
+  interactions  Interaction[]
+  notifications Notification[]
+
+  @@index([email])
+  @@index([phone])
+  @@map("users")
+}
+
+model Device {
+  id               String   @id @default(uuid())
+  userId           String
+  deviceName       String
+  deviceType       String
+  ipAddress        String
+  pushToken        String? // For FCM/APNs
+  refreshTokenHash String? // To revoke sessions
+  lastActive       DateTime @default(now())
+  isActive         Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([pushToken])
+  @@map("devices")
+}
+
+// -----------------------------------------------------------------------------
+// 2. CONTENT MODULE
+// -----------------------------------------------------------------------------
+
+model Movie {
+  id            String        @id @default(uuid())
+  title         String
+  description   String        @db.Text
+  posterUrl     String
+  trailerUrl    String?
+  year          Int
+  contentRating String
+  status        ContentStatus @default(DRAFT)
+  totalViews    Int           @default(0) // Denormalized counter
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+
+  seasons      Season[]
+  bookmarks    Bookmark[]
+  interactions Interaction[]
+  genres       MovieGenre[]
+
+  @@index([status, createdAt])
+  @@index([title])
+  @@map("movies")
+}
+
+model Genre {
+  id     String       @id @default(uuid())
+  name   String       @unique
+  slug   String       @unique
+  movies MovieGenre[]
+
+  @@map("genres")
+}
+
+model MovieGenre {
+  movieId String
+  genreId String
+
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([movieId, genreId])
+  @@map("movie_genres")
+}
+
+model Season {
+  id           String @id @default(uuid())
+  movieId      String
+  seasonNumber Int
+  title        String
+  episodeCount Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  movie    Movie     @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  episodes Episode[]
+
+  @@unique([movieId, seasonNumber])
+  @@map("seasons")
+}
+
+model Episode {
+  id              String  @id @default(uuid())
+  seasonId        String
+  episodeNumber   Int
+  title           String
+  description     String  @db.Text
+  videoUrl        String?
+  thumbnailUrl    String
+  durationMinutes Int
+  isPremium       Boolean @default(false)
+  coinCost        Int     @default(0)
+
+  releaseDate DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
+
+  season       Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  watchHistory WatchHistory[]
+  downloads    Download[]
+
+  @@unique([seasonId, episodeNumber])
+  @@index([releaseDate])
+  @@map("episodes")
+}
+
+// -----------------------------------------------------------------------------
+// 3. ECONOMY MODULE
+// -----------------------------------------------------------------------------
+
+model Subscription {
+  id                    String             @id @default(uuid())
+  userId                String
+  planType              String
+  status                SubscriptionStatus @default(ACTIVE)
+  autoRenew             Boolean            @default(true)
+  startDate             DateTime
+  endDate               DateTime
+  paymentMethod         String
+  gatewaySubscriptionId String?            @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([endDate])
+  @@map("subscriptions")
+}
+
+model PaymentEvent {
+  id             String @id @default(uuid())
+  userId         String
+  eventType      String // e.g., "charge.succeeded", "charge.failed"
+  gateway        String // e.g., "Stripe", "Omise"
+  gatewayEventId String @unique
+  idempotencyKey String @unique
+  status         String
+  amountSatangs  Int // Store in smallest currency unit to avoid float issues
+  currency       String @default("THB")
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userCoins UserCoin[]
+
+  @@index([userId])
+  @@index([gatewayEventId])
+  @@map("payment_events")
+}
+
+model UserCoin {
+  id              String          @id @default(uuid())
+  userId          String
+  paymentEventId  String?
+  transactionType TransactionType
+  amount          Int // Positive for gain, negative for spend
+  balanceAfter    Int // Running balance for quick audits
+  description     String
+
+  createdAt DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  paymentEvent PaymentEvent? @relation(fields: [paymentEventId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@map("user_coins")
+}
+
+// -----------------------------------------------------------------------------
+// 4. ENGAGEMENT & UX MODULE
+// -----------------------------------------------------------------------------
+
+model WatchHistory {
+  id              String  @id @default(uuid())
+  userId          String
+  episodeId       String
+  progressSeconds Int     @default(0)
+  completed       Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, episodeId]) // Only one history record per user-episode
+  @@index([userId, updatedAt])
+  @@map("watch_history")
+}
+
+model Interaction {
+  id      String          @id @default(uuid())
+  userId  String
+  movieId String
+  type    InteractionType
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, movieId]) // One interaction type per movie per user
+  @@index([movieId, type])
+  @@map("interactions")
+}
+
+model Bookmark {
+  id      String @id @default(uuid())
+  userId  String
+  movieId String
+
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, movieId])
+  @@index([userId])
+  @@map("bookmarks")
+}
+
+model Download {
+  id        String @id @default(uuid())
+  userId    String
+  episodeId String
+
+  downloadedAt DateTime @default(now())
+  expiresAt    DateTime
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, episodeId])
+  @@index([userId])
+  @@map("downloads")
+}
+
+model Notification {
+  id     String  @id @default(uuid())
+  userId String
+  title  String
+  body   String  @db.Text
+  isRead Boolean @default(false)
+  data   Json? // Optional deep-link payload
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}

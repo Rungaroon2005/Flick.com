@@ -1,0 +1,44 @@
+// Subscription plans and coin pack configuration
+// Extracted from plans.controller.ts to allow updates without code changes
+
+export const SUBSCRIPTION_PLANS = [
+  {
+    id: 'free',
+    name: 'ฟรี',
+    nameEn: 'Free',
+    price: 0,
+    period: '',
+    features: ['ดูตอนที่ 1-10 ฟรี', 'คุณภาพ 720p', 'มีโฆษณา', '1 อุปกรณ์'],
+    featuresEn: ['Episodes 1-10 free', '720p quality', 'Ad-supported', '1 device'],
+    badge: null,
+    color: '#666',
+  },
+  {
+    id: 'weekly',
+    name: 'VIP รายสัปดาห์',
+    nameEn: 'Weekly VIP',
+    price: 49,
+    period: '/สัปดาห์',
+    features: ['ไม่มีโฆษณา', 'คุณภาพ 1080p', 'ดูทุกตอน', '2 อุปกรณ์'],
+    featuresEn: ['Ad-free', '1080p quality', 'All episodes', '2 devices'],
+    badge: null,
+    color: '#CC3300',
+  },
+  {
+    id: 'monthly',
+    name: 'VIP รายเดือน',
+    nameEn: 'Monthly VIP',
+    price: 149,
+    period: '/เดือน',
+    features: ['ไม่มีโฆษณา', 'คุณภาพ 1080p/4K', 'ดูทุกตอน', '4 อุปกรณ์', 'ดาวน์โหลดได้', 'ดูก่อนใคร'],
+    featuresEn: ['Ad-free', '1080p/4K quality', 'All episodes', '4 devices', 'Offline download', 'Early access'],
+    badge: 'คุ้มที่สุด',
+    color: '#FFD700',
+  },
+];
+
+export const COIN_PACKS = [
+  { id: 'starter', name: 'Starter', coins: 100, price: 35, unlocks: '~10 ตอน' },
+  { id: 'popular', name: 'Popular', coins: 320, price: 99, unlocks: '~32 ตอน', badge: 'ยอดนิยม' },
+  { id: 'bestvalue', name: 'Best Value', coins: 1100, price: 299, unlocks: '~110 ตอน', badge: 'คุ้มที่สุด' },
+];

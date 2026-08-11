@@ -369,7 +369,7 @@ Add a `GET /auth/me` endpoint returning `@CurrentUser()` — the frontend needs 
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing guard test**
+- [x] **Step 1: Write the failing guard test**
 
 ```ts
 // src/auth/jwt-auth.guard.spec.ts
@@ -391,13 +391,13 @@ it('delegates to passport for a route that is not @Public', () => {
 
 Run: `npx jest jwt-auth.guard` — Expected: FAIL, module not found.
 
-- [ ] **Step 2: Implement strategy, guard, decorators, and global registration** (code above)
+- [x] **Step 2: Implement strategy, guard, decorators, and global registration** (code above)
 
-- [ ] **Step 3: Run the guard test**
+- [x] **Step 3: Run the guard test**
 
 Run: `npx jest jwt-auth.guard` — Expected: PASS.
 
-- [ ] **Step 4: Prove protection end-to-end**
+- [x] **Step 4: Prove protection end-to-end**
 
 With the API running and a seeded database:
 
@@ -410,7 +410,9 @@ curl -s -b /tmp/c.txt localhost:3001/auth/me                                    
 curl -s -o /dev/null -w "%{http_code}\n" localhost:3001/movies                   # expect 200 (public)
 ```
 
-- [ ] **Step 5: Commit**
+Live verification against a real seeded Postgres database found and fixed a real bug (see commits below) — `/auth/me` initially returned 401 with a valid cookie due to a JWT sign/verify secret mismatch (`JwtModule.register` reading `process.env` at import time vs `JwtStrategy` reading via `ConfigService` at DI time). Fixed and independently re-confirmed; a regression e2e test now guards it.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src

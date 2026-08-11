@@ -24,7 +24,11 @@ describe('MoviesService', () => {
     service = module.get<MoviesService>(MoviesService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('create calls cacheManager.del with the correct cache key', async () => {
+    prismaMock.movie.create.mockResolvedValue({ id: 'm1', title: 'Test' });
+    cacheManager.del.mockResolvedValue(undefined);
+    await service.create({ title: 'Test', originalLanguage: 'th' });
+    expect(cacheManager.del).toHaveBeenCalledWith('movies:all');
+    expect(prismaMock.movie.create).toHaveBeenCalled();
   });
 });

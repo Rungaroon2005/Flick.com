@@ -19,7 +19,11 @@ describe('MoviesController', () => {
     controller = module.get<MoviesController>(MoviesController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('findOne calls the service with the id and returns the result', async () => {
+    const mockMovie = { id: 'm1', title: 'Test Movie' };
+    moviesService.findOne.mockResolvedValue(mockMovie);
+    const result = await controller.findOne('m1');
+    expect(moviesService.findOne).toHaveBeenCalledWith('m1');
+    expect(result).toEqual(mockMovie);
   });
 });

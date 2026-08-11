@@ -19,7 +19,18 @@ describe('AuthController', () => {
     controller = module.get<AuthController>(AuthController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('login strips access_token from response and sets cookie', async () => {
+    const mockRes = {
+      cookie: jest.fn(),
+    } as any;
+    authService.login.mockResolvedValue({
+      success: true,
+      user: { id: 'u1', email: 'a@b.com', displayName: 'A' },
+      access_token: 'tok123',
+    });
+    const result = await controller.login({ email: 'a@b.com', password: 'pass' }, mockRes);
+    expect(result).not.toHaveProperty('access_token');
+    expect(result).toHaveProperty('success', true);
+    expect(mockRes.cookie).toHaveBeenCalledWith('access_token', 'tok123', expect.any(Object));
   });
 });

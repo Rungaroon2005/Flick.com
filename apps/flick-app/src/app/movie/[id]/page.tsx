@@ -22,8 +22,8 @@ async function getSimilarMovies(id: string): Promise<Movie[]> {
 }
 
 // Next.js App Router exposes `params` to page components
-export default async function MovieDetail({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default async function MovieDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   let movie: Movie | null = null;
   let similarMovies: Movie[] = [];
   let error: string | null = null;

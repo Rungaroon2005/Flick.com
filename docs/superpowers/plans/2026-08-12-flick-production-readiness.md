@@ -231,7 +231,7 @@ While here, `getSimilarMovies` fetches the entire movie catalogue on every detai
 
 **Verification:**
 
-- [ ] **Step 1: Reproduce the failure with a stub API**
+- [x] **Step 1: Reproduce the failure with a stub API**
 
 Write `/tmp/stub.mjs`:
 
@@ -253,19 +253,19 @@ http.createServer((req, res) => {
 Run: `node /tmp/stub.mjs &` then `cd apps/flick-app && npx next dev -p 3100 &` then `curl -s localhost:3100/movie/sathu | grep -o 'TEST-sathu'`
 Expected: no match, and the stub logs `STUB REQUEST: /movies/undefined`.
 
-- [ ] **Step 2: Apply the `await params` change** (code above)
+- [x] **Step 2: Apply the `await params` change** (code above)
 
-- [ ] **Step 3: Confirm the fix**
+- [x] **Step 3: Confirm the fix**
 
 Run: `curl -s localhost:3100/movie/sathu | grep -o 'TEST-sathu'`
 Expected: `TEST-sathu`. The stub log shows `/movies/sathu`, never `/movies/undefined`. The dev-server log contains no `sync-dynamic-apis` error.
 
-- [ ] **Step 4: Confirm no other route has the bug**
+- [x] **Step 4: Confirm no other route has the bug**
 
 Run: `grep -rn "params" apps/flick-app/src/app --include=page.tsx --include=layout.tsx --include=route.ts | grep -v "Promise<"`
 Expected: only the `useParams()` client-hook call in `player/[id]/page.tsx`.
 
-- [ ] **Step 5: Kill the servers and commit**
+- [x] **Step 5: Kill the servers and commit**
 
 ```bash
 pkill -f "next dev -p 3100"; pkill -f "stub.mjs"

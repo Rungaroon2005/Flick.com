@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Post, Body } from '@nestjs/common';
 import { MoviesService } from './movies.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
+import { Public } from '../auth/public.decorator';
 
 @Controller('movies')
 export class MoviesController {
@@ -11,11 +12,13 @@ export class MoviesController {
     return this.moviesService.create(createMovieDto);
   }
 
+  @Public()
   @Get()
   findAll() {
     return this.moviesService.findAll();
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.moviesService.findOne(id);

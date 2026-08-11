@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   HttpCode,
   HttpStatus,
@@ -10,6 +11,9 @@ import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { Public } from './public.decorator';
+import { CurrentUser } from './current-user.decorator';
+import type { AuthenticatedUser } from './current-user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -25,6 +29,7 @@ export class AuthController {
     });
   }
 
+  @Public()
   @Post('register')
   async register(
     @Body() registerDto: RegisterDto,
@@ -37,6 +42,7 @@ export class AuthController {
     return safeResult;
   }
 
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(
@@ -55,5 +61,10 @@ export class AuthController {
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('access_token');
     return { success: true };
+  }
+
+  @Get('me')
+  me(@CurrentUser() user: AuthenticatedUser) {
+    return user;
   }
 }

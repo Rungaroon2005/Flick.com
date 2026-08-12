@@ -897,7 +897,7 @@ const unlockDescription = (episodeId: string) => `unlock:episode:${episodeId}`;
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('refuses to spend more coins than the user holds', async () => {
@@ -926,13 +926,13 @@ it('does not charge twice for the same episode', async () => {
 
 Run: `npx jest wallet` — Expected: FAIL.
 
-- [ ] **Step 2: Implement the module, service, controller, and DTO**
+- [x] **Step 2: Implement the module, service, controller, and DTO**
 
-- [ ] **Step 3: Run the tests**
+- [x] **Step 3: Run the tests**
 
 Run: `npx jest wallet` — Expected: PASS.
 
-- [ ] **Step 4: Verify the ledger reconciles in the database**
+- [x] **Step 4: Verify the ledger reconciles in the database**
 
 After spending against a live API, run in `psql`:
 
@@ -943,7 +943,9 @@ FROM users u WHERE u.id = '<user id>';
 ```
 Expected: the two columns are equal.
 
-- [ ] **Step 5: Commit**
+Task reviewer found the plain `$transaction`-wrapped check-then-write in the original implementation was NOT actually safe under Postgres's default READ COMMITTED isolation — a precomputed balance literal could be lost-updated by a concurrent spend, and `unlockEpisode()`'s double-charge guard ran outside its own transaction. Controller independently confirmed the race (re-derived Postgres's UPDATE re-check semantics) before accepting the finding, then independently reproduced both races closed after the fix, using real concurrent HTTP requests (`curl ... & curl ... & wait`) against the live database: a lost-update test (exactly one of two concurrent spends succeeded, the other correctly rejected) and a double-charge test (two concurrent unlocks of the same episode produced exactly one charge row). Fix: `SELECT ... FOR UPDATE` row lock acquired first inside every wallet transaction (`spend`, `credit`, `unlockEpisode`), via Prisma's parameterized tagged-template `$queryRaw`.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src

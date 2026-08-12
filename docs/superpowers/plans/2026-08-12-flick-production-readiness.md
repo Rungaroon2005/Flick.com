@@ -793,13 +793,15 @@ Update `AI_STATUS.md`, which claims "Redis Cache-Aside pattern implemented in `M
 
 **Verification:**
 
-- [ ] **Step 1: Prove the current cache is in-process**
+- [x] **Step 1: Prove the current cache is in-process**
 
 Run: `grep -rn "redis" apps/flick-api/src/` — Expected: no matches (only the misleading log strings).
 
-- [ ] **Step 2: Swap dependencies and rewrite the module registration**
+- [x] **Step 2: Swap dependencies and rewrite the module registration**
 
-- [ ] **Step 3: Verify the cache survives a process restart**
+Deviation from the brief's literal sample: `new Keyv({ store: new KeyvRedis(url) })` alone does not achieve graceful degradation — node-redis's default reconnect behavior queues commands during an outage, so a request hangs indefinitely instead of failing fast. Fixed with `disableOfflineQueue: true`, with an explanatory comment. Verified as a genuine, necessary fix, not an unexplained departure.
+
+- [x] **Step 3: Verify the cache survives a process restart**
 
 ```bash
 docker run -d -p 6379:6379 --name flick-redis redis:7
@@ -811,12 +813,14 @@ curl -s localhost:3001/movies > /dev/null      # still a HIT — impossible with
 redis-cli KEYS '*movies*'                       # expect the key to exist
 ```
 
-- [ ] **Step 4: Verify graceful degradation**
+- [x] **Step 4: Verify graceful degradation**
 
 Run: `docker stop flick-redis` then `curl -s -o /dev/null -w "%{http_code}\n" localhost:3001/movies`
 Expected: `200`. The API logs a cache error and serves from Postgres.
 
-- [ ] **Step 5: Commit**
+Controller independently reproduced steps 3 and 4 from scratch in a separate Redis container: confirmed a cache hit ("Returning movies from cache") on the very first request after a full API restart with no preceding cache-miss, and confirmed the degraded request returned `200` in 71ms (timed, not just status-checked) with the Redis error handler firing in the logs at the same moment.
+
+- [x] **Step 5: Commit**
 
 ```bash
 docker rm -f flick-redis

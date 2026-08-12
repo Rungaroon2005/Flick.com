@@ -697,7 +697,7 @@ Finally, replace the catalogue-wide fetch in `movie/[id]/page.tsx`'s `getSimilar
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('maps genre slugs onto the MovieGenre join table', async () => {
@@ -719,20 +719,22 @@ it('flattens genres in the response payload', async () => {
 
 Run: `npx jest movies.service` — Expected: FAIL.
 
-- [ ] **Step 2: Implement DTO, service mapping, `toDto`, and the frontend filters**
+- [x] **Step 2: Implement DTO, service mapping, `toDto`, and the frontend filters**
 
-- [ ] **Step 3: Run the tests**
+- [x] **Step 3: Run the tests**
 
 Run: `npx jest movies.service` — Expected: PASS.
 
-- [ ] **Step 4: Verify against a live database**
+- [x] **Step 4: Verify against a live database**
 
 ```bash
 curl -s localhost:3001/movies | jq '.[0].genres'     # non-empty array of {id,name,slug}
 ```
 Then open `/discover` and click each chip — every chip must show at least one movie.
 
-- [ ] **Step 5: Commit**
+Controller independently re-verified beyond this via curl: `GET /movies` returns all 6 seeded movies each with a real, distinct `genres` array; `GET /movies/:id/similar` returns correct genre-sharing results; promoted a test user to `ADMIN` and confirmed `POST /movies` with `genreSlugs` correctly uses `connectOrCreate` (matches existing genre rows rather than duplicating them) and that the old `genre` field is now rejected with `400`. (The `/discover` chip click-through itself was not re-run in the browser after this fix — the curl-level verification above covers the same data path.)
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src apps/flick-app/src

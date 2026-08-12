@@ -7,9 +7,9 @@ export interface PrismaMock {
     update: jest.Mock;
   };
   user: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
-  userCoin: { create: jest.Mock; findMany: jest.Mock };
+  userCoin: { create: jest.Mock; findMany: jest.Mock; findFirst: jest.Mock };
   subscription: { findFirst: jest.Mock; create: jest.Mock };
-  episode: { findUnique: jest.Mock };
+  episode: { findUnique: jest.Mock; findFirst: jest.Mock };
   bookmark: {
     findMany: jest.Mock;
     create: jest.Mock;
@@ -20,26 +20,37 @@ export interface PrismaMock {
   $transaction: jest.Mock;
 }
 
-export const createPrismaMock = (): PrismaMock => ({
-  movie: {
-    findMany: jest.fn(),
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-  },
-  user: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
-  userCoin: { create: jest.fn(), findMany: jest.fn() },
-  subscription: { findFirst: jest.fn(), create: jest.fn() },
-  episode: { findUnique: jest.fn() },
-  bookmark: {
-    findMany: jest.fn(),
-    create: jest.fn(),
-    delete: jest.fn(),
-    findUnique: jest.fn(),
-  },
-  watchHistory: { upsert: jest.fn(), findMany: jest.fn() },
-  $transaction: jest.fn(async (fn: (tx: PrismaMock) => unknown) =>
-    fn(createPrismaMock()),
-  ),
-});
+export const createPrismaMock = (): PrismaMock => {
+  const mock: PrismaMock = {
+    movie: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    user: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+    userCoin: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+    },
+    subscription: { findFirst: jest.fn(), create: jest.fn() },
+    episode: { findUnique: jest.fn(), findFirst: jest.fn() },
+    bookmark: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+      delete: jest.fn(),
+      findUnique: jest.fn(),
+    },
+    watchHistory: { upsert: jest.fn(), findMany: jest.fn() },
+    // Pass the SAME mock instance into the callback so that stubs set up
+    // on `prisma.*` in a test (e.g. `prisma.user.findUnique.mockResolvedValue`)
+    // are visible as `tx.*` inside code under test that runs through
+    // `$transaction`. A previous version of this mock created a fresh,
+    // un-stubbed mock here, which silently broke any test whose behavior
+    // depended on transactional reads/writes.
+    $transaction: jest.fn((fn: (tx: PrismaMock) => unknown) => fn(mock)),
+  };
+  return mock;
+};

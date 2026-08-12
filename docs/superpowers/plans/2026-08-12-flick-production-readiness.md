@@ -476,7 +476,7 @@ Set `status: 'PUBLISHED'` on every movie in `prisma/seed.ts`.
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 it('excludes draft and soft-deleted movies from findAll', async () => {
@@ -495,13 +495,13 @@ it('does not serve a draft movie by direct id', async () => {
 
 Run: `npx jest movies.service` — Expected: FAIL.
 
-- [ ] **Step 2: Implement the filter, the 404, the `@Roles` guard, and the seed status**
+- [x] **Step 2: Implement the filter, the 404, the `@Roles` guard, and the seed status**
 
-- [ ] **Step 3: Run the tests**
+- [x] **Step 3: Run the tests**
 
 Run: `npx jest movies.service` — Expected: PASS.
 
-- [ ] **Step 4: Verify against the database**
+- [x] **Step 4: Verify against the database**
 
 ```bash
 npx prisma db seed
@@ -510,7 +510,9 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST localhost:3001/movies \
   -H 'content-type: application/json' -d '{}'                   # expect 401, not 400/500
 ```
 
-- [ ] **Step 5: Commit**
+Controller independently re-verified the negative case beyond this: inserted a genuine `DRAFT`-status movie via SQL, restarted the API to clear its in-memory cache, and confirmed it was excluded from both `GET /movies` and `GET /movies/:id` (404), then removed the test row.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api

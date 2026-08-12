@@ -29,7 +29,7 @@ Implement Wallet & Monetization Logic. Create `UserCoin` spending endpoints to l
 * **Port:** 3001
 * **Key Implementations:**
   * DTO validation using `class-validator` (e.g., `CreateMovieDto`).
-  * Redis Cache-Aside pattern implemented in `MoviesModule` for sub-millisecond response times.
+  * Cache-Aside pattern implemented in `MoviesModule` via `@nestjs/cache-manager` + Keyv. Backed by real Redis when `REDIS_URL` is set (shared across instances, survives process restarts); falls back to an in-process in-memory store when it isn't (local dev / CI). A Redis outage is logged and degrades gracefully to querying Postgres directly, it does not crash the API.
   * Prisma schema contains optimized B-Tree indexes for high-frequency queries.
 
 ---

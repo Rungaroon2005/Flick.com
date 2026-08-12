@@ -71,11 +71,11 @@ export class MoviesService {
   }
 
   async findAll(): Promise<MovieDto[]> {
-    // 1. Check Redis Cache
+    // 1. Check cache
     const cachedMovies =
       await this.cacheManager.get<MovieDto[]>(CACHE_KEY_ALL_MOVIES);
     if (cachedMovies) {
-      this.logger.debug('Returning movies from Redis cache');
+      this.logger.debug('Returning movies from cache');
       return cachedMovies;
     }
 
@@ -89,7 +89,7 @@ export class MoviesService {
 
     const dtos = movies.map((movie) => this.toDto(movie));
 
-    // 3. Store in Redis for future requests
+    // 3. Store in cache for future requests
     await this.cacheManager.set(CACHE_KEY_ALL_MOVIES, dtos, CACHE_TTL_MS);
 
     return dtos;

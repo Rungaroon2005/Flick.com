@@ -562,18 +562,18 @@ Document in `apps/flick-api/README.md`: `migrate:deploy` runs in CI/production, 
 
 **Verification:**
 
-- [ ] **Step 1: Confirm no migrations exist**
+- [x] **Step 1: Confirm no migrations exist**
 
 Run: `ls apps/flick-api/prisma/` — Expected: `schema.prisma  seed.ts` only.
 
-- [ ] **Step 2: Generate and resolve the baseline** (commands above)
+- [x] **Step 2: Generate and resolve the baseline** (commands above — `--to-schema-datamodel` was renamed to `--to-schema` in the installed Prisma 7.9.1 CLI; substituted per the CLI's own error message)
 
-- [ ] **Step 3: Verify a clean state**
+- [x] **Step 3: Verify a clean state**
 
 Run: `cd apps/flick-api && npx prisma migrate status`
 Expected: `Database schema is up to date!`
 
-- [ ] **Step 4: Prove reproducibility on a scratch database**
+- [x] **Step 4: Prove reproducibility on a scratch database**
 
 ```bash
 createdb flickdb_verify
@@ -583,7 +583,7 @@ dropdb flickdb_verify
 ```
 Expected: both succeed with no errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/prisma apps/flick-api/package.json apps/flick-api/README.md

@@ -1,11 +1,17 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
 
 const CACHE_KEY_ALL_MOVIES = 'movies:all';
 const CACHE_TTL_MS = 300_000; // 5 minutes
+
+const PUBLISHED_FILTER = {
+  status: ContentStatus.PUBLISHED,
+  deletedAt: null,
+} as const;
 
 @Injectable()
 export class MoviesService {
@@ -34,10 +40,15 @@ export class MoviesService {
     this.logger.debug('Cache miss — querying PostgreSQL');
     // 2. Cache Miss: Query Postgres
     const movies = await this.prisma.movie.findMany({
+      where: PUBLISHED_FILTER,
+      orderBy: { createdAt: 'desc' }, // uses @@index([status, createdAt])
       include: {
         seasons: {
           include: {
-            episodes: true,
+            episodes: {
+              where: { deletedAt: null },
+              orderBy: { episodeNumber: 'asc' },
+            },
           },
         },
       },
@@ -50,15 +61,24 @@ export class MoviesService {
   }
 
   async findOne(id: string) {
-    return this.prisma.movie.findUnique({
-      where: { id },
+    const movie = await this.prisma.movie.findFirst({
+      where: { id, ...PUBLISHED_FILTER },
       include: {
         seasons: {
           include: {
-            episodes: true,
+            episodes: {
+              where: { deletedAt: null },
+              orderBy: { episodeNumber: 'asc' },
+            },
           },
         },
       },
     });
+
+    if (!movie) {
+      throw new NotFoundException(`Movie ${id} not found`);
+    }
+
+    return movie;
   }
 }

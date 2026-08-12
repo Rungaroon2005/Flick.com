@@ -18,6 +18,7 @@ export interface PrismaMock {
   };
   watchHistory: { upsert: jest.Mock; findMany: jest.Mock };
   $transaction: jest.Mock;
+  $queryRaw: jest.Mock;
 }
 
 export const createPrismaMock = (): PrismaMock => {
@@ -51,6 +52,9 @@ export const createPrismaMock = (): PrismaMock => {
     // un-stubbed mock here, which silently broke any test whose behavior
     // depended on transactional reads/writes.
     $transaction: jest.fn((fn: (tx: PrismaMock) => unknown) => fn(mock)),
+    // Tagged-template call shape (`tx.$queryRaw\`...\``) doesn't matter to
+    // a jest.fn() — tests just stub the resolved value directly.
+    $queryRaw: jest.fn(),
   };
   return mock;
 };

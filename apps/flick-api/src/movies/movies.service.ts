@@ -1,17 +1,35 @@
 import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { ContentStatus } from '@prisma/client';
+import { ContentStatus, Genre, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
 
 const CACHE_KEY_ALL_MOVIES = 'movies:all';
 const CACHE_TTL_MS = 300_000; // 5 minutes
+const SIMILAR_MOVIES_LIMIT = 10;
 
 const PUBLISHED_FILTER = {
   status: ContentStatus.PUBLISHED,
   deletedAt: null,
 } as const;
+
+const EPISODES_INCLUDE = {
+  where: { deletedAt: null },
+  orderBy: { episodeNumber: 'asc' as const },
+};
+
+const GENRES_INCLUDE = { include: { genre: true as const } };
+
+const MOVIE_LIST_INCLUDE = {
+  genres: GENRES_INCLUDE,
+  seasons: { include: { episodes: EPISODES_INCLUDE } },
+} satisfies Prisma.MovieInclude;
+
+type MovieWithRelations = Prisma.MovieGetPayload<{
+  include: typeof MOVIE_LIST_INCLUDE;
+}>;
+type MovieDto = Omit<MovieWithRelations, 'genres'> & { genres: Genre[] };
 
 @Injectable()
 export class MoviesService {
@@ -22,16 +40,40 @@ export class MoviesService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  async create(createMovieDto: CreateMovieDto) {
-    await this.cacheManager.del(CACHE_KEY_ALL_MOVIES);
-    return this.prisma.movie.create({
-      data: createMovieDto,
-    });
+  // Flattens the MovieGenre join-table shape (`{ genres: [{ genre: {...} }] }`)
+  // into the wire shape the frontend expects (`{ genres: Genre[] }`). Applied
+  // to every endpoint that returns a movie so the join table never leaks.
+  private toDto<T extends { genres: { genre: Genre }[] }>(movie: T) {
+    const { genres, ...rest } = movie;
+    return { ...rest, genres: genres.map((g) => g.genre) };
   }
 
-  async findAll() {
+  async create(createMovieDto: CreateMovieDto) {
+    const { genreSlugs, ...movieData } = createMovieDto;
+    await this.cacheManager.del(CACHE_KEY_ALL_MOVIES);
+    const movie = await this.prisma.movie.create({
+      data: {
+        ...movieData,
+        genres: {
+          create: genreSlugs.map((slug) => ({
+            genre: {
+              connectOrCreate: {
+                where: { slug },
+                create: { slug, name: slug },
+              },
+            },
+          })),
+        },
+      },
+      include: { genres: GENRES_INCLUDE },
+    });
+    return this.toDto(movie);
+  }
+
+  async findAll(): Promise<MovieDto[]> {
     // 1. Check Redis Cache
-    const cachedMovies = await this.cacheManager.get(CACHE_KEY_ALL_MOVIES);
+    const cachedMovies =
+      await this.cacheManager.get<MovieDto[]>(CACHE_KEY_ALL_MOVIES);
     if (cachedMovies) {
       this.logger.debug('Returning movies from Redis cache');
       return cachedMovies;
@@ -42,43 +84,56 @@ export class MoviesService {
     const movies = await this.prisma.movie.findMany({
       where: PUBLISHED_FILTER,
       orderBy: { createdAt: 'desc' }, // uses @@index([status, createdAt])
-      include: {
-        seasons: {
-          include: {
-            episodes: {
-              where: { deletedAt: null },
-              orderBy: { episodeNumber: 'asc' },
-            },
-          },
-        },
-      },
+      include: MOVIE_LIST_INCLUDE,
     });
 
-    // 3. Store in Redis for future requests
-    await this.cacheManager.set(CACHE_KEY_ALL_MOVIES, movies, CACHE_TTL_MS);
+    const dtos = movies.map((movie) => this.toDto(movie));
 
-    return movies;
+    // 3. Store in Redis for future requests
+    await this.cacheManager.set(CACHE_KEY_ALL_MOVIES, dtos, CACHE_TTL_MS);
+
+    return dtos;
   }
 
   async findOne(id: string) {
     const movie = await this.prisma.movie.findFirst({
       where: { id, ...PUBLISHED_FILTER },
-      include: {
-        seasons: {
-          include: {
-            episodes: {
-              where: { deletedAt: null },
-              orderBy: { episodeNumber: 'asc' },
-            },
-          },
-        },
-      },
+      include: MOVIE_LIST_INCLUDE,
     });
 
     if (!movie) {
       throw new NotFoundException(`Movie ${id} not found`);
     }
 
-    return movie;
+    return this.toDto(movie);
+  }
+
+  async findSimilar(id: string) {
+    const movie = await this.prisma.movie.findFirst({
+      where: { id, ...PUBLISHED_FILTER },
+      include: { genres: { select: { genreId: true } } },
+    });
+
+    if (!movie) {
+      throw new NotFoundException(`Movie ${id} not found`);
+    }
+
+    const genreIds = movie.genres.map((g) => g.genreId);
+    if (genreIds.length === 0) {
+      return [];
+    }
+
+    const similarMovies = await this.prisma.movie.findMany({
+      where: {
+        ...PUBLISHED_FILTER,
+        id: { not: id },
+        genres: { some: { genreId: { in: genreIds } } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: SIMILAR_MOVIES_LIMIT,
+      include: { genres: GENRES_INCLUDE },
+    });
+
+    return similarMovies.map((m) => this.toDto(m));
   }
 }

@@ -27,9 +27,9 @@ export default function SearchPage() {
     if (!query.trim()) return movies;
     
     const lowerQuery = query.toLowerCase();
-    return movies.filter(movie => 
+    return movies.filter(movie =>
       (movie.title && movie.title.toLowerCase().includes(lowerQuery)) ||
-      (movie.genre && movie.genre.toLowerCase().includes(lowerQuery))
+      (movie.genres && movie.genres.some(g => g.name.toLowerCase().includes(lowerQuery)))
     );
   }, [query, movies]);
 

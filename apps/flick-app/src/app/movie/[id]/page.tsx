@@ -13,12 +13,11 @@ async function getMovie(id: string): Promise<Movie> {
 }
 
 async function getSimilarMovies(id: string): Promise<Movie[]> {
-  const res = await fetch(`${API_URL}/movies`, {
+  const res = await fetch(`${API_URL}/movies/${id}/similar`, {
     next: { revalidate: 60 }
   });
   if (!res.ok) throw new Error('Failed to fetch similar movies');
-  const allMovies: Movie[] = await res.json();
-  return allMovies.filter(m => m.id !== id);
+  return res.json();
 }
 
 // Next.js App Router exposes `params` to page components

@@ -10,15 +10,28 @@ interface DiscoverClientProps {
   initialMovies: Movie[];
 }
 
-export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
-  const [activeGenre, setActiveGenre] = useState('ทั้งหมด');
-  
-  const genres = ['ทั้งหมด', 'ดราม่า', 'ไซไฟ', 'สยองขวัญ', 'อาชญากรรม', 'โรแมนติก', 'แอ็คชั่น'];
+const GENRES = [
+  { label: 'ทั้งหมด', slug: null },
+  { label: 'ดราม่า', slug: 'drama' },
+  { label: 'ไซไฟ', slug: 'sci-fi' },
+  { label: 'สยองขวัญ', slug: 'horror' },
+  { label: 'อาชญากรรม', slug: 'crime' },
+  { label: 'โรแมนติก', slug: 'romance' },
+  { label: 'แอ็คชั่น', slug: 'action' },
+] as const;
 
-  const filteredMovies = useMemo(() => {
-    if (activeGenre === 'ทั้งหมด') return initialMovies;
-    return initialMovies.filter(movie => movie.genre && movie.genre.includes(activeGenre));
-  }, [activeGenre, initialMovies]);
+export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
+  const [activeSlug, setActiveSlug] = useState<string | null>(null);
+
+  const filteredMovies = useMemo(
+    () =>
+      activeSlug === null
+        ? initialMovies
+        : initialMovies.filter((movie) =>
+            movie.genres.some((g) => g.slug === activeSlug),
+          ),
+    [activeSlug, initialMovies],
+  );
 
   return (
     <div className={styles.container}>
@@ -44,13 +57,13 @@ export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
       <main className={styles.mainContent}>
         <div className={styles.filterContainer}>
           <div className={styles.genreChips}>
-            {genres.map(genre => (
+            {GENRES.map(({ label, slug }) => (
               <button
-                key={genre}
-                className={`${styles.chip} ${activeGenre === genre ? styles.activeChip : ''}`}
-                onClick={() => setActiveGenre(genre)}
+                key={label}
+                className={`${styles.chip} ${activeSlug === slug ? styles.activeChip : ''}`}
+                onClick={() => setActiveSlug(slug)}
               >
-                {genre}
+                {label}
               </button>
             ))}
           </div>

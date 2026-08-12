@@ -20,6 +20,12 @@ export interface Season {
   episodes: Episode[];
 }
 
+export interface Genre {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface Movie {
   id: string;
   title: string;
@@ -28,7 +34,7 @@ export interface Movie {
   trailerUrl: string | null;
   year: number;
   contentRating: string;
-  genre: string;
+  genres: Genre[];
   seasons?: Season[];
 }
 

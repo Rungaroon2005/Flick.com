@@ -85,6 +85,154 @@ async function main() {
     },
   });
 
+  const neephee = await prisma.movie.create({
+    data: {
+      id: 'neephee',
+      title: 'หนีผี',
+      description: 'กลุ่มเพื่อนติดค้างในบ้านร้างกลางป่า และต้องเอาชีวิตรอดจากวิญญาณที่สิงสู่อยู่ที่นั่นให้ได้ก่อนรุ่งสาง',
+      posterUrl: '/posters/neephee.jpg',
+      year: 2025,
+      contentRating: 'ผู้ใหญ่',
+      status: ContentStatus.PUBLISHED,
+      genres: {
+        create: [{
+          genre: {
+            connectOrCreate: {
+              where: { slug: 'horror' },
+              create: { name: 'สยองขวัญ', slug: 'horror' }
+            }
+          }
+        }]
+      },
+      seasons: {
+        create: [
+          {
+            seasonNumber: 1,
+            title: 'ซีซั่น 1',
+            episodeCount: 2,
+            episodes: {
+              create: [
+                { episodeNumber: 1, title: 'คืนแรก', description: 'ตอนที่ 1', durationMinutes: 12, thumbnailUrl: '/posters/neephee.jpg', coinCost: 0, releaseDate: new Date() },
+                { episodeNumber: 2, title: 'เสียงเรียก', description: 'ตอนที่ 2', durationMinutes: 12, thumbnailUrl: '/posters/neephee.jpg', coinCost: 10, releaseDate: new Date() },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  const ngao = await prisma.movie.create({
+    data: {
+      id: 'ngao',
+      title: 'เงา',
+      description: 'นักสืบหญิงไล่ล่าองค์กรอาชญากรรมที่อยู่เบื้องหลังคดีฆาตกรรมต่อเนื่องกลางกรุงเทพฯ',
+      posterUrl: '/posters/ngao.jpg',
+      year: 2025,
+      contentRating: 'ผู้ใหญ่',
+      status: ContentStatus.PUBLISHED,
+      genres: {
+        create: [{
+          genre: {
+            connectOrCreate: {
+              where: { slug: 'crime' },
+              create: { name: 'อาชญากรรม', slug: 'crime' }
+            }
+          }
+        }]
+      },
+      seasons: {
+        create: [
+          {
+            seasonNumber: 1,
+            title: 'ซีซั่น 1',
+            episodeCount: 2,
+            episodes: {
+              create: [
+                { episodeNumber: 1, title: 'ร่องรอย', description: 'ตอนที่ 1', durationMinutes: 15, thumbnailUrl: '/posters/ngao.jpg', coinCost: 0, releaseDate: new Date() },
+                { episodeNumber: 2, title: 'ผู้ต้องสงสัย', description: 'ตอนที่ 2', durationMinutes: 15, thumbnailUrl: '/posters/ngao.jpg', coinCost: 10, releaseDate: new Date() },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  const rak = await prisma.movie.create({
+    data: {
+      id: 'rak',
+      title: 'รัก',
+      description: 'เรื่องราวความรักของหนุ่มสาวสองคนที่พบกันโดยบังเอิญ และต้องฝ่าฟันอุปสรรคเพื่อรักษาความสัมพันธ์ไว้',
+      posterUrl: '/posters/rak.jpg',
+      year: 2025,
+      contentRating: 'ทั่วไป',
+      status: ContentStatus.PUBLISHED,
+      genres: {
+        create: [{
+          genre: {
+            connectOrCreate: {
+              where: { slug: 'romance' },
+              create: { name: 'โรแมนติก', slug: 'romance' }
+            }
+          }
+        }]
+      },
+      seasons: {
+        create: [
+          {
+            seasonNumber: 1,
+            title: 'ซีซั่น 1',
+            episodeCount: 2,
+            episodes: {
+              create: [
+                { episodeNumber: 1, title: 'พบกันครั้งแรก', description: 'ตอนที่ 1', durationMinutes: 13, thumbnailUrl: '/posters/rak.jpg', coinCost: 0, releaseDate: new Date() },
+                { episodeNumber: 2, title: 'สัญญาใจ', description: 'ตอนที่ 2', durationMinutes: 13, thumbnailUrl: '/posters/rak.jpg', coinCost: 10, releaseDate: new Date() },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  const sena = await prisma.movie.create({
+    data: {
+      id: 'sena',
+      title: 'ปฏิบัติการเสนา',
+      description: 'หน่วยรบพิเศษต้องบุกฝ่าแนวข้าศึกเพื่อกู้ตัวประกันก่อนที่ทุกอย่างจะสายเกินไป',
+      posterUrl: '/posters/sena.jpg',
+      year: 2025,
+      contentRating: 'ผู้ใหญ่',
+      status: ContentStatus.PUBLISHED,
+      genres: {
+        create: [{
+          genre: {
+            connectOrCreate: {
+              where: { slug: 'action' },
+              create: { name: 'แอ็คชั่น', slug: 'action' }
+            }
+          }
+        }]
+      },
+      seasons: {
+        create: [
+          {
+            seasonNumber: 1,
+            title: 'ซีซั่น 1',
+            episodeCount: 2,
+            episodes: {
+              create: [
+                { episodeNumber: 1, title: 'บุกเดี่ยว', description: 'ตอนที่ 1', durationMinutes: 16, thumbnailUrl: '/posters/sena.jpg', coinCost: 0, releaseDate: new Date() },
+                { episodeNumber: 2, title: 'ภารกิจสุดท้าย', description: 'ตอนที่ 2', durationMinutes: 16, thumbnailUrl: '/posters/sena.jpg', coinCost: 10, releaseDate: new Date() },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  });
+
   console.log('Database seeded successfully!');
 }
 

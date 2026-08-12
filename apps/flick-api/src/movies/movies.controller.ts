@@ -22,6 +22,12 @@ export class MoviesController {
   }
 
   @Public()
+  @Get(':id/similar')
+  findSimilar(@Param('id') id: string) {
+    return this.moviesService.findSimilar(id);
+  }
+
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.moviesService.findOne(id);

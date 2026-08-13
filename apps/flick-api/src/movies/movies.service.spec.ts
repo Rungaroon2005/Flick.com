@@ -95,6 +95,51 @@ describe('MoviesService', () => {
     expect(movie.genres).toEqual([{ id: 'g1', name: 'ดราม่า', slug: 'drama' }]);
   });
 
+  // Regression coverage for Task 2.5: videoUrl is the one piece of data
+  // that actually lets someone watch a video, and it must be reachable
+  // ONLY through GET /playback/:episodeId/authorize — never through the
+  // movie/episode list endpoints. A non-null videoUrl is used here (not
+  // the all-null seed-data shape) specifically so this test can tell
+  // "the key was deleted" apart from "the key was always null" — the
+  // whole point of the toDto fix was deleting the key, not nulling it.
+  it('strips videoUrl from every episode in findAll (never just nulls it)', async () => {
+    prismaMock.movie.findMany.mockResolvedValue([
+      {
+        id: 'm1',
+        genres: [],
+        seasons: [
+          {
+            id: 's1',
+            episodes: [
+              { id: 'e1', title: 'Ep 1', videoUrl: 'SHOULD-NOT-LEAK' },
+            ],
+          },
+        ],
+      },
+    ]);
+    const [movie] = await service.findAll();
+    const [episode] = movie.seasons[0].episodes;
+    expect(episode).not.toHaveProperty('videoUrl');
+    expect(JSON.stringify(movie)).not.toContain('SHOULD-NOT-LEAK');
+  });
+
+  it('strips videoUrl from every episode in findOne (never just nulls it)', async () => {
+    prismaMock.movie.findFirst.mockResolvedValue({
+      id: 'm1',
+      genres: [],
+      seasons: [
+        {
+          id: 's1',
+          episodes: [{ id: 'e1', title: 'Ep 1', videoUrl: 'SHOULD-NOT-LEAK' }],
+        },
+      ],
+    });
+    const movie = await service.findOne('m1');
+    const [episode] = movie.seasons[0].episodes;
+    expect(episode).not.toHaveProperty('videoUrl');
+    expect(JSON.stringify(movie)).not.toContain('SHOULD-NOT-LEAK');
+  });
+
   it('excludes draft and soft-deleted movies from findAll', async () => {
     cacheManager.get.mockResolvedValue(undefined);
     prismaMock.movie.findMany.mockResolvedValue([]);

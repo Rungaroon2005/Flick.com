@@ -1266,7 +1266,7 @@ Downloads require `expiresAt` (non-nullable). Set it to `now + 30 days` and reje
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('treats removing an absent bookmark as a successful no-op', async () => {
@@ -1288,15 +1288,17 @@ it('refuses to record a download for an unauthorized episode', async () => {
 });
 ```
 
-Run: `npx jest engagement` — Expected: FAIL.
+Run: `npx jest engagement` — Expected: FAIL. Verified: 3 brief-mandated tests plus 8 additional tests written up front (13 total after fix round 1), covering bookmark upsert idempotency, bookmarks list, completion above/below the 90% threshold, continue-watching query shape and `videoUrl`-leak prevention, download upsert idempotency with `expiresAt` refresh, download no-op removal, downloads list, and (fix round 1) genre-flattening on bookmarked/continue-watching movies. All failed pre-implementation as expected.
 
-- [ ] **Step 2: Implement the module, service, controller, and DTO**
+- [x] **Step 2: Implement the module, service, controller, and DTO**
 
-- [ ] **Step 3: Run the tests**
+Implemented `engagement.service.ts`/`controller.ts`/`module.ts` plus registration in `app.module.ts`. `addDownload` uses `prisma.download.upsert` (not `create`) on the `userId_episodeId` unique key — required beyond the brief's literal text since `Download` has `@@unique([userId, episodeId])` and a plain `create` would throw an unhandled P2002 on a repeat `PUT`, violating the same idempotent-PUT principle applied to bookmarks/watch-history; `update: { expiresAt }` refreshes the 30-day window on a repeat download-tap.
 
-Run: `npx jest engagement` — Expected: PASS.
+- [x] **Step 3: Run the tests**
 
-- [ ] **Step 4: Verify idempotency against a live API**
+Run: `npx jest engagement` — Expected: PASS. Verified: 13/13 pass; full suite 48/48 pass; `tsc --noEmit` and `eslint` clean on all new/modified files.
+
+- [x] **Step 4: Verify idempotency against a live API**
 
 ```bash
 curl -s -b /tmp/c.txt -X PUT localhost:3001/me/bookmarks/sathu
@@ -1304,12 +1306,16 @@ curl -s -b /tmp/c.txt -X PUT localhost:3001/me/bookmarks/sathu     # second call
 curl -s -b /tmp/c.txt localhost:3001/me/bookmarks | jq 'length'    # expect 1, not 2
 ```
 
-- [ ] **Step 5: Commit**
+Verified live against the real API + Postgres: bookmark PUT twice → `GET /me/bookmarks` returns exactly 1. Additionally verified (beyond the brief) download PUT twice on an authorized episode → `GET /me/downloads` returns exactly 1 row, second PUT returns 200 (not 500), and `expiresAt` advances on the repeat call, confirming the upsert's `update` branch actually fires; and a PUT against an unauthorized (coin-gated, unlocked) episode → `403 Forbidden`, confirming `PlaybackService.authorize` genuinely gates the write.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src
 git commit -m "feat(api): add bookmarks, watch history, and downloads endpoints"
 ```
+
+Committed as `1fcfb22`. Task reviewer found spec compliance ✅ full pass on every requirement, plus one Important code-quality finding: `getBookmarks`/`getContinueWatching` returned movies without the genre-flattening `MoviesService.toDto` applies elsewhere (`movie.genres` would be `undefined` on the wire, breaking frontend code that calls `.genres.some(...)` unguarded — same bug class as Task 2.1). Fixed in round 1 (commit `fed593f`): exported `GENRES_INCLUDE` from `movies.service.ts` and added a shared `flattenMovieGenres` helper in `engagement.service.ts`, applied to both endpoints, with new tests seeding the raw join-table shape to prove the fix is real. Scoped re-review confirmed the fix resolves the finding with no regressions (13/13 engagement tests, 48/48 full suite). Two Minor findings deferred to the SDD ledger for the final whole-branch review: missing `deletedAt: null` filtering on the episode lookup in `updateProgress` and on movies returned by `getBookmarks` (soft-deleted/unpublished content could still appear in a user's bookmarks/watch-history).
 
 ---
 

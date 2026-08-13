@@ -1028,7 +1028,9 @@ return active !== null;
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
+
+Also added a 4th test asserting the row lock is acquired before the active-subscription check (see Step 2 note).
 
 ```ts
 it('grants exactly 7 days for the weekly plan', async () => {
@@ -1056,13 +1058,15 @@ it('treats an expired subscription as inactive', async () => {
 
 Run: `npx jest subscriptions` — Expected: FAIL.
 
-- [ ] **Step 2: Implement the config constants, DTO, service, controller, and module**
+- [x] **Step 2: Implement the config constants, DTO, service, controller, and module**
 
-- [ ] **Step 3: Run the tests**
+Proactively hardened beyond the brief's literal text: `create()`'s "reject a second ACTIVE subscription" check was the exact same check-then-create race Task 2.3 had to fix reactively (no unique constraint backstops it in the schema). Folded in the same `SELECT ... FOR UPDATE` row-lock pattern from `WalletService` before dispatching this task, rather than waiting for review to catch it again. First task on this branch to get concurrency-hardening right on the first attempt.
+
+- [x] **Step 3: Run the tests**
 
 Run: `npx jest subscriptions` — Expected: PASS.
 
-- [ ] **Step 4: Verify the duration bug is dead**
+- [x] **Step 4: Verify the duration bug is dead**
 
 ```bash
 curl -s -b /tmp/c.txt -X POST localhost:3001/subscriptions \
@@ -1072,7 +1076,9 @@ curl -s -o /dev/null -w "%{http_code}\n" -b /tmp/c.txt -X POST localhost:3001/su
   -H 'content-type: application/json' -d '{"planId":"vip-weekly"}'   # expect 400
 ```
 
-- [ ] **Step 5: Commit**
+Controller independently re-verified beyond this: confirmed the 7-day duration directly, confirmed `vip-weekly` rejected at the DTO layer (400, before the service even runs), confirmed 409 on a duplicate active subscription, and fired two genuinely concurrent `POST /subscriptions` requests (backgrounded curl + wait) for the same user — exactly one `201`, one `409`, and a direct `SELECT COUNT(*) WHERE status='ACTIVE'` confirmed exactly one row, not two.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src

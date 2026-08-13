@@ -29,7 +29,17 @@ const MOVIE_LIST_INCLUDE = {
 type MovieWithRelations = Prisma.MovieGetPayload<{
   include: typeof MOVIE_LIST_INCLUDE;
 }>;
-type MovieDto = Omit<MovieWithRelations, 'genres'> & { genres: Genre[] };
+type SeasonWithEpisodes = MovieWithRelations['seasons'][number];
+type EpisodeWithoutVideoUrl = Omit<
+  SeasonWithEpisodes['episodes'][number],
+  'videoUrl'
+>;
+type MovieDto = Omit<MovieWithRelations, 'genres' | 'seasons'> & {
+  genres: Genre[];
+  seasons: (Omit<SeasonWithEpisodes, 'episodes'> & {
+    episodes: EpisodeWithoutVideoUrl[];
+  })[];
+};
 
 @Injectable()
 export class MoviesService {
@@ -41,11 +51,35 @@ export class MoviesService {
   ) {}
 
   // Flattens the MovieGenre join-table shape (`{ genres: [{ genre: {...} }] }`)
-  // into the wire shape the frontend expects (`{ genres: Genre[] }`). Applied
-  // to every endpoint that returns a movie so the join table never leaks.
-  private toDto<T extends { genres: { genre: Genre }[] }>(movie: T) {
+  // into the wire shape the frontend expects (`{ genres: Genre[] }`), AND
+  // strips `videoUrl` off every nested episode. `videoUrl` is the one piece
+  // of data that actually lets someone watch a video; it must be reachable
+  // ONLY through GET /playback/:episodeId/authorize (Task 2.5) — never via
+  // the movie/episode list endpoints. The key is deleted entirely (not set
+  // to `null`) so its mere presence in the JSON can't leak information once
+  // real videoUrls exist (the current all-null seed data makes a `null`
+  // check alone insufficient to catch this). Applied to every endpoint that
+  // returns a movie, via `findAll`/`findOne`/`findSimilar`/`create` all
+  // routing through this one method.
+  private toDto<
+    T extends { genres: { genre: Genre }[]; seasons?: SeasonWithEpisodes[] },
+  >(movie: T) {
     const { genres, ...rest } = movie;
-    return { ...rest, genres: genres.map((g) => g.genre) };
+    const base = { ...rest, genres: genres.map((g) => g.genre) };
+    if (!Array.isArray(base.seasons)) {
+      return base;
+    }
+    return {
+      ...base,
+      seasons: base.seasons.map((season) => ({
+        ...season,
+        episodes: season.episodes.map((episode) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { videoUrl: _videoUrl, ...episodeRest } = episode;
+          return episodeRest;
+        }),
+      })),
+    };
   }
 
   async create(createMovieDto: CreateMovieDto) {

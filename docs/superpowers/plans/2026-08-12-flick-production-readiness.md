@@ -1148,7 +1148,7 @@ async authorize(userId: string, episodeId: string): Promise<PlaybackAuthorizatio
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('allows a free episode without touching subscription or wallet', async () => {
@@ -1177,13 +1177,15 @@ it('lets an active subscriber watch a premium episode', async () => {
 
 Run: `npx jest playback` — Expected: FAIL.
 
-- [ ] **Step 2: Implement the module, service, and controller; strip `videoUrl` from `MoviesService.toDto`**
+- [x] **Step 2: Implement the module, service, and controller; strip `videoUrl` from `MoviesService.toDto`**
 
-- [ ] **Step 3: Run the tests**
+The `toDto` fix genuinely deletes the `videoUrl` key (destructure-omit) rather than nulling it — required since the seed data is always-null, so a naive null-check would pass while still leaking a real URL once one exists.
+
+- [x] **Step 3: Run the tests**
 
 Run: `npx jest playback` — Expected: PASS.
 
-- [ ] **Step 4: Verify no other endpoint leaks the URL**
+- [x] **Step 4: Verify no other endpoint leaks the URL**
 
 ```bash
 curl -s localhost:3001/movies | grep -c videoUrl                   # expect 0
@@ -1192,7 +1194,9 @@ curl -s -b /tmp/c.txt localhost:3001/playback/<premium-id>/authorize | jq '.allo
 # expect false, null
 ```
 
-- [ ] **Step 5: Commit**
+Since the seed data's `videoUrl` is always null, this check alone can't distinguish "leak fixed" from "nothing to leak." Both the implementer and the controller independently set a real, distinctive `videoUrl` on a premium episode via SQL, confirmed it was completely absent (not just null) from `/movies` and `/movies/:id`, confirmed a denied `/playback/.../authorize` leaked nothing, then unlocked the episode via the real wallet endpoint and confirmed the exact secret was returned only once access was genuinely granted — each verification run used a different secret value. Task review then found this property had zero automated regression coverage; a follow-up fix round added `findAll`/`findOne` tests asserting `.not.toHaveProperty('videoUrl')` with real RED→GREEN proof.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src

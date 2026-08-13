@@ -1,10 +1,24 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Genre } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { PlaybackService } from '../playback/playback.service';
+import { GENRES_INCLUDE } from '../movies/movies.service';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const COMPLETION_THRESHOLD = 0.9;
 const CONTINUE_WATCHING_LIMIT = 10;
+
+// Flattens the MovieGenre join-table shape (`{ genres: [{ genre: {...} }] }`)
+// into the wire shape the frontend expects (`{ genres: Genre[] }`) — the
+// same transform `MoviesService.toDto` applies to every other movie-bearing
+// endpoint. Bookmarks and continue-watching return movies too, so they need
+// it as well or `movie.genres` is `undefined` on the wire.
+function flattenMovieGenres<T extends { genres: { genre: Genre }[] }>(
+  movie: T,
+) {
+  const { genres, ...rest } = movie;
+  return { ...rest, genres: genres.map((g) => g.genre) };
+}
 
 /**
  * Bookmarks, watch history, and downloads for the current user. Everything
@@ -43,9 +57,9 @@ export class EngagementService {
   async getBookmarks(userId: string) {
     const bookmarks = await this.prisma.bookmark.findMany({
       where: { userId },
-      include: { movie: true },
+      include: { movie: { include: { genres: GENRES_INCLUDE } } },
     });
-    return bookmarks.map((bookmark) => bookmark.movie);
+    return bookmarks.map((bookmark) => flattenMovieGenres(bookmark.movie));
   }
 
   // --- Watch history / continue watching --------------------------------
@@ -77,7 +91,13 @@ export class EngagementService {
       orderBy: { updatedAt: 'desc' },
       take: CONTINUE_WATCHING_LIMIT,
       include: {
-        episode: { include: { season: { include: { movie: true } } } },
+        episode: {
+          include: {
+            season: {
+              include: { movie: { include: { genres: GENRES_INCLUDE } } },
+            },
+          },
+        },
       },
     });
     return records.map((record) => this.toContinueWatchingDto(record));
@@ -88,10 +108,11 @@ export class EngagementService {
   // `PlaybackService.authorize` (see movies.service.ts `toDto` for the
   // same rule applied to the movie list). We also hoist `movie` out of the
   // nested `episode.season.movie` join so the wire shape matches
-  // `{ movie, episode, progressSeconds }` per the API contract.
+  // `{ movie, episode, progressSeconds }` per the API contract, and flatten
+  // `movie.genres` the same way `MoviesService.toDto` does.
   private toContinueWatchingDto(record: {
     episode: {
-      season: { movie: unknown };
+      season: { movie: { genres: { genre: Genre }[]; [key: string]: unknown } };
       videoUrl: string | null;
       [key: string]: unknown;
     };
@@ -100,7 +121,11 @@ export class EngagementService {
     const { episode, ...rest } = record;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { season, videoUrl: _videoUrl, ...episodeRest } = episode;
-    return { ...rest, episode: episodeRest, movie: season.movie };
+    return {
+      ...rest,
+      episode: episodeRest,
+      movie: flattenMovieGenres(season.movie),
+    };
   }
 
   // --- Downloads ---------------------------------------------------------

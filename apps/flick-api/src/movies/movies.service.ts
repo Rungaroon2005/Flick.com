@@ -19,7 +19,7 @@ const EPISODES_INCLUDE = {
   orderBy: { episodeNumber: 'asc' as const },
 };
 
-const GENRES_INCLUDE = { include: { genre: true as const } };
+export const GENRES_INCLUDE = { include: { genre: true as const } };
 
 const MOVIE_LIST_INCLUDE = {
   genres: GENRES_INCLUDE,

@@ -52,12 +52,38 @@ describe('EngagementService', () => {
 
   it('returns the movies behind a user bookmarks', async () => {
     prisma.bookmark.findMany.mockResolvedValue([
-      { movie: { id: 'm1', title: 'A' } },
-      { movie: { id: 'm2', title: 'B' } },
+      { movie: { id: 'm1', title: 'A', genres: [] } },
+      { movie: { id: 'm2', title: 'B', genres: [] } },
     ]);
     await expect(service.getBookmarks('u1')).resolves.toEqual([
-      { id: 'm1', title: 'A' },
-      { id: 'm2', title: 'B' },
+      { id: 'm1', title: 'A', genres: [] },
+      { id: 'm2', title: 'B', genres: [] },
+    ]);
+  });
+
+  it('flattens the movie genre join table on bookmarked movies', async () => {
+    prisma.bookmark.findMany.mockResolvedValue([
+      {
+        movie: {
+          id: 'm1',
+          title: 'A',
+          genres: [
+            { genre: { id: 'g1', slug: 'action', name: 'Action' } },
+            { genre: { id: 'g2', slug: 'drama', name: 'Drama' } },
+          ],
+        },
+      },
+    ]);
+    const result = await service.getBookmarks('u1');
+    expect(result).toEqual([
+      {
+        id: 'm1',
+        title: 'A',
+        genres: [
+          { id: 'g1', slug: 'action', name: 'Action' },
+          { id: 'g2', slug: 'drama', name: 'Drama' },
+        ],
+      },
     ]);
   });
 
@@ -105,13 +131,38 @@ describe('EngagementService', () => {
         episode: {
           id: 'e1',
           videoUrl: 'SECRET-URL',
-          season: { movie: { id: 'm1', title: 'A' } },
+          season: { movie: { id: 'm1', title: 'A', genres: [] } },
         },
       },
     ]);
     const result = await service.getContinueWatching('u1');
     expect(JSON.stringify(result)).not.toContain('SECRET-URL');
     expect(result[0].episode).not.toHaveProperty('videoUrl');
+  });
+
+  it('flattens the movie genre join table on continue-watching movies', async () => {
+    prisma.watchHistory.findMany.mockResolvedValue([
+      {
+        progressSeconds: 42,
+        episode: {
+          id: 'e1',
+          videoUrl: 'SECRET-URL',
+          season: {
+            movie: {
+              id: 'm1',
+              title: 'A',
+              genres: [{ genre: { id: 'g1', slug: 'action', name: 'Action' } }],
+            },
+          },
+        },
+      },
+    ]);
+    const result = await service.getContinueWatching('u1');
+    expect(result[0].movie).toEqual({
+      id: 'm1',
+      title: 'A',
+      genres: [{ id: 'g1', slug: 'action', name: 'Action' }],
+    });
   });
 
   // --- Downloads -------------------------------------------------------
@@ -142,7 +193,9 @@ describe('EngagementService', () => {
 
     expect(prisma.download.upsert).toHaveBeenCalledTimes(1);
     const call = prisma.download.upsert.mock.calls[0][0];
-    expect(call.where).toEqual({ userId_episodeId: { userId: 'u1', episodeId: 'e1' } });
+    expect(call.where).toEqual({
+      userId_episodeId: { userId: 'u1', episodeId: 'e1' },
+    });
     expect(call.create.expiresAt.getTime()).toBeGreaterThanOrEqual(
       before + 30 * 24 * 60 * 60 * 1000 - 1000,
     );

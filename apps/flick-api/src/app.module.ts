@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { WalletModule } from './wallet/wallet.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { WalletModule } from './wallet/wallet.module';
     UsersModule,
     AuthModule,
     WalletModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController, PlansController],
   providers: [

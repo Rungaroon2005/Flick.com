@@ -1,6 +1,25 @@
 // Subscription plans and coin pack configuration
 // Extracted from plans.controller.ts to allow updates without code changes
 
+/**
+ * Single source of truth for valid paid plan ids and their durations.
+ *
+ * This is what closes the revenue bug in the legacy frontend flow: the old
+ * client-side code sent `'vip-weekly'` while its OWN duration map was keyed
+ * `weekly`/`monthly`/`trial`, so the lookup silently fell through to
+ * `durations.monthly` — ฿49 bought 30 days instead of 7. By deriving
+ * `PaidPlanId` from this object's keys, any caller that passes a plan id
+ * not present here is a compile-time type error (in TS callers) and a
+ * runtime 400 (via the DTO's `@IsIn` below) — it can never again silently
+ * default to the wrong duration.
+ */
+export const PLAN_DURATIONS_MS = {
+  weekly: 7 * 24 * 60 * 60 * 1000,
+  monthly: 30 * 24 * 60 * 60 * 1000,
+} as const;
+
+export type PaidPlanId = keyof typeof PLAN_DURATIONS_MS;
+
 export const SUBSCRIPTION_PLANS = [
   {
     id: 'free',

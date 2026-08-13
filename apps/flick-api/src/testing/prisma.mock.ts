@@ -8,7 +8,11 @@ export interface PrismaMock {
   };
   user: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
   userCoin: { create: jest.Mock; findMany: jest.Mock; findFirst: jest.Mock };
-  subscription: { findFirst: jest.Mock; create: jest.Mock };
+  subscription: {
+    findFirst: jest.Mock;
+    create: jest.Mock;
+    update: jest.Mock;
+  };
   episode: { findUnique: jest.Mock; findFirst: jest.Mock };
   bookmark: {
     findMany: jest.Mock;
@@ -36,7 +40,11 @@ export const createPrismaMock = (): PrismaMock => {
       findMany: jest.fn(),
       findFirst: jest.fn(),
     },
-    subscription: { findFirst: jest.fn(), create: jest.fn() },
+    subscription: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
     episode: { findUnique: jest.fn(), findFirst: jest.fn() },
     bookmark: {
       findMany: jest.fn(),

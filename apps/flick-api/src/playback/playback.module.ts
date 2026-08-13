@@ -9,5 +9,6 @@ import { WalletModule } from '../wallet/wallet.module';
   imports: [SubscriptionsModule, WalletModule],
   controllers: [PlaybackController],
   providers: [PlaybackService, PrismaService],
+  exports: [PlaybackService],
 })
 export class PlaybackModule {}

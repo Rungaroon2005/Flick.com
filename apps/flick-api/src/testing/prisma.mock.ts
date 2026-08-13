@@ -13,14 +13,28 @@ export interface PrismaMock {
     create: jest.Mock;
     update: jest.Mock;
   };
-  episode: { findUnique: jest.Mock; findFirst: jest.Mock };
+  episode: {
+    findUnique: jest.Mock;
+    findFirst: jest.Mock;
+    findUniqueOrThrow: jest.Mock;
+  };
   bookmark: {
     findMany: jest.Mock;
     create: jest.Mock;
     delete: jest.Mock;
     findUnique: jest.Mock;
+    upsert: jest.Mock;
+    deleteMany: jest.Mock;
   };
-  watchHistory: { upsert: jest.Mock; findMany: jest.Mock };
+  watchHistory: {
+    upsert: jest.Mock;
+    findMany: jest.Mock;
+  };
+  download: {
+    findMany: jest.Mock;
+    upsert: jest.Mock;
+    deleteMany: jest.Mock;
+  };
   $transaction: jest.Mock;
   $queryRaw: jest.Mock;
 }
@@ -45,14 +59,28 @@ export const createPrismaMock = (): PrismaMock => {
       create: jest.fn(),
       update: jest.fn(),
     },
-    episode: { findUnique: jest.fn(), findFirst: jest.fn() },
+    episode: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
+    },
     bookmark: {
       findMany: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
       findUnique: jest.fn(),
+      upsert: jest.fn(),
+      deleteMany: jest.fn(),
     },
-    watchHistory: { upsert: jest.fn(), findMany: jest.fn() },
+    watchHistory: {
+      upsert: jest.fn(),
+      findMany: jest.fn(),
+    },
+    download: {
+      findMany: jest.fn(),
+      upsert: jest.fn(),
+      deleteMany: jest.fn(),
+    },
     // Pass the SAME mock instance into the callback so that stubs set up
     // on `prisma.*` in a test (e.g. `prisma.user.findUnique.mockResolvedValue`)
     // are visible as `tx.*` inside code under test that runs through

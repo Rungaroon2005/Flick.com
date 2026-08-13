@@ -12,6 +12,7 @@ import { RolesGuard } from './auth/roles.guard';
 import { WalletModule } from './wallet/wallet.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PlaybackModule } from './playback/playback.module';
+import { EngagementModule } from './engagement/engagement.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PlaybackModule } from './playback/playback.module';
     WalletModule,
     SubscriptionsModule,
     PlaybackModule,
+    EngagementModule,
   ],
   controllers: [AppController, PlansController],
   providers: [

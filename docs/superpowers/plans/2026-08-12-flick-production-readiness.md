@@ -1783,30 +1783,50 @@ Write both `.env.example` files documenting `DATABASE_URL`, `JWT_SECRET`, `JWT_E
 
 **Verification:**
 
-- [ ] **Step 1: Prove the fallback exists**
+- [x] **Step 1: Prove the fallback exists**
 
 Run: `grep -n "super-secret-flick-key" apps/flick-api/src/auth/auth.module.ts` — Expected: line 14.
 
-- [ ] **Step 2: Implement validation, async JWT config, and env-driven CORS**
+Verified before implementation: the committed fallback was present in the
+async JWT factory.
 
-- [ ] **Step 3: Verify it fails loudly**
+- [x] **Step 2: Implement validation, async JWT config, and env-driven CORS**
+
+Added boot-time validation, explicit-origin (including comma-separated)
+credentialed CORS, ConfigService-backed JWT secret/TTL and port reads, forced-in
+both ignored `.env.example` files, and documented the session impact of secret
+rotation. Validation also rejects `CORS_ORIGIN=*`, which browsers cannot use
+with credentialed cookies.
+
+- [x] **Step 3: Verify it fails loudly**
 
 Run: `cd apps/flick-api && env -u JWT_SECRET npm run start`
 Expected: the process exits with `Missing required environment variables: JWT_SECRET`.
 
-- [ ] **Step 4: Verify the secret is gone and a short one is rejected**
+Verified with `JWT_SECRET='' npm run start`. An explicit empty override was
+used instead of `env -u` because this worktree has an ignored `.env`, which
+would otherwise repopulate the unset key before validation. The process exited
+1 with exactly the expected missing-variable error and did not bind a port.
+
+- [x] **Step 4: Verify the secret is gone and a short one is rejected**
 
 ```bash
 grep -rn "super-secret-flick-key" apps/flick-api/src/     # expect no matches
 JWT_SECRET=short npm run start                            # expect the length error
 ```
 
-- [ ] **Step 5: Commit**
+Verified no fallback matches remain in `src/`; the short-secret boot exited 1
+with `JWT_SECRET must be at least 32 characters`. API typecheck, lint of all
+changed TypeScript, and the full 48-test Jest suite are clean.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api apps/flick-app/.env.example
 git commit -m "fix(api): fail fast on missing config and remove the committed JWT fallback secret"
 ```
+
+Committed as `35ba454`.
 
 ---
 

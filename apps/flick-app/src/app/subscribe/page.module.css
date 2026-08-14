@@ -136,6 +136,30 @@
   transition: all var(--transition-fast);
 }
 
+.selectBtn:disabled {
+  opacity: 0.45;
+  filter: grayscale(1);
+  cursor: not-allowed;
+}
+
+.unavailableNote {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.coinCardDisabled {
+  opacity: 0.45;
+  filter: grayscale(1);
+  cursor: not-allowed;
+}
+
+.coinCardDisabled:hover {
+  transform: none;
+  border-color: var(--border-light);
+}
+
 .btnFree {
   background: var(--border-light);
   color: var(--text-primary);

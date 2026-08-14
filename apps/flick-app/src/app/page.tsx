@@ -2,23 +2,23 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isLoggedIn } from '@/lib/auth';
+import { useAuth } from '@/components/AuthProvider';
 import styles from './page.module.css';
 
 export default function SplashPage() {
   const router = useRouter();
+  // Server-verified session (GET /auth/me), not a localStorage flag.
+  const { user, loading } = useAuth();
 
   useEffect(() => {
+    if (loading) return;
+
     const timer = setTimeout(() => {
-      if (isLoggedIn()) {
-        router.push('/home');
-      } else {
-        router.push('/login');
-      }
+      router.push(user ? '/home' : '/login');
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [router]);
+  }, [router, user, loading]);
 
   return (
     <div className={styles.container}>

@@ -1,14 +1,15 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import HomeClient from './HomeClient';
+import API_BASE_URL from '@/lib/api';
+import { getSession } from '@/lib/session';
 import { Movie } from '@/types';
 import styles from './page.module.css';
 
-// Ensure NEXT_PUBLIC_API_URL is available
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
 async function getMovies(): Promise<Movie[]> {
-  const res = await fetch(`${API_URL}/movies`, {
+  // Public catalogue data only — safe to share across users, unlike the session.
+  const res = await fetch(`${API_BASE_URL}/movies`, {
     next: { revalidate: 60 }, // ISR: Revalidate every 60 seconds
   });
   
@@ -20,6 +21,11 @@ async function getMovies(): Promise<Movie[]> {
 }
 
 export default async function HomePage() {
+  // Authorisation happens here, on the server, before any of this page is sent.
+  // redirect() throws, so nothing below runs for an unauthenticated request.
+  const session = await getSession();
+  if (!session) redirect('/login');
+
   let movies: Movie[] = [];
   let error: string | null = null;
 
@@ -34,7 +40,10 @@ export default async function HomePage() {
     <div className={styles.container}>
       {/* Top Bar (Server rendered) */}
       <header className={styles.header}>
-        <div className={styles.logo}>Flick</div>
+        <div className={styles.brand}>
+          <div className={styles.logo}>Flick</div>
+          <span className={styles.greeting}>สวัสดี, {session.displayName}</span>
+        </div>
         <div className={styles.headerIcons}>
           <Link href="/downloads" className={styles.iconButton}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">

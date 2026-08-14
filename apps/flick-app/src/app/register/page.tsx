@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { register } from '@/lib/auth';
+import { useAuth } from '@/components/AuthProvider';
 import styles from './page.module.css';
 
 interface RegisterFormData {
@@ -17,6 +18,7 @@ interface RegisterFormData {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { refresh } = useAuth();
   const [formData, setFormData] = useState<RegisterFormData>({
     name: '',
     email: '',
@@ -69,7 +71,8 @@ export default function RegisterPage() {
       });
       
       if (result.success) {
-        // Successful registration auto-logins the user in auth.js
+        // Registration sets the session cookie server-side; re-read it.
+        await refresh();
         router.push('/subscribe');
       } else {
         setError(result.error || 'การสมัครสมาชิกผิดพลาด');

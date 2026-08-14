@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { login } from '@/lib/auth';
+import { useAuth } from '@/components/AuthProvider';
 import styles from './page.module.css';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refresh } = useAuth();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -23,6 +25,8 @@ export default function LoginPage() {
     try {
       const result = await login(email, password);
       if (result.success) {
+        // Re-read the server session so the app reflects the new cookie.
+        await refresh();
         router.push('/home');
       } else {
         setError(result.error || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');

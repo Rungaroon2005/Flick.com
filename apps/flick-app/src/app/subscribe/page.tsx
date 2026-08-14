@@ -3,13 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import API_BASE_URL from '@/lib/api';
-import { subscribe, addCoins, isLoggedIn } from '@/lib/auth';
 import styles from './page.module.css';
 import { CoinPack } from '@/types';
 
+// TODO(Task 3.3): wire subscribing and coin top-ups to POST /subscriptions and
+// the /wallet endpoints. Until then the controls are disabled: the old handlers
+// wrote a fake subscription and a fake coin balance to localStorage and reported
+// "purchase successful" for a payment that never happened.
+const UNAVAILABLE_MSG = 'ยังไม่เปิดให้ชำระเงินในขณะนี้';
+
 export default function SubscribePage() {
   const router = useRouter();
-  const [toast, setToast] = useState('');
   const [coinPacks, setCoinPacks] = useState<CoinPack[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,31 +26,6 @@ export default function SubscribePage() {
         setError('ไม่สามารถโหลดแพ็กเกจได้');
       });
   }, []);
-
-  const handleSubscribe = (planId: string) => {
-    if (!isLoggedIn()) {
-      router.push('/login');
-      return;
-    }
-    
-    try {
-      subscribe(planId);
-      router.push('/home');
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleBuyCoins = (packId: string, amount: number) => {
-    if (!isLoggedIn()) {
-      router.push('/login');
-      return;
-    }
-    
-    addCoins(amount);
-    setToast(`ซื้อสำเร็จ! เพิ่ม ${amount} เหรียญ`);
-    setTimeout(() => setToast(''), 3000);
-  };
 
   return (
     <div className={styles.container}>
@@ -82,7 +61,7 @@ export default function SubscribePage() {
               <li><span className={styles.checkIcon}>✓</span>ความละเอียด 1080p</li>
               <li><span className={styles.checkIcon}>✓</span>ไม่มีโฆษณา</li>
             </ul>
-            <button className={`${styles.selectBtn} ${styles.btnWeekly}`} onClick={() => handleSubscribe('vip-weekly')}>
+            <button className={`${styles.selectBtn} ${styles.btnWeekly}`} disabled title={UNAVAILABLE_MSG}>
               สมัครสมาชิก
             </button>
           </div>
@@ -98,18 +77,20 @@ export default function SubscribePage() {
               <li><span className={styles.checkIcon}>✓</span>ไม่มีโฆษณา</li>
               <li><span className={styles.checkIcon}>✓</span>ดาวน์โหลดดูออฟไลน์ได้</li>
             </ul>
-            <button className={`${styles.selectBtn} ${styles.btnMonthly}`} onClick={() => handleSubscribe('vip-monthly')}>
+            <button className={`${styles.selectBtn} ${styles.btnMonthly}`} disabled title={UNAVAILABLE_MSG}>
               สมัครสมาชิก
             </button>
           </div>
         </div>
+        <p className={styles.unavailableNote}>{UNAVAILABLE_MSG}</p>
       </section>
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>เติมเหรียญ (สำหรับปลดล็อคตอน)</h2>
+        {error && <p className={styles.unavailableNote}>{error}</p>}
         <div className={styles.coinsGrid}>
           {coinPacks.map(pack => (
-            <div key={pack.id} className={styles.coinCard} onClick={() => handleBuyCoins(pack.id, pack.coins)}>
+            <div key={pack.id} className={`${styles.coinCard} ${styles.coinCardDisabled}`}>
               {pack.badge && <div className={styles.badge}>{pack.badge}</div>}
               <div className={styles.coinAmount}>
                 <span>🟡</span> {pack.coins}
@@ -118,9 +99,8 @@ export default function SubscribePage() {
             </div>
           ))}
         </div>
+        <p className={styles.unavailableNote}>{UNAVAILABLE_MSG}</p>
       </section>
-
-      {toast && <div className={styles.toast}>{toast}</div>}
     </div>
   );
 }

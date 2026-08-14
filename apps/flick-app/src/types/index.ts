@@ -1,3 +1,13 @@
+/** Mirrors AuthenticatedUser in apps/flick-api/src/auth/current-user.decorator.ts
+ *  — the body of GET /auth/me. */
+export interface AuthenticatedUser {
+  id: string;
+  email: string | null;
+  displayName: string;
+  role: 'USER' | 'ADMIN';
+  coinBalance: number;
+}
+
 export interface Episode {
   id: string;
   seasonId: string;

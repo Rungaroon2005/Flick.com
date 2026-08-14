@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import API_BASE_URL from '@/lib/api';
-import { hasActiveSubscription } from '@/lib/auth';
 import styles from './page.module.css';
 import { Movie } from '@/types';
 

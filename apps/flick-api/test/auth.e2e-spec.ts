@@ -44,6 +44,9 @@ describe('Auth (e2e)', () => {
       .set('Cookie', cookies)
       .expect(200);
 
-    expect((meRes.body as { email: string }).email).toBe(email);
+    const me = meRes.body as { email: string; displayName: string };
+    expect(me.email).toBe(email);
+    // The frontend session (Task 3.1) renders this; /auth/me must carry it.
+    expect(me.displayName).toBe('E2E Auth Test');
   });
 });

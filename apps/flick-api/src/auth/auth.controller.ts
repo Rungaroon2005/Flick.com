@@ -8,16 +8,31 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
+import ms from 'ms';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Public } from './public.decorator';
 import { CurrentUser } from './current-user.decorator';
 import type { AuthenticatedUser } from './current-user.decorator';
+import { DEFAULT_JWT_EXPIRES_IN } from './jwt.config';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  private readonly tokenMaxAge: number;
+
+  constructor(
+    private readonly authService: AuthService,
+    config: ConfigService,
+  ) {
+    const expiresIn = config.get<string>(
+      'JWT_EXPIRES_IN',
+      DEFAULT_JWT_EXPIRES_IN,
+    );
+    this.tokenMaxAge = ms(expiresIn as ms.StringValue);
+  }
 
   private setTokenCookie(res: Response, token: string) {
     res.cookie('access_token', token, {
@@ -25,11 +40,12 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: this.tokenMaxAge,
     });
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('register')
   async register(
     @Body() registerDto: RegisterDto,
@@ -43,6 +59,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(

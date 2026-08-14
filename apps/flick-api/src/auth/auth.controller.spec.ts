@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { ConfigService } from '@nestjs/config';
+import type { Response } from 'express';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -13,6 +15,10 @@ describe('AuthController', () => {
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: authService },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn().mockReturnValue('7d') },
+        },
       ],
     }).compile();
 
@@ -20,17 +26,25 @@ describe('AuthController', () => {
   });
 
   it('login strips access_token from response and sets cookie', async () => {
+    const cookie = jest.fn();
     const mockRes = {
-      cookie: jest.fn(),
-    } as any;
+      cookie,
+    } as unknown as Response;
     authService.login.mockResolvedValue({
       success: true,
       user: { id: 'u1', email: 'a@b.com', displayName: 'A' },
       access_token: 'tok123',
     });
-    const result = await controller.login({ email: 'a@b.com', password: 'pass' }, mockRes);
+    const result = await controller.login(
+      { email: 'a@b.com', password: 'pass' },
+      mockRes,
+    );
     expect(result).not.toHaveProperty('access_token');
     expect(result).toHaveProperty('success', true);
-    expect(mockRes.cookie).toHaveBeenCalledWith('access_token', 'tok123', expect.any(Object));
+    expect(cookie).toHaveBeenCalledWith(
+      'access_token',
+      'tok123',
+      expect.objectContaining({ maxAge: 7 * 24 * 60 * 60 * 1000 }),
+    );
   });
 });

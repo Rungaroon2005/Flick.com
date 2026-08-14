@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { UsersModule } from '../users/users.module';
+import { DEFAULT_JWT_EXPIRES_IN } from './jwt.config';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { UsersModule } from '../users/users.module';
       useFactory: (config: ConfigService): JwtModuleOptions => {
         const expiresIn = config.get<string>(
           'JWT_EXPIRES_IN',
-          '7d',
+          DEFAULT_JWT_EXPIRES_IN,
         ) as NonNullable<JwtModuleOptions['signOptions']>['expiresIn'];
         return {
           secret: config.getOrThrow<string>('JWT_SECRET'),

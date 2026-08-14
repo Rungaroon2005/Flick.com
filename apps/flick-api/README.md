@@ -84,7 +84,9 @@ every required value before boot. `JWT_SECRET` must contain at least 32
 characters. Rotating it deliberately invalidates every active session, so plan
 the rotation as a forced sign-in event. `CORS_ORIGIN` accepts a comma-separated
 allowlist of explicit frontend origins; wildcard origins are not compatible
-with credentialed cookies.
+with credentialed cookies. When the API is deployed behind a reverse proxy,
+set `TRUST_PROXY_HOPS` to the number of proxy hops (usually `1`) so per-IP rate
+limits see the real client; leave it at `0` for direct client connections.
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 

@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
+import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import InfoModal from './InfoModal';
@@ -75,9 +76,6 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
           {movie.posterUrl && (
              <img src={movie.posterUrl ?? undefined} alt={movie.title} className={styles.heroImage} />
           )}
-          <div className={styles.heroContent}>
-            <button className={styles.muteToggle} aria-label="Toggle mute">🔇</button>
-          </div>
         </div>
       </div>
       
@@ -95,14 +93,6 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
           </button>
           
           <div className={styles.actionIcons}>
-            <div className={styles.actionItem}>
-              <button className={styles.iconBtn} aria-label="Like">👍</button>
-              <span>ชื่นชอบ</span>
-            </div>
-            <div className={styles.actionItem}>
-              <button className={styles.iconBtn} aria-label="Share">📤</button>
-              <span>แชร์</span>
-            </div>
             <div className={styles.actionItem}>
               <button
                 className={styles.iconBtn}
@@ -135,24 +125,30 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
       <div className={styles.descriptionSection}>
         <h2 className={styles.seasonTitle}>{movie.title} ซีซั่นที่ {selectedSeason}</h2>
         <p className={styles.descriptionText}>{movie.description}</p>
-        <p className={styles.castText}>นักแสดง: เจมส์ จิรายุ, เบลล่า ราณี, ฯลฯ</p>
         <button className={styles.infoBtn} onClick={() => setShowInfo(true)}>ℹ ข้อมูลเพิ่มเติม</button>
       </div>
       
       <div className={styles.episodesContainer}>
         <div className={styles.seasonSelector}>
           <button 
+            type="button"
             className={styles.dropdownBtn}
             onClick={() => setSeasonDropdownOpen(!seasonDropdownOpen)}
+            aria-expanded={seasonDropdownOpen}
+            aria-haspopup="listbox"
+            aria-controls="season-options"
           >
             ซีซั่น {selectedSeason} ▼
           </button>
           <span className={styles.episodeCount}>{episodes.length} ตอน</span>
           
           {seasonDropdownOpen && (
-            <div className={styles.dropdownMenu}>
+            <div className={styles.dropdownMenu} id="season-options" role="listbox">
               {movie.seasons?.map(s => (
-                <div 
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={s.seasonNumber === selectedSeason}
                   key={s.id} 
                   className={styles.dropdownItem}
                   onClick={() => {
@@ -161,7 +157,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
                   }}
                 >
                   ซีซั่น {s.seasonNumber}
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -180,6 +176,9 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
                 </span>
                 <span className={styles.epInfo}>
                   <span className={styles.epTitle}>{ep.title}</span>
+                  {ep.coinCost > 0 && (
+                    <span className={styles.epCost}>ล็อก · {ep.coinCost} เหรียญ</span>
+                  )}
                   <span className={styles.epDuration}>{ep.durationMinutes} นาที</span>
                   <span className={styles.epDesc}>{ep.description}</span>
                 </span>
@@ -200,9 +199,9 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
         <h3 className={styles.similarTitle}>รายการที่คล้ายกัน</h3>
         <div className={styles.similarScroll}>
           {similarMovies.slice(0, 5).map(m => (
-            <div key={m.id} className={styles.similarItem} onClick={() => router.push(`/movie/${m.id}`)}>
+            <Link key={m.id} className={styles.similarItem} href={`/movie/${m.id}`}>
               <img src={m.posterUrl ?? undefined} alt={m.title} />
-            </div>
+            </Link>
           ))}
         </div>
       </div>

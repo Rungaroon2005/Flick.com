@@ -208,7 +208,14 @@
   margin-top: 0.5rem;
 }
 .dropdownItem {
+  display: block;
+  width: 100%;
   padding: 0.8rem 1rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 .dropdownItem:hover {
@@ -225,7 +232,8 @@
   align-items: center;
 }
 .episodeItem.locked {
-  opacity: 0.6;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--flick-red);
 }
 .episodePlayTarget {
   min-width: 0;
@@ -264,8 +272,13 @@
   color: var(--text-secondary);
   font-size: 0.8rem;
 }
+.epCost {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
 .epDesc {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 0.8rem;
   margin: 0.2rem 0 0 0;
   display: -webkit-box;

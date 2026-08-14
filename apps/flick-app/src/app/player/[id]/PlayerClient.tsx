@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError, apiFetch } from '@/lib/apiClient';
+import { useModalDismiss } from '@/hooks/useModalDismiss';
 import type { Episode, Movie, PlaybackAuthorization } from '@/types';
 import styles from './page.module.css';
 
@@ -33,6 +34,13 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
   const [unlocking, setUnlocking] = useState(false);
   const progressRef = useRef(0);
   const lastReportedRef = useRef(0);
+  const closeSettings = useCallback(() => setShowSettings(false), []);
+  const closeGate = useCallback(() => router.back(), [router]);
+  const settingsDialogRef = useModalDismiss<HTMLDivElement>(
+    closeSettings,
+    showSettings,
+  );
+  const gateDialogRef = useModalDismiss<HTMLDivElement>(closeGate, gate !== null);
 
   // Public catalogue metadata deliberately remains a separate request from
   // entitlement. It never contains videoUrl, and a metadata fault cannot turn
@@ -267,11 +275,25 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
       )}
 
       {showSettings && (
-        <div className={styles.settingsOverlay} onClick={() => setShowSettings(false)}>
-          <div className={styles.settingsPanel} onClick={(event) => event.stopPropagation()}>
+        <div className={styles.settingsOverlay} onClick={closeSettings}>
+          <div
+            ref={settingsDialogRef}
+            className={styles.settingsPanel}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="player-settings-title"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className={styles.settingsHeader}>
-              <h3>การตั้งค่า</h3>
-              <button className={styles.closeBtn} onClick={() => setShowSettings(false)} aria-label="ปิดการตั้งค่า">✕</button>
+              <h3 id="player-settings-title">การตั้งค่า</h3>
+              <button
+                className={styles.closeBtn}
+                onClick={closeSettings}
+                aria-label="ปิดการตั้งค่า"
+                data-modal-close
+              >
+                ✕
+              </button>
             </div>
             <div className={styles.settingGroup}>
               <h4>ความเร็ว</h4>
@@ -285,7 +307,13 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
 
       {gate && (
         <div className={styles.subModalOverlay}>
-          <div className={styles.subModal} role="dialog" aria-modal="true" aria-labelledby="player-gate-title">
+          <div
+            ref={gateDialogRef}
+            className={styles.subModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="player-gate-title"
+          >
             <h3 id="player-gate-title">
               {gate.reason === 'coins_required' ? 'ปลดล็อกตอนนี้' : 'สมัครสมาชิกเพื่อรับชม'}
             </h3>
@@ -302,7 +330,11 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
             <button className={styles.subBtn} onClick={() => router.push('/subscribe')}>
               ดูแพ็กเกจสมาชิก
             </button>
-            <button className={styles.subCancel} onClick={() => router.back()}>
+            <button
+              className={styles.subCancel}
+              onClick={closeGate}
+              data-modal-close
+            >
               กลับ
             </button>
             {gateError && <p className={styles.gateMessage} role="status">{gateError}</p>}

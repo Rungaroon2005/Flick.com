@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -28,12 +27,16 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
   const [gate, setGate] = useState<DeniedAuthorization | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progressSeconds, setProgressSeconds] = useState(0);
+  const [mediaDuration, setMediaDuration] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gateError, setGateError] = useState<string | null>(null);
   const [unlocking, setUnlocking] = useState(false);
   const progressRef = useRef(0);
   const lastReportedRef = useRef(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const closeSettings = useCallback(() => setShowSettings(false), []);
   const closeGate = useCallback(() => router.back(), [router]);
   const settingsDialogRef = useModalDismiss<HTMLDivElement>(
@@ -111,13 +114,15 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
   const reportProgress = useCallback(
     async (seconds: number) => {
       if (seconds <= 0 || seconds === lastReportedRef.current) return;
+      // Reserve this checkpoint before awaiting the network so several
+      // timeupdate events in the same second cannot enqueue duplicate writes.
+      lastReportedRef.current = seconds;
       try {
         await apiFetch(`/me/watch-history/${episodeId}`, {
           method: 'PUT',
           keepalive: true,
           body: JSON.stringify({ progressSeconds: seconds }),
         });
-        lastReportedRef.current = seconds;
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) router.push('/login');
       }
@@ -126,20 +131,42 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
   );
 
   useEffect(() => {
-    if (!isPlaying || !videoUrl || !episode) return;
-    const durationSeconds = episode.durationMinutes * 60;
-    const interval = window.setInterval(() => {
-      setProgressSeconds((current) => Math.min(durationSeconds, current + 1));
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [episode, isPlaying, videoUrl]);
+    const video = videoRef.current;
+    if (!video || !videoUrl) return;
 
-  useEffect(() => {
-    progressRef.current = progressSeconds;
-    if (progressSeconds > 0 && progressSeconds % 10 === 0) {
-      void reportProgress(progressSeconds);
+    let cancelled = false;
+    let hls: import('hls.js').default | undefined;
+    setPlaybackError(null);
+
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = videoUrl;
+      video.load();
+    } else {
+      void import('hls.js').then(({ default: Hls }) => {
+        if (cancelled) return;
+        if (!Hls.isSupported()) {
+          setError('เบราว์เซอร์นี้ไม่รองรับการเล่นวิดีโอ');
+          return;
+        }
+        hls = new Hls();
+        hls.loadSource(videoUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (!data.fatal) return;
+          hls?.destroy();
+          setError('เกิดข้อผิดพลาดในการเล่นวิดีโอ');
+        });
+      });
     }
-  }, [progressSeconds, reportProgress]);
+
+    return () => {
+      cancelled = true;
+      hls?.destroy();
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    };
+  }, [episode, videoUrl]);
 
   useEffect(
     () => () => {
@@ -147,6 +174,57 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
     },
     [reportProgress],
   );
+
+  const handleTimeUpdate = () => {
+    const seconds = Math.max(0, Math.floor(videoRef.current?.currentTime ?? 0));
+    progressRef.current = seconds;
+    setProgressSeconds(seconds);
+    if (seconds > 0 && Math.abs(seconds - lastReportedRef.current) >= 10) {
+      void reportProgress(seconds);
+    }
+  };
+
+  const togglePlayback = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (!video.paused) {
+      video.pause();
+      return;
+    }
+    try {
+      setPlaybackError(null);
+      await video.play();
+    } catch {
+      setIsPlaying(false);
+      setPlaybackError('เบราว์เซอร์ไม่อนุญาตให้เล่นอัตโนมัติ กรุณากดเล่นอีกครั้ง');
+    }
+  };
+
+  const seekTo = (seconds: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = seconds;
+    progressRef.current = seconds;
+    setProgressSeconds(seconds);
+  };
+
+  const changePlaybackRate = (rate: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.playbackRate = rate;
+    setPlaybackRate(rate);
+  };
+
+  const toggleFullscreen = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await video.requestFullscreen();
+    } catch {
+      setPlaybackError('ไม่สามารถเปิดโหมดเต็มหน้าจอได้');
+    }
+  };
 
   const unlockWithCoins = async () => {
     setUnlocking(true);
@@ -199,10 +277,7 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
 
   if (!movie || !episode) return <div className={styles.loading}>กำลังโหลด…</div>;
 
-  const durationSeconds = episode.durationMinutes * 60;
-  const progressPercent = durationSeconds > 0
-    ? Math.min(100, (progressSeconds / durationSeconds) * 100)
-    : 0;
+  const durationSeconds = mediaDuration || episode.durationMinutes * 60;
 
   return (
     <div className={styles.container}>
@@ -212,22 +287,36 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
           <div className={styles.movieTitle}>{movie.title}</div>
           <div className={styles.episodeTitle}>{episode.title}</div>
         </div>
-        <button className={styles.fullscreenBtn} aria-label="เต็มหน้าจอ">⛶</button>
+        <button className={styles.fullscreenBtn} onClick={toggleFullscreen} aria-label="เต็มหน้าจอ">⛶</button>
       </div>
 
       <div className={styles.videoArea}>
-        {(episode.thumbnailUrl || movie.posterUrl) && (
-          <img
-            src={(episode.thumbnailUrl || movie.posterUrl) ?? undefined}
-            alt=""
-            className={styles.videoBg}
-          />
-        )}
+        <video
+          ref={videoRef}
+          className={styles.videoElement}
+          poster={movie.posterUrl ?? undefined}
+          aria-label={`${movie.title} ${episode.title}`}
+          playsInline
+          preload="metadata"
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={(event) => {
+            if (Number.isFinite(event.currentTarget.duration)) {
+              setMediaDuration(event.currentTarget.duration);
+            }
+          }}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => {
+            setIsPlaying(false);
+            void reportProgress(Math.floor(videoRef.current?.currentTime ?? 0));
+          }}
+          onError={() => setPlaybackError('เกิดข้อผิดพลาดในการเล่นวิดีโอ')}
+        />
         <div className={styles.videoOverlay}>
           {!isPlaying && videoUrl && (
             <button
               className={styles.centerPlayBtn}
-              onClick={() => setIsPlaying(true)}
+              onClick={togglePlayback}
               aria-label="เล่น"
             >
               ▶
@@ -247,7 +336,7 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
         <div className={styles.bottomControls}>
           <button
             className={styles.playPauseBtn}
-            onClick={() => setIsPlaying((current) => !current)}
+            onClick={togglePlayback}
             aria-label={isPlaying ? 'หยุดชั่วคราว' : 'เล่น'}
           >
             {isPlaying ? '⏸' : '▶'}
@@ -258,10 +347,9 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
               min="0"
               max={durationSeconds}
               value={progressSeconds}
-              onChange={(event) => setProgressSeconds(Number(event.target.value))}
+              onChange={(event) => seekTo(Number(event.target.value))}
               className={styles.progressBar}
               aria-label="ตำแหน่งการเล่น"
-              style={{ '--player-progress': `${progressPercent}%` } as React.CSSProperties}
             />
           </div>
           <button
@@ -298,7 +386,17 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
             <div className={styles.settingGroup}>
               <h4>ความเร็ว</h4>
               <div className={styles.options}>
-                <span className={`${styles.option} ${styles.active}`}>1x</span>
+                {[0.75, 1, 1.25, 1.5].map((rate) => (
+                  <button
+                    type="button"
+                    key={rate}
+                    className={`${styles.option} ${playbackRate === rate ? styles.active : ''}`}
+                    aria-pressed={playbackRate === rate}
+                    onClick={() => changePlaybackRate(rate)}
+                  >
+                    {rate}x
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -342,7 +440,9 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
         </div>
       )}
 
-      {!gate && gateError && <p className={styles.toast} role="status">{gateError}</p>}
+      {!gate && (playbackError || gateError) && (
+        <p className={styles.toast} role="status">{playbackError ?? gateError}</p>
+      )}
     </div>
   );
 }

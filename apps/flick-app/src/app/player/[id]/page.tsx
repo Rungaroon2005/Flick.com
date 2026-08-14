@@ -11,5 +11,5 @@ export default async function PlayerPage({
   if (!session) redirect('/login');
 
   const { id: episodeId } = await params;
-  return <PlayerClient episodeId={episodeId} />;
+  return <PlayerClient key={episodeId} episodeId={episodeId} />;
 }

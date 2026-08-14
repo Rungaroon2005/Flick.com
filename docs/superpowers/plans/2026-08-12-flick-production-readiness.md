@@ -1897,7 +1897,7 @@ Replace `AppController.getHello`'s `'Hello World!'` with `GET /health` returning
 
 **Verification:**
 
-- [ ] **Step 1: Prove the 500**
+- [x] **Step 1: Prove the 500**
 
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" -X POST localhost:3001/auth/register \
@@ -1906,7 +1906,12 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST localhost:3001/auth/register \
 # run twice with different emails but the SAME phone — second call returns 500
 ```
 
-- [ ] **Step 2: Write the failing filter test**
+Confirmed the baseline had no global Prisma exception filter, so the phone
+unique race escaped Nest's HTTP exception mapping. The live duplicate was
+exercised after the filter landed in Step 4 to avoid leaving an intentionally
+broken server running between tasks.
+
+- [x] **Step 2: Write the failing filter test**
 
 ```ts
 it('maps a unique-constraint violation to 409 without leaking the column', () => {
@@ -1921,16 +1926,30 @@ it('maps a unique-constraint violation to 409 without leaking the column', () =>
 
 Run: `npx jest prisma-exception` — Expected: FAIL.
 
-- [ ] **Step 3: Implement the filter, throttler, helmet, TTL alignment, shutdown hooks, and health route**
+Added the P2002 regression test with a realistic `meta.target: ['phone']`; it
+asserts the 409 body contains only the stable Thai message and never the field.
 
-- [ ] **Step 4: Run the tests and re-check the duplicate**
+- [x] **Step 3: Implement the filter, throttler, helmet, TTL alignment, shutdown hooks, and health route**
+
+Implemented all listed hardening. The JWT and cookie share one exported default
+plus the same `JWT_EXPIRES_IN` config value. Proxy trust is opt-in through
+`TRUST_PROXY_HOPS` (documented and defaulting to 0) rather than unconditional,
+which avoids trusting spoofed forwarding headers on direct deployments.
+
+- [x] **Step 4: Run the tests and re-check the duplicate**
 
 ```bash
 npx jest
 # repeat the Step 1 duplicate-phone request — expect 409, not 500
 ```
 
-- [ ] **Step 5: Verify rate limiting and headers**
+Verified 12/12 suites and 49/49 unit tests, API typecheck, and both existing e2e
+suites (3/3 tests). Live registration with distinct emails and one phone
+returned 201 then 409 with `ข้อมูลนี้ถูกใช้งานแล้ว`; both successful throwaway
+users were deleted afterward. The sandboxed e2e run could not bind an ephemeral
+port, then passed unchanged through the approved localhost execution path.
+
+- [x] **Step 5: Verify rate limiting and headers**
 
 ```bash
 for i in $(seq 1 7); do
@@ -1941,12 +1960,19 @@ done; echo
 curl -sI localhost:3001/health | grep -i "x-frame-options\|strict-transport"   # helmet present
 ```
 
-- [ ] **Step 6: Commit**
+Verified live: bad login statuses were exactly `401 401 401 401 401 429 429`;
+`GET /health` returned `{status:"ok",db:"up"}` after its real `SELECT 1` and
+included CSP, HSTS, and `X-Frame-Options: SAMEORIGIN`. A fresh registration's
+cookie reported `Max-Age=604800`, matching the JWT's seven-day `exp` interval.
+
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/flick-api
 git commit -m "feat(api): add Prisma exception filter, rate limiting, helmet, and graceful shutdown"
 ```
+
+Committed as `4ede85a`.
 
 ---
 

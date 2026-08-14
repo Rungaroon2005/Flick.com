@@ -21,10 +21,17 @@ describe('UsersService', () => {
   });
 
   it('findByEmail passes the email to prisma.user.findUnique and returns the result', async () => {
-    const mockUser = { id: 'u1', email: 'test@b.com', displayName: 'Test', passwordHash: 'hash' };
+    const mockUser = {
+      id: 'u1',
+      email: 'test@b.com',
+      displayName: 'Test',
+      passwordHash: 'hash',
+    };
     prismaMock.user.findUnique.mockResolvedValue(mockUser);
     const result = await service.findByEmail('test@b.com');
-    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({ where: { email: 'test@b.com' } });
+    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+      where: { email: 'test@b.com' },
+    });
     expect(result).toEqual(mockUser);
   });
 });

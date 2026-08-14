@@ -27,16 +27,22 @@ describe('AuthService', () => {
 
   it('rejects a login with an unknown email using the generic message', async () => {
     usersService.findByEmail.mockResolvedValue(null);
-    await expect(service.login({ email: 'a@b.com', password: 'password123' }))
-      .rejects.toThrow(UnauthorizedException);
+    await expect(
+      service.login({ email: 'a@b.com', password: 'password123' }),
+    ).rejects.toThrow(UnauthorizedException);
   });
 
   it('never returns the password hash to the caller', async () => {
     usersService.findByEmail.mockResolvedValue({
-      id: 'u1', email: 'a@b.com', displayName: 'A',
+      id: 'u1',
+      email: 'a@b.com',
+      displayName: 'A',
       passwordHash: await bcrypt.hash('password123', 4),
     });
-    const result = await service.login({ email: 'a@b.com', password: 'password123' });
+    const result = await service.login({
+      email: 'a@b.com',
+      password: 'password123',
+    });
     expect(JSON.stringify(result)).not.toContain('passwordHash');
   });
 });

@@ -24,7 +24,7 @@ describe('JwtAuthGuard', () => {
     const spy = jest
       .spyOn(Object.getPrototypeOf(Object.getPrototypeOf(guard)), 'canActivate')
       .mockReturnValue(true);
-    guard.canActivate({
+    void guard.canActivate({
       getHandler: () => {},
       getClass: () => {},
     } as ExecutionContext);

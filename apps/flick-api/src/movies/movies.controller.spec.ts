@@ -4,16 +4,22 @@ import { MoviesService } from './movies.service';
 
 describe('MoviesController', () => {
   let controller: MoviesController;
-  let moviesService: { create: jest.Mock; findAll: jest.Mock; findOne: jest.Mock };
+  let moviesService: {
+    create: jest.Mock;
+    findAll: jest.Mock;
+    findOne: jest.Mock;
+  };
 
   beforeEach(async () => {
-    moviesService = { create: jest.fn(), findAll: jest.fn(), findOne: jest.fn() };
+    moviesService = {
+      create: jest.fn(),
+      findAll: jest.fn(),
+      findOne: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MoviesController],
-      providers: [
-        { provide: MoviesService, useValue: moviesService },
-      ],
+      providers: [{ provide: MoviesService, useValue: moviesService }],
     }).compile();
 
     controller = module.get<MoviesController>(MoviesController);

@@ -1,6 +1,7 @@
 import { PrismaClient, ContentStatus } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
+import * as bcrypt from 'bcrypt';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://macintosh@localhost:5432/flickdb?schema=public';
 const pool = new Pool({ connectionString });
@@ -39,7 +40,7 @@ async function main() {
             episodes: {
               create: [
                 { episodeNumber: 1, title: 'อยู่อย่างยาก', description: 'ตอนที่ 1', durationMinutes: 10, thumbnailUrl: '/posters/sathu.jpg', coinCost: 0, releaseDate: new Date() },
-                { episodeNumber: 2, title: 'อยู่อย่างง่าย', description: 'ตอนที่ 2', durationMinutes: 10, thumbnailUrl: '/posters/sathu.jpg', coinCost: 10, releaseDate: new Date() },
+                { id: 'sathu-premium', episodeNumber: 2, title: 'อยู่อย่างง่าย', description: 'ตอนที่ 2', durationMinutes: 10, thumbnailUrl: '/posters/sathu.jpg', videoUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', isPremium: true, coinCost: 10, releaseDate: new Date() },
               ],
             },
           },
@@ -230,6 +231,30 @@ async function main() {
           },
         ],
       },
+    },
+  });
+
+  // Security fixtures used by the end-to-end suite. The draft must exist so
+  // public-list regressions are observable, and the premium episode above has
+  // a real non-null URL so a videoUrl leak test cannot pass on all-null data.
+  await prisma.movie.create({
+    data: {
+      id: 'e2e-draft',
+      title: 'E2E Draft — Never Public',
+      description: 'Draft fixture for public content-filter regression tests.',
+      posterUrl: '/posters/sathu.jpg',
+      year: 2026,
+      contentRating: 'ทั่วไป',
+      status: ContentStatus.DRAFT,
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      id: 'e2e-free-user',
+      email: 'e2e-free@flick.test',
+      displayName: 'E2E Free User',
+      passwordHash: await bcrypt.hash('flick-e2e-password', 12),
     },
   });
 

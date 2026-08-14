@@ -2148,28 +2148,56 @@ Make the settings overlay honest: quality and audio-track options must come from
 
 **Verification:**
 
-- [ ] **Step 1: Confirm the simulation**
+- [x] **Step 1: Confirm the simulation**
 
 Run: `grep -n "setInterval\|<video" apps/flick-app/src/app/player/\[id\]/page.tsx`
 Expected: `setInterval` present, no `<video>` element.
 
-- [ ] **Step 2: Implement the `<video>` element, HLS attachment, and real controls**
+Confirmed in `PlayerClient.tsx` (the interactive code moved out of `page.tsx`
+in Task 3.4): a one-second interval advanced synthetic progress and the visual
+was a poster `<img>` with no media element.
 
-- [ ] **Step 3: Verify playback against a public test stream**
+- [x] **Step 2: Implement the `<video>` element, HLS attachment, and real controls**
+
+Added dynamic `hls.js` loading with Safari native-HLS preference, cancellation
+guards, fatal-error destruction, and full native/HLS teardown. Media events now
+own play state, duration, progress, completion reporting, and the controlled
+seek range. Fullscreen and playback-speed controls are functional; unsupported
+quality/audio/subtitle fictions were removed. Episode ids key/remount the client
+so a prior stream cannot survive navigation.
+
+- [x] **Step 3: Verify playback against a public test stream**
 
 Temporarily set one episode's `videoUrl` to `https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8` in the database, then open its player page.
 Expected: video plays; the progress bar advances with playback; seeking works; pause works.
 
-- [ ] **Step 4: Verify the null-URL path and cleanup**
+Verified with a throwaway authenticated user and the prescribed Mux stream on a
+seeded free episode. Headless Chrome reported `readyState:4`, duration 634.634s,
+no media error, actual clock progress past 10s, 1.25x playback, a trusted native
+range seek from ~12.5s to 317s, and the visible pause handler leaving
+`video.paused === true`. The API persisted a real 10-second watch-history
+checkpoint from `timeupdate`/cleanup.
+
+- [x] **Step 4: Verify the null-URL path and cleanup**
 
 Set `videoUrl` back to `null` and reload — expect the "not available" message, not a blank player. Navigate away mid-playback and confirm in the Network tab that segment requests stop.
 
-- [ ] **Step 5: Commit**
+Verified HLS request counts remained unchanged after a one-second navigation
+grace and a further three seconds, proving teardown stopped segment loading.
+Restored the episode URL to null; authorization returned the Thai 503 and the
+rendered route showed `ตอนนี้ยังไม่พร้อมรับชม` with no blank `<video>`. Deleted
+the throwaway user/history and removed the temporary Chrome profile; all dev
+processes were stopped.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-app
 git commit -m "feat(app): replace the simulated player with real HLS playback"
 ```
+
+Committed as `93c7fe4` (`feat(app): replace simulated player with HLS video
+playback`). App/API typechecks, app lint, and all 49 API tests are clean.
 
 ---
 

@@ -2074,6 +2074,8 @@ git commit -m "feat(app): replace the simulated player with real HLS playback"
 
 `tsconfig.json`: `"target": "ES2022"`. Verify with `npx tsc --noEmit` that `TS5107` is gone.
 
+**✅ ALREADY DONE — pulled forward to unblock Phase 3 (commit `cf79505`).** `TS5107` was not a warning: a `tsconfig.json` error aborts compilation before any type-checking, so `npx tsc --noEmit` — the Step-5 verification command in Tasks 3.1–3.4 — was silently verifying nothing. Fixed after Task 3.1 so the remaining Phase 3 tasks get a real typecheck. Confirmed genuine afterwards: 26 source files traversed, and a deliberately planted type error was caught. The rest of Task 4.5 is untouched.
+
 Delete `jsconfig.json` — `tsconfig.json` already defines the same `@/*` path mapping, and two config files is a drift hazard.
 
 Remove `tailwindcss` and `@tailwindcss/postcss` from `devDependencies`. `AI_STATUS.md` states "CSS Modules (No Tailwind)"; make the manifest agree.

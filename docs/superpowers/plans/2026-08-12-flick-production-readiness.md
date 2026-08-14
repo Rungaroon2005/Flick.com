@@ -173,24 +173,35 @@ Add to `apps/flick-api/package.json` scripts so the generated client is always p
 
 **Verification:**
 
-- [ ] **Step 1: Run the suite and confirm the current failure**
+- [x] **Step 1: Run the suite and confirm the current failure**
 
 Run: `cd apps/flick-api && npx jest`
 Expected: `Test Suites: 5 failed, 1 passed`
 
-- [ ] **Step 2: Create the Prisma mock and rewrite all five specs** (code above)
+The original failing baseline and broken placeholder suites are recorded in the
+Task 1.1 ledger entries and commits `f71d4ad..c66e055`.
 
-- [ ] **Step 3: Run the suite green**
+- [x] **Step 2: Create the Prisma mock and rewrite all five specs** (code above)
+
+Added the shared Prisma test double and behavioral controller/service coverage;
+the later deferred transaction-mock issue was also resolved before Phase 3.
+
+- [x] **Step 3: Run the suite green**
 
 Run: `cd apps/flick-api && npx jest`
 Expected: `Test Suites: 6 passed, 6 total`, and more than 6 individual tests.
 
-- [ ] **Step 4: Commit**
+The final production-readiness gate now reports 12/12 suites and 49/49 unit
+tests passing.
+
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/flick-api/src apps/flick-api/package.json
 git commit -m "test(api): repair broken unit suites and add Prisma test double"
 ```
+
+Completed across `f71d4ad..c66e055`, as recorded in the progress ledger.
 
 ---
 
@@ -231,7 +242,7 @@ While here, `getSimilarMovies` fetches the entire movie catalogue on every detai
 
 **Verification:**
 
-- [ ] **Step 1: Reproduce the failure with a stub API**
+- [x] **Step 1: Reproduce the failure with a stub API**
 
 Write `/tmp/stub.mjs`:
 
@@ -253,19 +264,19 @@ http.createServer((req, res) => {
 Run: `node /tmp/stub.mjs &` then `cd apps/flick-app && npx next dev -p 3100 &` then `curl -s localhost:3100/movie/sathu | grep -o 'TEST-sathu'`
 Expected: no match, and the stub logs `STUB REQUEST: /movies/undefined`.
 
-- [ ] **Step 2: Apply the `await params` change** (code above)
+- [x] **Step 2: Apply the `await params` change** (code above)
 
-- [ ] **Step 3: Confirm the fix**
+- [x] **Step 3: Confirm the fix**
 
 Run: `curl -s localhost:3100/movie/sathu | grep -o 'TEST-sathu'`
 Expected: `TEST-sathu`. The stub log shows `/movies/sathu`, never `/movies/undefined`. The dev-server log contains no `sync-dynamic-apis` error.
 
-- [ ] **Step 4: Confirm no other route has the bug**
+- [x] **Step 4: Confirm no other route has the bug**
 
 Run: `grep -rn "params" apps/flick-app/src/app --include=page.tsx --include=layout.tsx --include=route.ts | grep -v "Promise<"`
 Expected: only the `useParams()` client-hook call in `player/[id]/page.tsx`.
 
-- [ ] **Step 5: Kill the servers and commit**
+- [x] **Step 5: Kill the servers and commit**
 
 ```bash
 pkill -f "next dev -p 3100"; pkill -f "stub.mjs"
@@ -369,7 +380,7 @@ Add a `GET /auth/me` endpoint returning `@CurrentUser()` — the frontend needs 
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing guard test**
+- [x] **Step 1: Write the failing guard test**
 
 ```ts
 // src/auth/jwt-auth.guard.spec.ts
@@ -391,13 +402,13 @@ it('delegates to passport for a route that is not @Public', () => {
 
 Run: `npx jest jwt-auth.guard` — Expected: FAIL, module not found.
 
-- [ ] **Step 2: Implement strategy, guard, decorators, and global registration** (code above)
+- [x] **Step 2: Implement strategy, guard, decorators, and global registration** (code above)
 
-- [ ] **Step 3: Run the guard test**
+- [x] **Step 3: Run the guard test**
 
 Run: `npx jest jwt-auth.guard` — Expected: PASS.
 
-- [ ] **Step 4: Prove protection end-to-end**
+- [x] **Step 4: Prove protection end-to-end**
 
 With the API running and a seeded database:
 
@@ -410,7 +421,9 @@ curl -s -b /tmp/c.txt localhost:3001/auth/me                                    
 curl -s -o /dev/null -w "%{http_code}\n" localhost:3001/movies                   # expect 200 (public)
 ```
 
-- [ ] **Step 5: Commit**
+Live verification against a real seeded Postgres database found and fixed a real bug (see commits below) — `/auth/me` initially returned 401 with a valid cookie due to a JWT sign/verify secret mismatch (`JwtModule.register` reading `process.env` at import time vs `JwtStrategy` reading via `ConfigService` at DI time). Fixed and independently re-confirmed; a regression e2e test now guards it.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src
@@ -474,7 +487,7 @@ Set `status: 'PUBLISHED'` on every movie in `prisma/seed.ts`.
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 it('excludes draft and soft-deleted movies from findAll', async () => {
@@ -493,13 +506,13 @@ it('does not serve a draft movie by direct id', async () => {
 
 Run: `npx jest movies.service` — Expected: FAIL.
 
-- [ ] **Step 2: Implement the filter, the 404, the `@Roles` guard, and the seed status**
+- [x] **Step 2: Implement the filter, the 404, the `@Roles` guard, and the seed status**
 
-- [ ] **Step 3: Run the tests**
+- [x] **Step 3: Run the tests**
 
 Run: `npx jest movies.service` — Expected: PASS.
 
-- [ ] **Step 4: Verify against the database**
+- [x] **Step 4: Verify against the database**
 
 ```bash
 npx prisma db seed
@@ -508,7 +521,9 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST localhost:3001/movies \
   -H 'content-type: application/json' -d '{}'                   # expect 401, not 400/500
 ```
 
-- [ ] **Step 5: Commit**
+Controller independently re-verified the negative case beyond this: inserted a genuine `DRAFT`-status movie via SQL, restarted the API to clear its in-memory cache, and confirmed it was excluded from both `GET /movies` and `GET /movies/:id` (404), then removed the test row.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api
@@ -558,18 +573,18 @@ Document in `apps/flick-api/README.md`: `migrate:deploy` runs in CI/production, 
 
 **Verification:**
 
-- [ ] **Step 1: Confirm no migrations exist**
+- [x] **Step 1: Confirm no migrations exist**
 
 Run: `ls apps/flick-api/prisma/` — Expected: `schema.prisma  seed.ts` only.
 
-- [ ] **Step 2: Generate and resolve the baseline** (commands above)
+- [x] **Step 2: Generate and resolve the baseline** (commands above — `--to-schema-datamodel` was renamed to `--to-schema` in the installed Prisma 7.9.1 CLI; substituted per the CLI's own error message)
 
-- [ ] **Step 3: Verify a clean state**
+- [x] **Step 3: Verify a clean state**
 
 Run: `cd apps/flick-api && npx prisma migrate status`
 Expected: `Database schema is up to date!`
 
-- [ ] **Step 4: Prove reproducibility on a scratch database**
+- [x] **Step 4: Prove reproducibility on a scratch database**
 
 ```bash
 createdb flickdb_verify
@@ -579,7 +594,7 @@ dropdb flickdb_verify
 ```
 Expected: both succeed with no errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/prisma apps/flick-api/package.json apps/flick-api/README.md
@@ -693,7 +708,7 @@ Finally, replace the catalogue-wide fetch in `movie/[id]/page.tsx`'s `getSimilar
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('maps genre slugs onto the MovieGenre join table', async () => {
@@ -715,20 +730,22 @@ it('flattens genres in the response payload', async () => {
 
 Run: `npx jest movies.service` — Expected: FAIL.
 
-- [ ] **Step 2: Implement DTO, service mapping, `toDto`, and the frontend filters**
+- [x] **Step 2: Implement DTO, service mapping, `toDto`, and the frontend filters**
 
-- [ ] **Step 3: Run the tests**
+- [x] **Step 3: Run the tests**
 
 Run: `npx jest movies.service` — Expected: PASS.
 
-- [ ] **Step 4: Verify against a live database**
+- [x] **Step 4: Verify against a live database**
 
 ```bash
 curl -s localhost:3001/movies | jq '.[0].genres'     # non-empty array of {id,name,slug}
 ```
 Then open `/discover` and click each chip — every chip must show at least one movie.
 
-- [ ] **Step 5: Commit**
+Controller independently re-verified beyond this via curl: `GET /movies` returns all 6 seeded movies each with a real, distinct `genres` array; `GET /movies/:id/similar` returns correct genre-sharing results; promoted a test user to `ADMIN` and confirmed `POST /movies` with `genreSlugs` correctly uses `connectOrCreate` (matches existing genre rows rather than duplicating them) and that the old `genre` field is now rejected with `400`. (The `/discover` chip click-through itself was not re-run in the browser after this fix — the curl-level verification above covers the same data path.)
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src apps/flick-app/src
@@ -787,13 +804,15 @@ Update `AI_STATUS.md`, which claims "Redis Cache-Aside pattern implemented in `M
 
 **Verification:**
 
-- [ ] **Step 1: Prove the current cache is in-process**
+- [x] **Step 1: Prove the current cache is in-process**
 
 Run: `grep -rn "redis" apps/flick-api/src/` — Expected: no matches (only the misleading log strings).
 
-- [ ] **Step 2: Swap dependencies and rewrite the module registration**
+- [x] **Step 2: Swap dependencies and rewrite the module registration**
 
-- [ ] **Step 3: Verify the cache survives a process restart**
+Deviation from the brief's literal sample: `new Keyv({ store: new KeyvRedis(url) })` alone does not achieve graceful degradation — node-redis's default reconnect behavior queues commands during an outage, so a request hangs indefinitely instead of failing fast. Fixed with `disableOfflineQueue: true`, with an explanatory comment. Verified as a genuine, necessary fix, not an unexplained departure.
+
+- [x] **Step 3: Verify the cache survives a process restart**
 
 ```bash
 docker run -d -p 6379:6379 --name flick-redis redis:7
@@ -805,12 +824,14 @@ curl -s localhost:3001/movies > /dev/null      # still a HIT — impossible with
 redis-cli KEYS '*movies*'                       # expect the key to exist
 ```
 
-- [ ] **Step 4: Verify graceful degradation**
+- [x] **Step 4: Verify graceful degradation**
 
 Run: `docker stop flick-redis` then `curl -s -o /dev/null -w "%{http_code}\n" localhost:3001/movies`
 Expected: `200`. The API logs a cache error and serves from Postgres.
 
-- [ ] **Step 5: Commit**
+Controller independently reproduced steps 3 and 4 from scratch in a separate Redis container: confirmed a cache hit ("Returning movies from cache") on the very first request after a full API restart with no preceding cache-miss, and confirmed the degraded request returned `200` in 71ms (timed, not just status-checked) with the Redis error handler firing in the logs at the same moment.
+
+- [x] **Step 5: Commit**
 
 ```bash
 docker rm -f flick-redis
@@ -887,7 +908,7 @@ const unlockDescription = (episodeId: string) => `unlock:episode:${episodeId}`;
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('refuses to spend more coins than the user holds', async () => {
@@ -916,13 +937,13 @@ it('does not charge twice for the same episode', async () => {
 
 Run: `npx jest wallet` — Expected: FAIL.
 
-- [ ] **Step 2: Implement the module, service, controller, and DTO**
+- [x] **Step 2: Implement the module, service, controller, and DTO**
 
-- [ ] **Step 3: Run the tests**
+- [x] **Step 3: Run the tests**
 
 Run: `npx jest wallet` — Expected: PASS.
 
-- [ ] **Step 4: Verify the ledger reconciles in the database**
+- [x] **Step 4: Verify the ledger reconciles in the database**
 
 After spending against a live API, run in `psql`:
 
@@ -933,7 +954,9 @@ FROM users u WHERE u.id = '<user id>';
 ```
 Expected: the two columns are equal.
 
-- [ ] **Step 5: Commit**
+Task reviewer found the plain `$transaction`-wrapped check-then-write in the original implementation was NOT actually safe under Postgres's default READ COMMITTED isolation — a precomputed balance literal could be lost-updated by a concurrent spend, and `unlockEpisode()`'s double-charge guard ran outside its own transaction. Controller independently confirmed the race (re-derived Postgres's UPDATE re-check semantics) before accepting the finding, then independently reproduced both races closed after the fix, using real concurrent HTTP requests (`curl ... & curl ... & wait`) against the live database: a lost-update test (exactly one of two concurrent spends succeeded, the other correctly rejected) and a double-charge test (two concurrent unlocks of the same episode produced exactly one charge row). Fix: `SELECT ... FOR UPDATE` row lock acquired first inside every wallet transaction (`spend`, `credit`, `unlockEpisode`), via Prisma's parameterized tagged-template `$queryRaw`.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src
@@ -1016,7 +1039,9 @@ return active !== null;
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
+
+Also added a 4th test asserting the row lock is acquired before the active-subscription check (see Step 2 note).
 
 ```ts
 it('grants exactly 7 days for the weekly plan', async () => {
@@ -1044,13 +1069,15 @@ it('treats an expired subscription as inactive', async () => {
 
 Run: `npx jest subscriptions` — Expected: FAIL.
 
-- [ ] **Step 2: Implement the config constants, DTO, service, controller, and module**
+- [x] **Step 2: Implement the config constants, DTO, service, controller, and module**
 
-- [ ] **Step 3: Run the tests**
+Proactively hardened beyond the brief's literal text: `create()`'s "reject a second ACTIVE subscription" check was the exact same check-then-create race Task 2.3 had to fix reactively (no unique constraint backstops it in the schema). Folded in the same `SELECT ... FOR UPDATE` row-lock pattern from `WalletService` before dispatching this task, rather than waiting for review to catch it again. First task on this branch to get concurrency-hardening right on the first attempt.
+
+- [x] **Step 3: Run the tests**
 
 Run: `npx jest subscriptions` — Expected: PASS.
 
-- [ ] **Step 4: Verify the duration bug is dead**
+- [x] **Step 4: Verify the duration bug is dead**
 
 ```bash
 curl -s -b /tmp/c.txt -X POST localhost:3001/subscriptions \
@@ -1060,7 +1087,9 @@ curl -s -o /dev/null -w "%{http_code}\n" -b /tmp/c.txt -X POST localhost:3001/su
   -H 'content-type: application/json' -d '{"planId":"vip-weekly"}'   # expect 400
 ```
 
-- [ ] **Step 5: Commit**
+Controller independently re-verified beyond this: confirmed the 7-day duration directly, confirmed `vip-weekly` rejected at the DTO layer (400, before the service even runs), confirmed 409 on a duplicate active subscription, and fired two genuinely concurrent `POST /subscriptions` requests (backgrounded curl + wait) for the same user — exactly one `201`, one `409`, and a direct `SELECT COUNT(*) WHERE status='ACTIVE'` confirmed exactly one row, not two.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src
@@ -1130,7 +1159,7 @@ async authorize(userId: string, episodeId: string): Promise<PlaybackAuthorizatio
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('allows a free episode without touching subscription or wallet', async () => {
@@ -1159,13 +1188,15 @@ it('lets an active subscriber watch a premium episode', async () => {
 
 Run: `npx jest playback` — Expected: FAIL.
 
-- [ ] **Step 2: Implement the module, service, and controller; strip `videoUrl` from `MoviesService.toDto`**
+- [x] **Step 2: Implement the module, service, and controller; strip `videoUrl` from `MoviesService.toDto`**
 
-- [ ] **Step 3: Run the tests**
+The `toDto` fix genuinely deletes the `videoUrl` key (destructure-omit) rather than nulling it — required since the seed data is always-null, so a naive null-check would pass while still leaking a real URL once one exists.
+
+- [x] **Step 3: Run the tests**
 
 Run: `npx jest playback` — Expected: PASS.
 
-- [ ] **Step 4: Verify no other endpoint leaks the URL**
+- [x] **Step 4: Verify no other endpoint leaks the URL**
 
 ```bash
 curl -s localhost:3001/movies | grep -c videoUrl                   # expect 0
@@ -1174,7 +1205,9 @@ curl -s -b /tmp/c.txt localhost:3001/playback/<premium-id>/authorize | jq '.allo
 # expect false, null
 ```
 
-- [ ] **Step 5: Commit**
+Since the seed data's `videoUrl` is always null, this check alone can't distinguish "leak fixed" from "nothing to leak." Both the implementer and the controller independently set a real, distinctive `videoUrl` on a premium episode via SQL, confirmed it was completely absent (not just null) from `/movies` and `/movies/:id`, confirmed a denied `/playback/.../authorize` leaked nothing, then unlocked the episode via the real wallet endpoint and confirmed the exact secret was returned only once access was genuinely granted — each verification run used a different secret value. Task review then found this property had zero automated regression coverage; a follow-up fix round added `findAll`/`findOne` tests asserting `.not.toHaveProperty('videoUrl')` with real RED→GREEN proof.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src
@@ -1244,7 +1277,7 @@ Downloads require `expiresAt` (non-nullable). Set it to `now + 30 days` and reje
 
 **Verification:**
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('treats removing an absent bookmark as a successful no-op', async () => {
@@ -1266,15 +1299,17 @@ it('refuses to record a download for an unauthorized episode', async () => {
 });
 ```
 
-Run: `npx jest engagement` — Expected: FAIL.
+Run: `npx jest engagement` — Expected: FAIL. Verified: 3 brief-mandated tests plus 8 additional tests written up front (13 total after fix round 1), covering bookmark upsert idempotency, bookmarks list, completion above/below the 90% threshold, continue-watching query shape and `videoUrl`-leak prevention, download upsert idempotency with `expiresAt` refresh, download no-op removal, downloads list, and (fix round 1) genre-flattening on bookmarked/continue-watching movies. All failed pre-implementation as expected.
 
-- [ ] **Step 2: Implement the module, service, controller, and DTO**
+- [x] **Step 2: Implement the module, service, controller, and DTO**
 
-- [ ] **Step 3: Run the tests**
+Implemented `engagement.service.ts`/`controller.ts`/`module.ts` plus registration in `app.module.ts`. `addDownload` uses `prisma.download.upsert` (not `create`) on the `userId_episodeId` unique key — required beyond the brief's literal text since `Download` has `@@unique([userId, episodeId])` and a plain `create` would throw an unhandled P2002 on a repeat `PUT`, violating the same idempotent-PUT principle applied to bookmarks/watch-history; `update: { expiresAt }` refreshes the 30-day window on a repeat download-tap.
 
-Run: `npx jest engagement` — Expected: PASS.
+- [x] **Step 3: Run the tests**
 
-- [ ] **Step 4: Verify idempotency against a live API**
+Run: `npx jest engagement` — Expected: PASS. Verified: 13/13 pass; full suite 48/48 pass; `tsc --noEmit` and `eslint` clean on all new/modified files.
+
+- [x] **Step 4: Verify idempotency against a live API**
 
 ```bash
 curl -s -b /tmp/c.txt -X PUT localhost:3001/me/bookmarks/sathu
@@ -1282,12 +1317,16 @@ curl -s -b /tmp/c.txt -X PUT localhost:3001/me/bookmarks/sathu     # second call
 curl -s -b /tmp/c.txt localhost:3001/me/bookmarks | jq 'length'    # expect 1, not 2
 ```
 
-- [ ] **Step 5: Commit**
+Verified live against the real API + Postgres: bookmark PUT twice → `GET /me/bookmarks` returns exactly 1. Additionally verified (beyond the brief) download PUT twice on an authorized episode → `GET /me/downloads` returns exactly 1 row, second PUT returns 200 (not 500), and `expiresAt` advances on the repeat call, confirming the upsert's `update` branch actually fires; and a PUT against an unauthorized (coin-gated, unlocked) episode → `403 Forbidden`, confirming `PlaybackService.authorize` genuinely gates the write.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src
 git commit -m "feat(api): add bookmarks, watch history, and downloads endpoints"
 ```
+
+Committed as `1fcfb22`. Task reviewer found spec compliance ✅ full pass on every requirement, plus one Important code-quality finding: `getBookmarks`/`getContinueWatching` returned movies without the genre-flattening `MoviesService.toDto` applies elsewhere (`movie.genres` would be `undefined` on the wire, breaking frontend code that calls `.genres.some(...)` unguarded — same bug class as Task 2.1). Fixed in round 1 (commit `fed593f`): exported `GENRES_INCLUDE` from `movies.service.ts` and added a shared `flattenMovieGenres` helper in `engagement.service.ts`, applied to both endpoints, with new tests seeding the raw join-table shape to prove the fix is real. Scoped re-review confirmed the fix resolves the finding with no regressions (13/13 engagement tests, 48/48 full suite). Two Minor findings deferred to the SDD ledger for the final whole-branch review: missing `deletedAt: null` filtering on the episode lookup in `updateProgress` and on movies returned by `getBookmarks` (soft-deleted/unpublished content could still appear in a user's bookmarks/watch-history).
 
 ---
 
@@ -1380,18 +1419,22 @@ if (!session) redirect('/login');
 
 **Verification:**
 
-- [ ] **Step 1: Prove the current bypass**
+- [x] **Step 1: Prove the current bypass**
 
 In the browser console on `/login`: `localStorage.setItem('flick_auth', '{"id":"fake"}')`, then navigate to `/home`.
 Expected (before the fix): the home page renders. This is the vulnerability.
 
-- [ ] **Step 2: Implement `apiClient`, `session`, `AuthProvider`; gut `lib/auth.ts`; move the redirect server-side**
+Proved without a browser: at `ed74856`, an unauthenticated `curl http://localhost:3000/home` returned `200` with the full 33 KB catalogue — the page never contacted the server about identity.
 
-- [ ] **Step 3: Confirm the bypass is closed**
+- [x] **Step 2: Implement `apiClient`, `session`, `AuthProvider`; gut `lib/auth.ts`; move the redirect server-side**
+
+- [x] **Step 3: Confirm the bypass is closed**
 
 Repeat Step 1. Expected: redirected to `/login`.
 
-- [ ] **Step 4: Confirm a real login works and the dead code is gone**
+After: the same cookie-less `curl` returns `307 → /login` with zero home content; with a real login cookie jar it returns `200`. Two different jars render two different display names, confirming `no-store` holds.
+
+- [x] **Step 4: Confirm a real login works and the dead code is gone**
 
 ```bash
 grep -rn "localStorage" apps/flick-app/src/lib/auth.ts     # expect no matches
@@ -1399,7 +1442,9 @@ cd apps/flick-app && npx tsc --noEmit && npx eslint src     # expect clean
 ```
 Then log in through the UI and confirm `/home` renders with the correct display name.
 
-- [ ] **Step 5: Commit**
+`eslint src` is clean. **`npx tsc --noEmit` aborts on a pre-existing `TS5107`** (`target: es5`, deprecated in TypeScript 6) — a config error that halts the compile before it type-checks anything, so this command as written verifies nothing on this repo. Ran `npx tsc --noEmit --ignoreDeprecations 6.0` (identical target/lib/strict) → clean. **Task 4.5 owns the `tsconfig.json` fix; until it lands, Steps 5 of Tasks 3.2–3.4 must use the same flag or they are no-ops.**
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-app/src
@@ -1461,14 +1506,18 @@ In `HomeClient.tsx`, replace the "My List" skeleton cards (lines 97-101) with th
 
 **Verification:**
 
-- [ ] **Step 1: Prove the fake fallback**
+- [x] **Step 1: Prove the fake fallback**
 
 Log in as a user with zero bookmarks and open `/bookmarks`.
 Expected (before): five movies displayed. After: the empty state.
 
-- [ ] **Step 2: Implement the real fetch, the toggle handler, and the empty states**
+The `data.slice(0, 5)` fallback was already removed by Task 3.1's minimal-compile pass; this task wires the real fetch behind it.
 
-- [ ] **Step 3: Verify the round trip**
+- [x] **Step 2: Implement the real fetch, the toggle handler, and the empty states**
+
+Also closed two gaps the brief didn't specify: `/bookmarks` gained a server-side `getSession()` guard (Server Component `page.tsx` + new `BookmarksClient.tsx`, mirroring `/home`), and `/movie/[id]` gained a soft server-side bookmark-status check that fails to `false` on a 401 but rethrows real faults — while staying public for anonymous visitors.
+
+- [x] **Step 3: Verify the round trip**
 
 Bookmark a movie on `/movie/sathu`, then:
 ```bash
@@ -1476,16 +1525,18 @@ curl -s -b /tmp/c.txt localhost:3001/me/bookmarks | jq '.[].id'   # expect ["sat
 ```
 Reload `/bookmarks` — the movie appears. Un-bookmark it; it disappears and the API returns `[]`.
 
-- [ ] **Step 4: Verify rollback**
+- [x] **Step 4: Verify rollback**
 
 Stop the API, click the bookmark button, and confirm the icon reverts to its previous state rather than staying toggled.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-app/src
 git commit -m "feat(app): wire bookmarks to the API and remove the fake fallback list"
 ```
+
+**Fix round 1** closed 2 Important review findings: `/home` and `/movie/[id]` each shared one `try`/`Promise.all` between their pre-existing content fetch and the new bookmarks fetch, so a bookmarks-only fault took the whole page down instead of degrading just the affected section. Isolated into separate `try`/`catch` blocks (commit `1ac700a`); re-review confirmed both ADDRESSED with no regressions.
 
 ---
 
@@ -1543,24 +1594,28 @@ Delete `handleBuyCoins`'s call to the removed `addCoins()`. There is no payment 
 
 **Verification:**
 
-- [ ] **Step 1: Prove the hardcoding**
+- [x] **Step 1: Prove the hardcoding**
 
 Run: `grep -n "user@example.com\|พรีเมียมรายเดือน" apps/flick-app/src/app/profile/page.tsx`
 Expected: matches at lines 31 and 39.
 
-- [ ] **Step 2: Implement the server-rendered profile and API-driven plan cards**
+- [x] **Step 2: Implement the server-rendered profile and API-driven plan cards**
 
-- [ ] **Step 3: Verify real data renders**
+Also closed two gaps beyond the brief: `/subscribe` gained a server-side `getSession()` guard (split into a Server Component `page.tsx` + new `SubscribeClient.tsx`, mirroring `/bookmarks`), and a new `LogoutButton.tsx` calls `useAuth().refresh()` before navigating away, closing the stale-client-session gap Task 3.1 flagged as this task's job.
+
+- [x] **Step 3: Verify real data renders**
 
 Log in as a user with **no** subscription and open `/profile`.
 Expected: the real email, and status `ฟรี` — not `พรีเมียมรายเดือน`.
 
-- [ ] **Step 4: Verify subscribing updates the profile**
+- [x] **Step 4: Verify subscribing updates the profile**
 
 Subscribe to `weekly` on `/subscribe`, return to `/profile`.
 Expected: status shows the weekly plan; `curl -s -b /tmp/c.txt localhost:3001/subscriptions/me | jq .planType` returns `"weekly"`.
 
-- [ ] **Step 5: Commit**
+**Note:** coin top-ups remain permanently disabled per this task's own Constraints (no payment gateway exists anywhere in this plan) — verified with no purchase path reachable anywhere in `src/`. Spending coins to unlock an episode is Task 3.4's scope, not this task's; not verified here.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-app/src
@@ -1616,7 +1671,7 @@ Episode rows in `MovieClient.tsx:112` currently derive lock state from `ep.coinC
 
 **Verification:**
 
-- [ ] **Step 1: Prove the fakes**
+- [x] **Step 1: Prove the fakes**
 
 ```bash
 grep -n "slice(0, 3)" apps/flick-app/src/app/downloads/page.tsx     # the fake list
@@ -1624,27 +1679,55 @@ grep -n "const isLocked = true" apps/flick-app/src/app/player/\[id\]/page.tsx
 ```
 Expected: both match.
 
-- [ ] **Step 2: Implement the three real fetches and the player gate**
+Verified the hardcoded player lock still existed. The earlier Task 3.1 cleanup
+had already removed the catalogue `slice(0, 3)` fabrication and left an honest
+empty state, so that half of the expected grep no longer matched by design.
 
-- [ ] **Step 3: Verify premium content is gated**
+- [x] **Step 2: Implement the three real fetches and the player gate**
+
+Implemented guarded Server Component / Client Component splits for downloads
+and the player, isolated bookmark/watch-history/download failure domains, and
+changed every movie/episode play navigation to carry an episode id. Extended
+`GET /me/downloads` to include real episode/movie metadata because the original
+bare `Download[]` rows contained only `episodeId`; the DTO strips `videoUrl` and
+flattens genres, with a regression test protecting both established invariants.
+
+- [x] **Step 3: Verify premium content is gated**
 
 As a user with no subscription and zero coins, open the player for a premium episode (`coinCost > 0`).
 Expected: the subscription/coins modal appears; playback does not start; no `videoUrl` is present anywhere in the page source.
 
-- [ ] **Step 4: Verify the unlock path**
+Verified with a fresh zero-balance user against the live API: authorization
+returned `{allowed:false,reason:"coins_required",coinCost:10}`, the guarded
+player SSR returned 200 with the session cookie, and its source contained no
+`videoUrl` key or stream URL.
+
+- [x] **Step 4: Verify the unlock path**
 
 Credit the test user coins directly in `psql` (via a `UserCoin` row plus a matching `coinBalance`), retry the unlock, and confirm playback becomes available and the balance decreases by exactly `coinCost`.
 
-- [ ] **Step 5: Verify dead code is gone**
+Verified live with an `EARNED` ledger credit of 20 coins and a temporary HLS
+URL on one seeded premium episode: `POST /wallet/spend` returned balance 10,
+the SPENT row was `-10` with `balanceAfter:10`, and re-authorization returned
+`allowed:true` with reason `unlocked`. Also round-tripped a 42-second watch
+history record and a download whose metadata contained no `videoUrl`. Removed
+the throwaway user/ledger rows and restored the episode URL afterward.
+
+- [x] **Step 5: Verify dead code is gone**
 
 Run: `cd apps/flick-app && npx eslint src && npx tsc --noEmit` — Expected: clean, no unused-import warnings.
 
-- [ ] **Step 6: Commit**
+Verified clean, plus `apps/flick-api` `npx tsc --noEmit` and the full Jest suite
+(11 suites, 48 tests) passed.
+
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/flick-app/src
 git commit -m "feat(app): wire downloads and continue-watching, and gate playback server-side"
 ```
+
+Committed as `bf1c876`.
 
 ---
 
@@ -1711,30 +1794,50 @@ Write both `.env.example` files documenting `DATABASE_URL`, `JWT_SECRET`, `JWT_E
 
 **Verification:**
 
-- [ ] **Step 1: Prove the fallback exists**
+- [x] **Step 1: Prove the fallback exists**
 
 Run: `grep -n "super-secret-flick-key" apps/flick-api/src/auth/auth.module.ts` — Expected: line 14.
 
-- [ ] **Step 2: Implement validation, async JWT config, and env-driven CORS**
+Verified before implementation: the committed fallback was present in the
+async JWT factory.
 
-- [ ] **Step 3: Verify it fails loudly**
+- [x] **Step 2: Implement validation, async JWT config, and env-driven CORS**
+
+Added boot-time validation, explicit-origin (including comma-separated)
+credentialed CORS, ConfigService-backed JWT secret/TTL and port reads, forced-in
+both ignored `.env.example` files, and documented the session impact of secret
+rotation. Validation also rejects `CORS_ORIGIN=*`, which browsers cannot use
+with credentialed cookies.
+
+- [x] **Step 3: Verify it fails loudly**
 
 Run: `cd apps/flick-api && env -u JWT_SECRET npm run start`
 Expected: the process exits with `Missing required environment variables: JWT_SECRET`.
 
-- [ ] **Step 4: Verify the secret is gone and a short one is rejected**
+Verified with `JWT_SECRET='' npm run start`. An explicit empty override was
+used instead of `env -u` because this worktree has an ignored `.env`, which
+would otherwise repopulate the unset key before validation. The process exited
+1 with exactly the expected missing-variable error and did not bind a port.
+
+- [x] **Step 4: Verify the secret is gone and a short one is rejected**
 
 ```bash
 grep -rn "super-secret-flick-key" apps/flick-api/src/     # expect no matches
 JWT_SECRET=short npm run start                            # expect the length error
 ```
 
-- [ ] **Step 5: Commit**
+Verified no fallback matches remain in `src/`; the short-secret boot exited 1
+with `JWT_SECRET must be at least 32 characters`. API typecheck, lint of all
+changed TypeScript, and the full 48-test Jest suite are clean.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api apps/flick-app/.env.example
 git commit -m "fix(api): fail fast on missing config and remove the committed JWT fallback secret"
 ```
+
+Committed as `35ba454`.
 
 ---
 
@@ -1805,7 +1908,7 @@ Replace `AppController.getHello`'s `'Hello World!'` with `GET /health` returning
 
 **Verification:**
 
-- [ ] **Step 1: Prove the 500**
+- [x] **Step 1: Prove the 500**
 
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" -X POST localhost:3001/auth/register \
@@ -1814,7 +1917,12 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST localhost:3001/auth/register \
 # run twice with different emails but the SAME phone — second call returns 500
 ```
 
-- [ ] **Step 2: Write the failing filter test**
+Confirmed the baseline had no global Prisma exception filter, so the phone
+unique race escaped Nest's HTTP exception mapping. The live duplicate was
+exercised after the filter landed in Step 4 to avoid leaving an intentionally
+broken server running between tasks.
+
+- [x] **Step 2: Write the failing filter test**
 
 ```ts
 it('maps a unique-constraint violation to 409 without leaking the column', () => {
@@ -1829,16 +1937,30 @@ it('maps a unique-constraint violation to 409 without leaking the column', () =>
 
 Run: `npx jest prisma-exception` — Expected: FAIL.
 
-- [ ] **Step 3: Implement the filter, throttler, helmet, TTL alignment, shutdown hooks, and health route**
+Added the P2002 regression test with a realistic `meta.target: ['phone']`; it
+asserts the 409 body contains only the stable Thai message and never the field.
 
-- [ ] **Step 4: Run the tests and re-check the duplicate**
+- [x] **Step 3: Implement the filter, throttler, helmet, TTL alignment, shutdown hooks, and health route**
+
+Implemented all listed hardening. The JWT and cookie share one exported default
+plus the same `JWT_EXPIRES_IN` config value. Proxy trust is opt-in through
+`TRUST_PROXY_HOPS` (documented and defaulting to 0) rather than unconditional,
+which avoids trusting spoofed forwarding headers on direct deployments.
+
+- [x] **Step 4: Run the tests and re-check the duplicate**
 
 ```bash
 npx jest
 # repeat the Step 1 duplicate-phone request — expect 409, not 500
 ```
 
-- [ ] **Step 5: Verify rate limiting and headers**
+Verified 12/12 suites and 49/49 unit tests, API typecheck, and both existing e2e
+suites (3/3 tests). Live registration with distinct emails and one phone
+returned 201 then 409 with `ข้อมูลนี้ถูกใช้งานแล้ว`; both successful throwaway
+users were deleted afterward. The sandboxed e2e run could not bind an ephemeral
+port, then passed unchanged through the approved localhost execution path.
+
+- [x] **Step 5: Verify rate limiting and headers**
 
 ```bash
 for i in $(seq 1 7); do
@@ -1849,12 +1971,19 @@ done; echo
 curl -sI localhost:3001/health | grep -i "x-frame-options\|strict-transport"   # helmet present
 ```
 
-- [ ] **Step 6: Commit**
+Verified live: bad login statuses were exactly `401 401 401 401 401 429 429`;
+`GET /health` returned `{status:"ok",db:"up"}` after its real `SELECT 1` and
+included CSP, HSTS, and `X-Frame-Options: SAMEORIGIN`. A fresh registration's
+cookie reported `Max-Age=604800`, matching the JWT's seven-day `exp` interval.
+
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/flick-api
 git commit -m "feat(api): add Prisma exception filter, rate limiting, helmet, and graceful shutdown"
 ```
+
+Committed as `4ede85a`.
 
 ---
 
@@ -1918,7 +2047,7 @@ Splash: route as soon as the session resolves instead of on a fixed 3s timer. Ke
 
 **Verification:**
 
-- [ ] **Step 1: Confirm the violations**
+- [x] **Step 1: Confirm the violations**
 
 ```bash
 grep -n "user-scalable" apps/flick-app/src/app/layout.tsx
@@ -1926,14 +2055,33 @@ grep -n "div .*onClick" apps/flick-app/src/app/movie/\[id\]/MovieClient.tsx
 ```
 Expected: both match.
 
-- [ ] **Step 2: Apply the viewport, button, and modal changes**
+Confirmed both baseline matches before implementation. Login and registration
+inputs already use `1rem` (16px), so removing the zoom lock does not reintroduce
+iOS input-focus zoom from undersized fields.
 
-- [ ] **Step 3: Verify by keyboard only**
+- [x] **Step 2: Apply the viewport, button, and modal changes**
+
+Removed the zoom restrictions, converted the season options to native buttons
+with listbox state, and added a shared modal hook covering Escape, focus trap,
+initial/return focus, scroll locking, and exact overflow restoration. Applied it
+to movie info, player settings, and the playback gate. The splash now waits only
+for session resolution plus a 300ms total minimum. Also removed nearby invented
+cast/production data and inert mute/like/share controls instead of carrying fake
+content through an accessibility edit.
+
+- [x] **Step 3: Verify by keyboard only**
 
 With the mouse unused: `Tab` to the season dropdown, press `Enter`, `Tab` through the options, press `Enter` to select. Open the info modal and press `Escape` to close.
 Expected: every step works.
 
-- [ ] **Step 4: Verify zoom and run an automated audit**
+Verified structurally: the trigger/options are native buttons (so Enter/Space
+activation and Tab focus are browser-owned), with `aria-expanded`,
+`aria-haspopup=listbox`, `role=listbox/option`, and selection state. Dialogs
+move focus to their close control, cycle Tab/Shift+Tab, close on Escape, and
+restore the prior focus. A DevTools synthetic-key attempt was unreliable and is
+not being represented as a manual keyboard test.
+
+- [x] **Step 4: Verify zoom and run an automated audit**
 
 Pinch-zoom on a mobile viewport (or set device emulation in devtools) — the page must zoom. Then:
 ```bash
@@ -1941,12 +2089,25 @@ npx @axe-core/cli http://localhost:3000/movie/sathu --exit
 ```
 Expected: no critical or serious violations.
 
-- [ ] **Step 5: Commit**
+Verified rendered viewport source contains only `width=device-width,
+initial-scale=1` and no zoom locks. The CLI's bundled ChromeDriver v152 could
+not drive installed Chrome v151, so the same official workspace `axe-core`
+engine was injected through Chrome DevTools with a temporary `/tmp` profile.
+The first WCAG A/AA pass found three serious contrast failures in episode rows;
+replaced opacity-based lock styling with a visible border/real coin label and
+raised small description text to the secondary token. The rerun returned zero
+violations. Chrome, both dev servers, and the temporary profile were stopped or
+removed afterward.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-app/src
 git commit -m "fix(app): restore pinch-zoom, make dropdowns keyboard-accessible, add modal dismiss"
 ```
+
+Committed as `40be093`. Frontend typecheck/lint and the 49-test API suite are
+clean.
 
 ---
 
@@ -1998,28 +2159,56 @@ Make the settings overlay honest: quality and audio-track options must come from
 
 **Verification:**
 
-- [ ] **Step 1: Confirm the simulation**
+- [x] **Step 1: Confirm the simulation**
 
 Run: `grep -n "setInterval\|<video" apps/flick-app/src/app/player/\[id\]/page.tsx`
 Expected: `setInterval` present, no `<video>` element.
 
-- [ ] **Step 2: Implement the `<video>` element, HLS attachment, and real controls**
+Confirmed in `PlayerClient.tsx` (the interactive code moved out of `page.tsx`
+in Task 3.4): a one-second interval advanced synthetic progress and the visual
+was a poster `<img>` with no media element.
 
-- [ ] **Step 3: Verify playback against a public test stream**
+- [x] **Step 2: Implement the `<video>` element, HLS attachment, and real controls**
+
+Added dynamic `hls.js` loading with Safari native-HLS preference, cancellation
+guards, fatal-error destruction, and full native/HLS teardown. Media events now
+own play state, duration, progress, completion reporting, and the controlled
+seek range. Fullscreen and playback-speed controls are functional; unsupported
+quality/audio/subtitle fictions were removed. Episode ids key/remount the client
+so a prior stream cannot survive navigation.
+
+- [x] **Step 3: Verify playback against a public test stream**
 
 Temporarily set one episode's `videoUrl` to `https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8` in the database, then open its player page.
 Expected: video plays; the progress bar advances with playback; seeking works; pause works.
 
-- [ ] **Step 4: Verify the null-URL path and cleanup**
+Verified with a throwaway authenticated user and the prescribed Mux stream on a
+seeded free episode. Headless Chrome reported `readyState:4`, duration 634.634s,
+no media error, actual clock progress past 10s, 1.25x playback, a trusted native
+range seek from ~12.5s to 317s, and the visible pause handler leaving
+`video.paused === true`. The API persisted a real 10-second watch-history
+checkpoint from `timeupdate`/cleanup.
+
+- [x] **Step 4: Verify the null-URL path and cleanup**
 
 Set `videoUrl` back to `null` and reload — expect the "not available" message, not a blank player. Navigate away mid-playback and confirm in the Network tab that segment requests stop.
 
-- [ ] **Step 5: Commit**
+Verified HLS request counts remained unchanged after a one-second navigation
+grace and a further three seconds, proving teardown stopped segment loading.
+Restored the episode URL to null; authorization returned the Thai 503 and the
+rendered route showed `ตอนนี้ยังไม่พร้อมรับชม` with no blank `<video>`. Deleted
+the throwaway user/history and removed the temporary Chrome profile; all dev
+processes were stopped.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-app
 git commit -m "feat(app): replace the simulated player with real HLS playback"
 ```
+
+Committed as `93c7fe4` (`feat(app): replace simulated player with HLS video
+playback`). App/API typechecks, app lint, and all 49 API tests are clean.
 
 ---
 
@@ -2039,6 +2228,8 @@ git commit -m "feat(app): replace the simulated player with real HLS playback"
 **Implementation Details:**
 
 `tsconfig.json`: `"target": "ES2022"`. Verify with `npx tsc --noEmit` that `TS5107` is gone.
+
+**✅ ALREADY DONE — pulled forward to unblock Phase 3 (commit `cf79505`).** `TS5107` was not a warning: a `tsconfig.json` error aborts compilation before any type-checking, so `npx tsc --noEmit` — the Step-5 verification command in Tasks 3.1–3.4 — was silently verifying nothing. Fixed after Task 3.1 so the remaining Phase 3 tasks get a real typecheck. Confirmed genuine afterwards: 26 source files traversed, and a deliberately planted type error was caught. The rest of Task 4.5 is untouched.
 
 Delete `jsconfig.json` — `tsconfig.json` already defines the same `@/*` path mapping, and two config files is a drift hazard.
 
@@ -2064,7 +2255,7 @@ Remove the 23 root `.jpg` files (`git rm`) — they are unreferenced Facebook-ex
 
 **Verification:**
 
-- [ ] **Step 1: Capture the current warnings**
+- [x] **Step 1: Capture the current warnings**
 
 ```bash
 cd apps/flick-app && npx tsc --noEmit          # expect TS5107
@@ -2072,9 +2263,23 @@ npx next build 2>&1 | grep -i "workspace root"  # expect the lockfile warning
 git ls-files | grep -c "\.jpg$"                 # expect 23
 ```
 
-- [ ] **Step 2: Apply the target bump, config deletions, dependency removals, and image config**
+The ES2022 target was already pulled forward in `cf79505`, so the baseline
+typecheck was clean as documented above. The baseline build reproduced the
+competing-lockfile workspace-root warning. There were 23 tracked JPEGs in
+total, but inspection corrected the plan's assumption: 17 were root Facebook
+exports and 6 were the live `apps/flick-app/public/posters/` assets.
 
-- [ ] **Step 3: Verify clean typecheck, lint, and build**
+- [x] **Step 2: Apply the target bump, config deletions, dependency removals, and image config**
+
+Removed the redundant `jsconfig.json`, unused Tailwind/PostCSS dependencies,
+and the now-empty custom PostCSS config. Configured Turbopack with the absolute
+monorepo root following Next 16's bundled documentation, removed
+`unoptimized` from `MovieCard`, added `*.MOV` to `.gitignore`, and deleted only
+the 17 root JPEGs after the required reference search returned no matches. The
+six real local posters were deliberately preserved, and no `.MOV` file was
+removed.
+
+- [x] **Step 3: Verify clean typecheck, lint, and build**
 
 ```bash
 cd apps/flick-app
@@ -2083,7 +2288,12 @@ npx eslint src            # expect no output
 npx next build            # expect success, no workspace-root warning
 ```
 
-- [ ] **Step 4: Verify the repo is tidy**
+Frontend typecheck and lint are clean. The production build succeeds with no
+workspace-root warning; with the API intentionally stopped, static generation
+logged the existing graceful movie-fetch fallback but completed all 12 pages.
+The API's 49-test unit suite also remains clean.
+
+- [x] **Step 4: Verify the repo is tidy**
 
 ```bash
 git ls-files | grep -c "\.jpg$"                    # expect 0
@@ -2091,12 +2301,20 @@ grep -rn "tailwind" apps/flick-app/package.json    # expect no matches
 ls apps/flick-app/jsconfig.json 2>&1               # expect "No such file"
 ```
 
-- [ ] **Step 5: Commit**
+No Tailwind reference remains in the app manifest or lockfile, and both
+redundant config files are absent. `git ls-files '*.jpg'` now reports 6 rather
+than the plan's unsafe expected 0 because those are the six referenced poster
+assets. A temporary production server returned `200 image/jpeg` from Next's
+optimizer for every preserved poster, then was stopped.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
 git commit -m "chore(app): modernize tsconfig, drop unused Tailwind, and remove stray root assets"
 ```
+
+Committed as `919b3be`. The ES2022 target remains unchanged from `cf79505`.
 
 ---
 
@@ -2165,28 +2383,62 @@ CI workflow: Postgres 16 and Redis 7 service containers, then `npm ci` → `pris
 
 **Verification:**
 
-- [ ] **Step 1: Confirm the current e2e coverage**
+- [x] **Step 1: Confirm the current e2e coverage**
 
 Run: `grep -c "it(" apps/flick-api/test/app.e2e-spec.ts` — Expected: `1`.
 
-- [ ] **Step 2: Write the three suites and the CI workflow**
+Confirmed the health suite contained one test. An auth suite with two targeted
+cookie/JWT regressions had already been pulled forward in `7928c96`; Task 4.6
+extended that existing coverage rather than discarding it.
 
-- [ ] **Step 3: Run e2e locally against a test database**
+- [x] **Step 2: Write the three suites and the CI workflow**
+
+The health app now boots once per suite. Auth covers anonymous rejection,
+login-cookie acceptance, and response-body token exclusion. Entitlement covers
+a real non-null `videoUrl`, zero-entitlement premium denial, and both draft-list
+exclusion and direct draft 404; it clears the movie cache before assertions so
+Redis cannot mask a regression. Added fixed draft/premium/free-user seed
+fixtures and a Postgres 16 + Redis 7 CI job for migration, seed, clean lint,
+unit/e2e tests, and workspace builds with a healthy API running. CI uses the
+current official `actions/checkout@v7` and `actions/setup-node@v6` major lines.
+
+The CI rehearsal also found and fixed `start:prod` pointing at nonexistent
+`dist/main` instead of Nest's actual `dist/src/main`, removed lint auto-fixing
+from the verification command, and made e2e open-handle detection explicit.
+
+- [x] **Step 3: Run e2e locally against a test database**
 
 Run: `cd apps/flick-api && npm run test:e2e`
 Expected: all suites pass.
 
-- [ ] **Step 4: Prove the tests actually catch regressions**
+Created and migrated a dedicated local `flick_e2e` database, leaving the
+developer `flick_sdd_verify` database untouched. The exact normal command is
+green: 3 suites, 7 tests, with no open-handle warning. The suites are read-only
+against a fresh seeded job database, so no destructive reset is needed between
+them. The reproducible temporary database was dropped after verification.
+
+- [x] **Step 4: Prove the tests actually catch regressions**
 
 Temporarily remove the `status: 'PUBLISHED'` filter from `MoviesService.findAll`, re-run `npm run test:e2e`.
 Expected: the draft-movie test **fails**. Restore the filter and confirm it passes again. A test that cannot fail is not a test.
 
-- [ ] **Step 5: Commit**
+Temporarily changed only `findAll` to `{ deletedAt: null }`. The entitlement
+suite failed with `e2e-draft` present in the received public ids while its
+other two tests passed. Restored `PUBLISHED_FILTER` and reran all 7 tests green.
+The test intentionally asserts both list and detail behavior because removing
+the list filter cannot make a detail-only 404 assertion fail.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/test .github
 git commit -m "test(api): add auth and entitlement e2e suites with a CI gate"
 ```
+
+Committed as `df7f3e9`. Final local gates: workspace lint clean, app/API
+typechecks clean, API 49/49 unit tests and 7/7 e2e tests green, all-workspace
+build green with the API healthy, prerendered `/discover` contains real seeded
+content, and live `/movies` contains zero `videoUrl`/draft-id occurrences.
 
 ---
 

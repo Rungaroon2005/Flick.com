@@ -57,7 +57,36 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Database migrations
+
+Schema changes are managed exclusively through Prisma Migrate's version-controlled migration history in `prisma/migrations/`. **`prisma db push` must never be used again for schema changes** — it does not produce a migration file, so it leaves no reproducible or reversible record of the change.
+
+```bash
+# local development: creates a new migration from schema changes and applies it
+$ npm run migrate:dev
+
+# CI / production: applies existing, already-committed migrations only
+# (never generates new migrations, never prompts)
+$ npm run migrate:deploy
+
+# seed the database (uses the seed script configured in prisma.config.ts / package.json)
+$ npm run db:seed
+```
+
+- `migrate:dev` (`prisma migrate dev`) is for local development only. It diffs your schema against migration history, generates a new migration file if needed, and applies it.
+- `migrate:deploy` (`prisma migrate deploy`) is what CI and production deploys run. It only applies migrations that already exist in `prisma/migrations/` — it never generates or prompts.
+- The migration history starts from `prisma/migrations/0_init`, a baseline generated from the schema that was previously applied via `db push`, then marked as applied with `prisma migrate resolve --applied 0_init` (so it was not re-run against the existing database).
+
 ## Deployment
+
+Copy `.env.example` into the deployment's secret/configuration system and set
+every required value before boot. `JWT_SECRET` must contain at least 32
+characters. Rotating it deliberately invalidates every active session, so plan
+the rotation as a forced sign-in event. `CORS_ORIGIN` accepts a comma-separated
+allowlist of explicit frontend origins; wildcard origins are not compatible
+with credentialed cookies. When the API is deployed behind a reverse proxy,
+set `TRUST_PROXY_HOPS` to the number of proxy hops (usually `1`) so per-IP rate
+limits see the real client; leave it at `0` for direct client connections.
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 

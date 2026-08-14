@@ -65,19 +65,9 @@
   transform: translateY(-5px);
 }
 
-.planCardFree {
-  background: linear-gradient(145deg, rgba(40,40,60,0.8) 0%, rgba(20,20,30,0.8) 100%);
-}
-
-.planCardWeekly {
-  background: linear-gradient(145deg, rgba(204,51,0,0.4) 0%, rgba(26,26,46,0.8) 100%);
-  border-color: rgba(204, 51, 0, 0.5);
-}
-
-.planCardMonthly {
-  background: linear-gradient(145deg, rgba(255,179,0,0.4) 0%, rgba(26,26,46,0.8) 100%);
-  border-color: rgba(255, 179, 0, 0.5);
-}
+/* Per-plan card variants (.planCardFree/Weekly/Monthly) were removed with the
+   hardcoded JSX: the cards now come from GET /plans, so accent colour is taken
+   from the plan's own `color` field via an inline borderColor. */
 
 .badge {
   position: absolute;
@@ -136,6 +126,41 @@
   transition: all var(--transition-fast);
 }
 
+.selectBtn:disabled {
+  opacity: 0.45;
+  filter: grayscale(1);
+  cursor: not-allowed;
+}
+
+.unavailableNote {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.errorNote {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(204, 51, 0, 0.15);
+  border: 1px solid rgba(204, 51, 0, 0.5);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.coinCardDisabled {
+  opacity: 0.45;
+  filter: grayscale(1);
+  cursor: not-allowed;
+}
+
+.coinCardDisabled:hover {
+  transform: none;
+  border-color: var(--border-light);
+}
+
 .btnFree {
   background: var(--border-light);
   color: var(--text-primary);
@@ -143,19 +168,15 @@
 
 .btnFree:hover { background: #444460; }
 
-.btnWeekly {
+/* One button treatment for every paid plan: the plan list is data-driven now,
+   so a per-plan colour class would just be the old hardcoding in a new place —
+   and an arbitrary background from the API could land unreadable text on it. */
+.btnSubscribe {
   background: var(--flick-red);
   color: white;
 }
 
-.btnWeekly:hover { background: var(--flick-red-light); }
-
-.btnMonthly {
-  background: var(--warning);
-  color: #000;
-}
-
-.btnMonthly:hover { background: #FFC107; }
+.btnSubscribe:hover:not(:disabled) { background: var(--flick-red-light); }
 
 /* Coins Section */
 .coinsGrid {

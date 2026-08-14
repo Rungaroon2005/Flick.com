@@ -1,14 +1,16 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import HomeClient from './HomeClient';
-import { Movie } from '@/types';
+import API_BASE_URL from '@/lib/api';
+import { ApiError } from '@/lib/apiClient';
+import { apiFetchServer, getSession } from '@/lib/session';
+import { ContinueWatchingItem, Movie } from '@/types';
 import styles from './page.module.css';
 
-// Ensure NEXT_PUBLIC_API_URL is available
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
 async function getMovies(): Promise<Movie[]> {
-  const res = await fetch(`${API_URL}/movies`, {
+  // Public catalogue data only — safe to share across users, unlike the session.
+  const res = await fetch(`${API_BASE_URL}/movies`, {
     next: { revalidate: 60 }, // ISR: Revalidate every 60 seconds
   });
   
@@ -20,7 +22,14 @@ async function getMovies(): Promise<Movie[]> {
 }
 
 export default async function HomePage() {
+  // Authorisation happens here, on the server, before any of this page is sent.
+  // redirect() throws, so nothing below runs for an unauthenticated request.
+  const session = await getSession();
+  if (!session) redirect('/login');
+
   let movies: Movie[] = [];
+  let bookmarks: Movie[] = [];
+  let continueWatching: ContinueWatchingItem[] = [];
   let error: string | null = null;
 
   try {
@@ -30,11 +39,52 @@ export default async function HomePage() {
     error = 'ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง';
   }
 
+  // Bookmarks are fetched separately, and deliberately not in the same try as
+  // the catalogue: a bookmarks-only fault must cost the user one empty row, not
+  // the whole home page.
+  let sessionExpired = false;
+  try {
+    bookmarks = await apiFetchServer<Movie[]>('/me/bookmarks');
+  } catch (err) {
+    // 401 means the session died between getSession() above and this call.
+    // Per the engagement contract that is a login redirect, never a generic
+    // error screen.
+    if (err instanceof ApiError && err.status === 401) {
+      sessionExpired = true;
+    } else {
+      console.error('Error fetching bookmarks on server:', err);
+      bookmarks = [];
+    }
+  }
+  // redirect() throws, so it must be called outside the try/catch above or the
+  // catch would swallow its control-flow signal.
+  if (sessionExpired) redirect('/login');
+
+  // Watch history is a third, isolated failure domain. A fault here must not
+  // discard either the healthy catalogue or bookmarks data above.
+  sessionExpired = false;
+  try {
+    continueWatching = await apiFetchServer<ContinueWatchingItem[]>(
+      '/me/continue-watching',
+    );
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) {
+      sessionExpired = true;
+    } else {
+      console.error('Error fetching continue-watching on server:', err);
+      continueWatching = [];
+    }
+  }
+  if (sessionExpired) redirect('/login');
+
   return (
     <div className={styles.container}>
       {/* Top Bar (Server rendered) */}
       <header className={styles.header}>
-        <div className={styles.logo}>Flick</div>
+        <div className={styles.brand}>
+          <div className={styles.logo}>Flick</div>
+          <span className={styles.greeting}>สวัสดี, {session.displayName}</span>
+        </div>
         <div className={styles.headerIcons}>
           <Link href="/downloads" className={styles.iconButton}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
@@ -57,7 +107,11 @@ export default async function HomePage() {
           <p>{error}</p>
         </div>
       ) : (
-        <HomeClient initialMovies={movies} />
+        <HomeClient
+          initialMovies={movies}
+          initialBookmarks={bookmarks}
+          initialContinueWatching={continueWatching}
+        />
       )}
 
       <BottomNav />

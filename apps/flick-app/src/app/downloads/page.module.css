@@ -29,6 +29,12 @@
   color: white;
   font-size: 1.2rem;
   cursor: pointer;
+  text-decoration: none;
+}
+.currentIcon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.2rem;
 }
 .main {
   padding: 0 1rem;
@@ -36,6 +42,12 @@
 .pageTitle {
   font-size: 1.5rem;
   margin-bottom: 1.5rem;
+}
+.disclaimer {
+  margin: -0.75rem 0 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
 .emptyState {
   text-align: center;
@@ -55,6 +67,8 @@
   background: var(--bg-surface);
   padding: 0.5rem;
   border-radius: var(--radius-md);
+  color: inherit;
+  text-decoration: none;
 }
 .thumbnailContainer {
   width: 120px;

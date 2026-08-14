@@ -1,4 +1,6 @@
 import {
+  IsArray,
+  ArrayNotEmpty,
   IsString,
   IsInt,
   IsOptional,
@@ -32,6 +34,8 @@ export class CreateMovieDto {
   @IsString()
   contentRating: string;
 
-  @IsString()
-  genre: string;
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
+  genreSlugs!: string[];
 }

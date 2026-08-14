@@ -1,49 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import MovieCard from '@/components/MovieCard';
-import { isLoggedIn, getContinueWatching, getBookmarks } from '@/lib/auth';
-import { Movie } from '@/types';
+import { ContinueWatchingItem, Movie } from '@/types';
 import styles from './page.module.css';
 
 interface HomeClientProps {
   initialMovies: Movie[];
+  /** This user's real bookmarks, fetched server-side (no-store) in page.tsx. */
+  initialBookmarks: Movie[];
+  /** Incomplete watch-history rows, newest first, resolved by the API. */
+  initialContinueWatching: ContinueWatchingItem[];
 }
 
-export default function HomeClient({ initialMovies }: HomeClientProps) {
-  const router = useRouter();
-  const [continueWatching, setContinueWatching] = useState<Movie[]>([]);
-  const [bookmarks, setBookmarks] = useState<Movie[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    // Check if user is logged in
-    const userLoggedIn = isLoggedIn();
-    if (!userLoggedIn) {
-      router.push('/login');
-      return;
-    }
-
-    const cw = getContinueWatching() as { movieId: string }[];
-    const cwMovies = cw.map(item => initialMovies.find(m => m.id === item.movieId)).filter((m): m is Movie => m !== undefined);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setContinueWatching(cwMovies);
-
-    const bms = getBookmarks() as string[];
-    const bmMovies = bms.map(id => initialMovies.find(m => m.id === id)).filter((m): m is Movie => m !== undefined);
-    setBookmarks(bmMovies);
-    
-    setIsLoading(false);
-  }, [router, initialMovies]);
-
-  // Use recommended movies from API (just taking first 6 for demo)
+// Access control for this page now happens server-side in page.tsx
+// (getSession() + redirect), so there is no login check to do here.
+export default function HomeClient({
+  initialMovies,
+  initialBookmarks,
+  initialContinueWatching,
+}: HomeClientProps) {
+  // Use the newest six real catalogue entries for the compact home row.
   const recommendedMovies = initialMovies.slice(0, 6);
-
-  if (isLoading) {
-    return <div className={styles.loadingScreen}>กำลังโหลด...</div>;
-  }
 
   return (
     <>
@@ -61,46 +39,70 @@ export default function HomeClient({ initialMovies }: HomeClientProps) {
           </div>
         </section>
 
-        {/* Continue Watching Section */}
+        {/* Continue Watching Section — real incomplete watch history. */}
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>ดูต่อ</h2>
-            <Link href="/continue-watching" className={styles.seeAllLink}>ทั้งหมด &gt;</Link>
+            <span className={styles.seeAllLink}>ล่าสุด</span>
           </div>
-          <div className={styles.horizontalScroll}>
-            {continueWatching.length > 0 ? (
-              continueWatching.map(movie => (
-                <MovieCard key={movie.id} movie={movie} size="medium" />
-              ))
-            ) : (
-              <>
-                <div className={styles.skeletonCard} />
-                <div className={styles.skeletonCard} />
-                <div className={styles.skeletonCard} />
-              </>
-            )}
-          </div>
+          {initialContinueWatching.length > 0 ? (
+            <div className={styles.horizontalScroll}>
+              {initialContinueWatching.map((item) => {
+                const totalSeconds = item.episode.durationMinutes * 60;
+                const percentage = totalSeconds > 0
+                  ? Math.min(100, Math.max(0, (item.progressSeconds / totalSeconds) * 100))
+                  : 0;
+                return (
+                  <Link
+                    key={item.id}
+                    href={`/player/${item.episode.id}`}
+                    className={styles.continueCard}
+                  >
+                    <span className={styles.continueArtwork}>
+                      {(item.episode.thumbnailUrl || item.movie.posterUrl) && (
+                        // The API supplies user-uploaded poster URLs; Task 4.5
+                        // configures next/image hosts before these can migrate.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={(item.episode.thumbnailUrl || item.movie.posterUrl) ?? undefined}
+                          alt=""
+                        />
+                      )}
+                      <span className={styles.continueProgressTrack}>
+                        <span
+                          className={styles.continueProgress}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </span>
+                    </span>
+                    <strong>{item.movie.title}</strong>
+                    <span>ตอนที่ {item.episode.episodeNumber}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className={styles.emptyRow}>ยังไม่มีรายการที่ดูค้างไว้</div>
+          )}
         </section>
 
-        {/* My List Section */}
+        {/* My List Section — real bookmarks from GET /me/bookmarks. */}
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>รายการของฉัน</h2>
             <Link href="/bookmarks" className={styles.seeAllLink}>ทั้งหมด &gt;</Link>
           </div>
-          <div className={styles.horizontalScroll}>
-            {bookmarks.length > 0 ? (
-              bookmarks.map(movie => (
-                <MovieCard key={movie.id} movie={movie} size="medium" showBookmark={true} />
-              ))
-            ) : (
-              <>
-                <div className={styles.skeletonCard} />
-                <div className={styles.skeletonCard} />
-                <div className={styles.skeletonCard} />
-              </>
-            )}
-          </div>
+          {initialBookmarks.length > 0 ? (
+            <div className={styles.horizontalScroll}>
+              {/* Every movie in this row is bookmarked by construction, so the
+                  badge reflects real state. */}
+              {initialBookmarks.map((m) => (
+                <MovieCard key={m.id} movie={m} size="medium" showBookmark />
+              ))}
+            </div>
+          ) : (
+            <div className={styles.emptyRow}>ยังไม่มีรายการที่บันทึกไว้</div>
+          )}
         </section>
       </main>
     </>

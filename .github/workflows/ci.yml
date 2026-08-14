@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: flick_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d flick_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      CI: true
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flick_ci?schema=public
+      JWT_SECRET: ci-only-secret-longer-than-thirty-two-characters
+      JWT_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://localhost:3000
+      REDIS_URL: redis://localhost:6379
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run pretest --workspace=flick-api
+
+      - name: Apply database migrations
+        run: npm run migrate:deploy --workspace=flick-api
+
+      - name: Seed security fixtures
+        run: npm run db:seed --workspace=flick-api
+
+      - name: Lint workspaces
+        run: |
+          npm run lint --workspaces
+          git diff --exit-code
+
+      - name: Run API unit tests
+        run: npm run test --workspace=flick-api
+
+      - name: Run API end-to-end tests
+        run: npm run test:e2e --workspace=flick-api
+
+      - name: Build workspaces with the API available
+        run: |
+          npm run build --workspace=flick-api
+          node apps/flick-api/dist/src/main.js > "$RUNNER_TEMP/flick-api.log" 2>&1 &
+          api_pid=$!
+          trap 'kill "$api_pid" 2>/dev/null || true' EXIT
+
+          for attempt in {1..30}; do
+            if curl --fail --silent http://localhost:3001/health > /dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              cat "$RUNNER_TEMP/flick-api.log"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          npm run build --workspaces

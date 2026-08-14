@@ -173,24 +173,35 @@ Add to `apps/flick-api/package.json` scripts so the generated client is always p
 
 **Verification:**
 
-- [ ] **Step 1: Run the suite and confirm the current failure**
+- [x] **Step 1: Run the suite and confirm the current failure**
 
 Run: `cd apps/flick-api && npx jest`
 Expected: `Test Suites: 5 failed, 1 passed`
 
-- [ ] **Step 2: Create the Prisma mock and rewrite all five specs** (code above)
+The original failing baseline and broken placeholder suites are recorded in the
+Task 1.1 ledger entries and commits `f71d4ad..c66e055`.
 
-- [ ] **Step 3: Run the suite green**
+- [x] **Step 2: Create the Prisma mock and rewrite all five specs** (code above)
+
+Added the shared Prisma test double and behavioral controller/service coverage;
+the later deferred transaction-mock issue was also resolved before Phase 3.
+
+- [x] **Step 3: Run the suite green**
 
 Run: `cd apps/flick-api && npx jest`
 Expected: `Test Suites: 6 passed, 6 total`, and more than 6 individual tests.
 
-- [ ] **Step 4: Commit**
+The final production-readiness gate now reports 12/12 suites and 49/49 unit
+tests passing.
+
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/flick-api/src apps/flick-api/package.json
 git commit -m "test(api): repair broken unit suites and add Prisma test double"
 ```
+
+Completed across `f71d4ad..c66e055`, as recorded in the progress ledger.
 
 ---
 
@@ -2372,28 +2383,62 @@ CI workflow: Postgres 16 and Redis 7 service containers, then `npm ci` → `pris
 
 **Verification:**
 
-- [ ] **Step 1: Confirm the current e2e coverage**
+- [x] **Step 1: Confirm the current e2e coverage**
 
 Run: `grep -c "it(" apps/flick-api/test/app.e2e-spec.ts` — Expected: `1`.
 
-- [ ] **Step 2: Write the three suites and the CI workflow**
+Confirmed the health suite contained one test. An auth suite with two targeted
+cookie/JWT regressions had already been pulled forward in `7928c96`; Task 4.6
+extended that existing coverage rather than discarding it.
 
-- [ ] **Step 3: Run e2e locally against a test database**
+- [x] **Step 2: Write the three suites and the CI workflow**
+
+The health app now boots once per suite. Auth covers anonymous rejection,
+login-cookie acceptance, and response-body token exclusion. Entitlement covers
+a real non-null `videoUrl`, zero-entitlement premium denial, and both draft-list
+exclusion and direct draft 404; it clears the movie cache before assertions so
+Redis cannot mask a regression. Added fixed draft/premium/free-user seed
+fixtures and a Postgres 16 + Redis 7 CI job for migration, seed, clean lint,
+unit/e2e tests, and workspace builds with a healthy API running. CI uses the
+current official `actions/checkout@v7` and `actions/setup-node@v6` major lines.
+
+The CI rehearsal also found and fixed `start:prod` pointing at nonexistent
+`dist/main` instead of Nest's actual `dist/src/main`, removed lint auto-fixing
+from the verification command, and made e2e open-handle detection explicit.
+
+- [x] **Step 3: Run e2e locally against a test database**
 
 Run: `cd apps/flick-api && npm run test:e2e`
 Expected: all suites pass.
 
-- [ ] **Step 4: Prove the tests actually catch regressions**
+Created and migrated a dedicated local `flick_e2e` database, leaving the
+developer `flick_sdd_verify` database untouched. The exact normal command is
+green: 3 suites, 7 tests, with no open-handle warning. The suites are read-only
+against a fresh seeded job database, so no destructive reset is needed between
+them. The reproducible temporary database was dropped after verification.
+
+- [x] **Step 4: Prove the tests actually catch regressions**
 
 Temporarily remove the `status: 'PUBLISHED'` filter from `MoviesService.findAll`, re-run `npm run test:e2e`.
 Expected: the draft-movie test **fails**. Restore the filter and confirm it passes again. A test that cannot fail is not a test.
 
-- [ ] **Step 5: Commit**
+Temporarily changed only `findAll` to `{ deletedAt: null }`. The entitlement
+suite failed with `e2e-draft` present in the received public ids while its
+other two tests passed. Restored `PUBLISHED_FILTER` and reran all 7 tests green.
+The test intentionally asserts both list and detail behavior because removing
+the list filter cannot make a detail-only 404 assertion fail.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/test .github
 git commit -m "test(api): add auth and entitlement e2e suites with a CI gate"
 ```
+
+Committed as `df7f3e9`. Final local gates: workspace lint clean, app/API
+typechecks clean, API 49/49 unit tests and 7/7 e2e tests green, all-workspace
+build green with the API healthy, prerendered `/discover` contains real seeded
+content, and live `/movies` contains zero `videoUrl`/draft-id occurrences.
 
 ---
 

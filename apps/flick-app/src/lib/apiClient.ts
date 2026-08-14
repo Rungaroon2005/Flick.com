@@ -22,7 +22,15 @@ export async function unwrapResponse<T>(res: Response): Promise<T> {
     const msg = Array.isArray(body.message) ? body.message[0] : body.message;
     throw new ApiError(res.status, msg ?? DEFAULT_ERROR);
   }
-  return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
+  if (res.status === 204) return undefined as T;
+  // A 200 can still carry no body: Nest replies to a controller that returned
+  // null/undefined with an empty body (Express `res.send()`), NOT the literal
+  // `null`. GET /subscriptions/me does exactly that for a user with no
+  // subscription — the common case — so res.json() would throw a SyntaxError
+  // that is not an ApiError and would escape every caller's error handling.
+  // "No body" therefore means "no value", not "malformed response".
+  const text = await res.text();
+  return (text ? (JSON.parse(text) as T) : (undefined as T));
 }
 
 export async function apiFetch<T>(

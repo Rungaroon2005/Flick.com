@@ -48,6 +48,37 @@ export interface Movie {
   seasons?: Season[];
 }
 
+/** Mirrors the Subscription model in apps/flick-api/prisma/schema.prisma —
+ *  the body of GET /subscriptions/me (or no body at all when there is none). */
+export interface Subscription {
+  id: string;
+  userId: string;
+  planType: string; // 'weekly' | 'monthly' in practice
+  status: 'ACTIVE' | 'CANCELED' | 'EXPIRED';
+  autoRenew: boolean;
+  startDate: string; // ISO string from backend
+  endDate: string;
+  paymentMethod: string;
+  gatewaySubscriptionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** One entry of SUBSCRIPTION_PLANS from GET /plans. The plan cards are rendered
+ *  from this rather than from hardcoded JSX so the ids the client POSTs can
+ *  never drift from the ids the API accepts. */
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  nameEn: string;
+  price: number;
+  period: string;
+  features: string[];
+  featuresEn: string[];
+  badge: string | null;
+  color: string;
+}
+
 export interface CoinPack {
   id: string;
   name: string;

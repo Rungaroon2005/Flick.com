@@ -1,12 +1,17 @@
-'use client';
+import { redirect } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
+import BookmarksClient from './BookmarksClient';
+import { getSession } from '@/lib/session';
 import styles from './page.module.css';
 
-// TODO(Task 3.2): wire this page to GET /me/bookmarks (DB-backed, cookie-authenticated).
-// The previous implementation read bookmarks from localStorage and, when empty,
-// showed the first five movies in the catalogue as if the user had saved them.
-// Both are gone; until 3.2 lands, the page reports the truth: nothing to show.
-export default function BookmarksPage() {
+// GET /me/bookmarks always 401s without a session, and there is nothing
+// legitimate to show an anonymous visitor here. Authorisation therefore happens
+// on the server, before any of this page is sent — same shape as /home — rather
+// than behind a client-side flash of "no bookmarks".
+export default async function BookmarksPage() {
+  const session = await getSession();
+  if (!session) redirect('/login');
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -19,10 +24,7 @@ export default function BookmarksPage() {
 
       <main className={styles.main}>
         <h1 className={styles.pageTitle}>บันทึก</h1>
-
-        <div className={styles.emptyState}>
-          <p>ยังไม่มีรายการที่บันทึกไว้</p>
-        </div>
+        <BookmarksClient />
       </main>
 
       <BottomNav />

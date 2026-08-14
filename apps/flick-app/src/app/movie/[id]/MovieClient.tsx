@@ -4,16 +4,20 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import InfoModal from './InfoModal';
 import styles from './page.module.css';
+import { ApiError, apiFetch } from '@/lib/apiClient';
 import { Movie } from '@/types';
 
 interface MovieClientProps {
   movie: Movie;
   similarMovies: Movie[];
+  /** Server-resolved truth at render time; false for anonymous visitors. */
+  initialBookmarked: boolean;
 }
 
-export default function MovieClient({ movie, similarMovies }: MovieClientProps) {
+export default function MovieClient({ movie, similarMovies, initialBookmarked }: MovieClientProps) {
   const router = useRouter();
   const [showInfo, setShowInfo] = useState(false);
+  const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [seasonDropdownOpen, setSeasonDropdownOpen] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(
     movie.seasons && movie.seasons.length > 0 ? movie.seasons[0].seasonNumber : 1
@@ -21,6 +25,20 @@ export default function MovieClient({ movie, similarMovies }: MovieClientProps) 
 
   const currentSeason = movie.seasons?.find(s => s.seasonNumber === selectedSeason);
   const episodes = currentSeason?.episodes || [];
+
+  // Optimistic, with rollback: silently diverging from the server is worse than
+  // a brief flicker. A 401 means the session expired — send them to log in
+  // rather than showing a generic error.
+  const toggleBookmark = async () => {
+    const next = !bookmarked;
+    setBookmarked(next);
+    try {
+      await apiFetch(`/me/bookmarks/${movie.id}`, { method: next ? 'PUT' : 'DELETE' });
+    } catch (err) {
+      setBookmarked(!next);
+      if (err instanceof ApiError && err.status === 401) router.push('/login');
+    }
+  };
 
   return (
     <>
@@ -61,7 +79,14 @@ export default function MovieClient({ movie, similarMovies }: MovieClientProps) 
               <span>แชร์</span>
             </div>
             <div className={styles.actionItem}>
-              <button className={styles.iconBtn} aria-label="Bookmark">🔖</button>
+              <button
+                className={styles.iconBtn}
+                onClick={toggleBookmark}
+                aria-label="Bookmark"
+                aria-pressed={bookmarked}
+              >
+                {bookmarked ? '🔖' : '➕'}
+              </button>
               <span>บันทึก</span>
             </div>
             <div className={styles.actionItem}>

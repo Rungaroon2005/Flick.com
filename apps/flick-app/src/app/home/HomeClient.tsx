@@ -7,11 +7,13 @@ import styles from './page.module.css';
 
 interface HomeClientProps {
   initialMovies: Movie[];
+  /** This user's real bookmarks, fetched server-side (no-store) in page.tsx. */
+  initialBookmarks: Movie[];
 }
 
 // Access control for this page now happens server-side in page.tsx
 // (getSession() + redirect), so there is no login check to do here.
-export default function HomeClient({ initialMovies }: HomeClientProps) {
+export default function HomeClient({ initialMovies, initialBookmarks }: HomeClientProps) {
   // Use recommended movies from API (just taking first 6 for demo)
   const recommendedMovies = initialMovies.slice(0, 6);
 
@@ -32,7 +34,7 @@ export default function HomeClient({ initialMovies }: HomeClientProps) {
         </section>
 
         {/* Continue Watching Section */}
-        {/* TODO(Task 3.2): populate from GET /me/watch-history. Until then this
+        {/* TODO(Task 3.4): populate from GET /me/watch-history. Until then this
             section reports the truth — nothing is known about what was watched. */}
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
@@ -42,14 +44,23 @@ export default function HomeClient({ initialMovies }: HomeClientProps) {
           <div className={styles.emptyRow}>ยังไม่มีรายการที่ดูค้างไว้</div>
         </section>
 
-        {/* My List Section */}
-        {/* TODO(Task 3.2): populate from GET /me/bookmarks. */}
+        {/* My List Section — real bookmarks from GET /me/bookmarks. */}
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>รายการของฉัน</h2>
             <Link href="/bookmarks" className={styles.seeAllLink}>ทั้งหมด &gt;</Link>
           </div>
-          <div className={styles.emptyRow}>ยังไม่มีรายการที่บันทึกไว้</div>
+          {initialBookmarks.length > 0 ? (
+            <div className={styles.horizontalScroll}>
+              {/* Every movie in this row is bookmarked by construction, so the
+                  badge reflects real state. */}
+              {initialBookmarks.map((m) => (
+                <MovieCard key={m.id} movie={m} size="medium" showBookmark />
+              ))}
+            </div>
+          ) : (
+            <div className={styles.emptyRow}>ยังไม่มีรายการที่บันทึกไว้</div>
+          )}
         </section>
       </main>
     </>

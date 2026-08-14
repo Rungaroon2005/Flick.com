@@ -18,8 +18,10 @@ export async function apiFetchServer<T>(
     cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
-      cookie: cookieHeader,
       ...init.headers,
+      // Last, deliberately: a caller must never be able to override the real
+      // session cookie by passing its own `headers.cookie`.
+      cookie: cookieHeader,
     },
   });
   return unwrapResponse<T>(res);

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import HomeClient from './HomeClient';
 import API_BASE_URL from '@/lib/api';
-import { getSession } from '@/lib/session';
+import { apiFetchServer, getSession } from '@/lib/session';
 import { Movie } from '@/types';
 import styles from './page.module.css';
 
@@ -27,10 +27,17 @@ export default async function HomePage() {
   if (!session) redirect('/login');
 
   let movies: Movie[] = [];
+  let bookmarks: Movie[] = [];
   let error: string | null = null;
 
   try {
-    movies = await getMovies();
+    // Public catalogue (ISR-cached) and this user's bookmarks (never cached)
+    // in parallel. Past the redirect above the session is guaranteed, so a 401
+    // here would be a genuine fault, not an anonymous visitor.
+    [movies, bookmarks] = await Promise.all([
+      getMovies(),
+      apiFetchServer<Movie[]>('/me/bookmarks'),
+    ]);
   } catch (err) {
     console.error('Error fetching movies on server:', err);
     error = 'ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง';
@@ -66,7 +73,7 @@ export default async function HomePage() {
           <p>{error}</p>
         </div>
       ) : (
-        <HomeClient initialMovies={movies} />
+        <HomeClient initialMovies={movies} initialBookmarks={bookmarks} />
       )}
 
       <BottomNav />

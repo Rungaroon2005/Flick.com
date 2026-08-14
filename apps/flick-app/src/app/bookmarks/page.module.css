@@ -47,6 +47,11 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
 }
+/* MovieCard carries its own fixed width for horizontal rails; in this grid the
+   columns govern, or a 140px card overflows a narrow third of a phone screen. */
+.grid > * {
+  width: 100%;
+}
 .movieCard {
   position: relative;
   aspect-ratio: 2/3;

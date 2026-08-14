@@ -2244,7 +2244,7 @@ Remove the 23 root `.jpg` files (`git rm`) — they are unreferenced Facebook-ex
 
 **Verification:**
 
-- [ ] **Step 1: Capture the current warnings**
+- [x] **Step 1: Capture the current warnings**
 
 ```bash
 cd apps/flick-app && npx tsc --noEmit          # expect TS5107
@@ -2252,9 +2252,23 @@ npx next build 2>&1 | grep -i "workspace root"  # expect the lockfile warning
 git ls-files | grep -c "\.jpg$"                 # expect 23
 ```
 
-- [ ] **Step 2: Apply the target bump, config deletions, dependency removals, and image config**
+The ES2022 target was already pulled forward in `cf79505`, so the baseline
+typecheck was clean as documented above. The baseline build reproduced the
+competing-lockfile workspace-root warning. There were 23 tracked JPEGs in
+total, but inspection corrected the plan's assumption: 17 were root Facebook
+exports and 6 were the live `apps/flick-app/public/posters/` assets.
 
-- [ ] **Step 3: Verify clean typecheck, lint, and build**
+- [x] **Step 2: Apply the target bump, config deletions, dependency removals, and image config**
+
+Removed the redundant `jsconfig.json`, unused Tailwind/PostCSS dependencies,
+and the now-empty custom PostCSS config. Configured Turbopack with the absolute
+monorepo root following Next 16's bundled documentation, removed
+`unoptimized` from `MovieCard`, added `*.MOV` to `.gitignore`, and deleted only
+the 17 root JPEGs after the required reference search returned no matches. The
+six real local posters were deliberately preserved, and no `.MOV` file was
+removed.
+
+- [x] **Step 3: Verify clean typecheck, lint, and build**
 
 ```bash
 cd apps/flick-app
@@ -2263,7 +2277,12 @@ npx eslint src            # expect no output
 npx next build            # expect success, no workspace-root warning
 ```
 
-- [ ] **Step 4: Verify the repo is tidy**
+Frontend typecheck and lint are clean. The production build succeeds with no
+workspace-root warning; with the API intentionally stopped, static generation
+logged the existing graceful movie-fetch fallback but completed all 12 pages.
+The API's 49-test unit suite also remains clean.
+
+- [x] **Step 4: Verify the repo is tidy**
 
 ```bash
 git ls-files | grep -c "\.jpg$"                    # expect 0
@@ -2271,12 +2290,20 @@ grep -rn "tailwind" apps/flick-app/package.json    # expect no matches
 ls apps/flick-app/jsconfig.json 2>&1               # expect "No such file"
 ```
 
-- [ ] **Step 5: Commit**
+No Tailwind reference remains in the app manifest or lockfile, and both
+redundant config files are absent. `git ls-files '*.jpg'` now reports 6 rather
+than the plan's unsafe expected 0 because those are the six referenced poster
+assets. A temporary production server returned `200 image/jpeg` from Next's
+optimizer for every preserved poster, then was stopped.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
 git commit -m "chore(app): modernize tsconfig, drop unused Tailwind, and remove stray root assets"
 ```
+
+Committed as `919b3be`. The ES2022 target remains unchanged from `cf79505`.
 
 ---
 

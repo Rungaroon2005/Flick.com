@@ -79,6 +79,13 @@ $ npm run db:seed
 
 ## Deployment
 
+Copy `.env.example` into the deployment's secret/configuration system and set
+every required value before boot. `JWT_SECRET` must contain at least 32
+characters. Rotating it deliberately invalidates every active session, so plan
+the rotation as a forced sign-in event. `CORS_ORIGIN` accepts a comma-separated
+allowlist of explicit frontend origins; wildcard origins are not compatible
+with credentialed cookies.
+
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 
 If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:

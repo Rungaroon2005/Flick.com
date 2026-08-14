@@ -13,10 +13,11 @@ import { WalletModule } from './wallet/wallet.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PlaybackModule } from './playback/playback.module';
 import { EngagementModule } from './engagement/engagement.module';
+import { validateEnv } from './common/config.validation';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     MoviesModule,
     UsersModule,
     AuthModule,

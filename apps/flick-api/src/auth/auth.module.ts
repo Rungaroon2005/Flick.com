@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import type { JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
@@ -15,12 +16,16 @@ import { UsersModule } from '../users/users.module';
       global: true,
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret:
-          config.get<string>('JWT_SECRET') ||
-          'super-secret-flick-key-for-dev-only-do-not-use-in-prod',
-        signOptions: { expiresIn: '1d' },
-      }),
+      useFactory: (config: ConfigService): JwtModuleOptions => {
+        const expiresIn = config.get<string>(
+          'JWT_EXPIRES_IN',
+          '7d',
+        ) as NonNullable<JwtModuleOptions['signOptions']>['expiresIn'];
+        return {
+          secret: config.getOrThrow<string>('JWT_SECRET'),
+          signOptions: { expiresIn },
+        };
+      },
     }),
   ],
   providers: [AuthService, JwtStrategy],

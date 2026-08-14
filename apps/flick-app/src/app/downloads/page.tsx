@@ -1,31 +1,25 @@
-'use client';
-import BottomNav from '@/components/BottomNav';
-import styles from './page.module.css';
+import { redirect } from 'next/navigation';
+import { ApiError } from '@/lib/apiClient';
+import { apiFetchServer, getSession } from '@/lib/session';
+import type { DownloadRecord } from '@/types';
+import DownloadsClient from './DownloadsClient';
 
-// TODO(Task 3.4): wire this page to GET /me/downloads (DB-backed, cookie-authenticated).
-// The previous implementation listed the first three movies in the catalogue with
-// invented episode titles and durations, as if they had been downloaded. Removed
-// rather than kept: an empty list is honest, a fabricated one is not.
-export default function DownloadsPage() {
-  return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.logo}>Flick</div>
-        <div className={styles.headerIcons}>
-          <button className={styles.iconBtn} aria-label="Downloads">⬇️</button>
-          <button className={styles.iconBtn} aria-label="Search">🔍</button>
-        </div>
-      </header>
+export default async function DownloadsPage() {
+  const session = await getSession();
+  if (!session) redirect('/login');
 
-      <main className={styles.main}>
-        <h1 className={styles.pageTitle}>ดาวน์โหลดแล้ว</h1>
+  let downloads: DownloadRecord[] = [];
+  let sessionExpired = false;
+  try {
+    downloads = await apiFetchServer<DownloadRecord[]>('/me/downloads');
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) {
+      sessionExpired = true;
+    } else {
+      console.error('Error fetching downloads:', err);
+    }
+  }
+  if (sessionExpired) redirect('/login');
 
-        <div className={styles.emptyState}>
-          <p>ยังไม่มีรายการดาวน์โหลด</p>
-        </div>
-      </main>
-
-      <BottomNav />
-    </div>
-  );
+  return <DownloadsClient initialDownloads={downloads} />;
 }

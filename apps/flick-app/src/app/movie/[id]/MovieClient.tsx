@@ -22,9 +22,14 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
   const [selectedSeason, setSelectedSeason] = useState(
     movie.seasons && movie.seasons.length > 0 ? movie.seasons[0].seasonNumber : 1
   );
+  const [downloadedEpisodeIds, setDownloadedEpisodeIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
 
   const currentSeason = movie.seasons?.find(s => s.seasonNumber === selectedSeason);
   const episodes = currentSeason?.episodes || [];
+  const firstEpisode = movie.seasons?.flatMap((season) => season.episodes)[0];
 
   // Optimistic, with rollback: silently diverging from the server is worse than
   // a brief flicker. A 401 means the session expired — send them to log in
@@ -37,6 +42,23 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
     } catch (err) {
       setBookmarked(!next);
       if (err instanceof ApiError && err.status === 401) router.push('/login');
+    }
+  };
+
+  const addDownload = async (episodeId: string) => {
+    setDownloadMessage(null);
+    try {
+      await apiFetch(`/me/downloads/${episodeId}`, { method: 'PUT' });
+      setDownloadedEpisodeIds((current) => new Set(current).add(episodeId));
+      setDownloadMessage('บันทึกรายการดาวน์โหลดแล้ว');
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.push('/login');
+        return;
+      }
+      setDownloadMessage(
+        err instanceof ApiError ? err.message : 'ไม่สามารถบันทึกรายการดาวน์โหลดได้',
+      );
     }
   };
 
@@ -61,11 +83,14 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
       
       <div className={styles.mainInfo}>
         <h1 className={styles.title}>{movie.title}</h1>
-        {/* We use a fallback since the API currently doesn't return genre string due to the M:N schema update */}
-        <p className={styles.year}>{movie.year || '2024'} • {movie.contentRating || '18+'}</p>
+        <p className={styles.year}>{movie.year} • {movie.contentRating}</p>
         
         <div className={styles.actionBar}>
-          <button className={styles.playButton} onClick={() => router.push(`/player/${movie.id}`)}>
+          <button
+            className={styles.playButton}
+            disabled={!firstEpisode}
+            onClick={() => firstEpisode && router.push(`/player/${firstEpisode.id}`)}
+          >
             ▶ เล่น
           </button>
           
@@ -90,11 +115,21 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
               <span>บันทึก</span>
             </div>
             <div className={styles.actionItem}>
-              <button className={styles.iconBtn} aria-label="Download">⬇️</button>
+              <button
+                className={styles.iconBtn}
+                aria-label="ดาวน์โหลดตอนแรก"
+                disabled={!firstEpisode}
+                onClick={() => firstEpisode && addDownload(firstEpisode.id)}
+              >
+                ⬇️
+              </button>
               <span>ดาวน์โหลด</span>
             </div>
           </div>
         </div>
+        {downloadMessage && (
+          <p className={styles.actionMessage} role="status">{downloadMessage}</p>
+        )}
       </div>
       
       <div className={styles.descriptionSection}>
@@ -135,17 +170,27 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
         <div className={styles.episodeList}>
           {episodes.map((ep) => (
             <div key={ep.id} className={`${styles.episodeItem} ${ep.coinCost > 0 ? styles.locked : ''}`}>
-              <div className={styles.epThumbnail}>
-                <img src={(ep.thumbnailUrl || movie.posterUrl) ?? undefined} alt={ep.title} />
-              </div>
-              <div className={styles.epInfo}>
-                <h4 className={styles.epTitle}>{ep.title}</h4>
-                <span className={styles.epDuration}>{ep.durationMinutes} นาที</span>
-                <p className={styles.epDesc}>{ep.description}</p>
-              </div>
-              <div className={styles.epAction}>
-                {ep.coinCost === 0 ? '✓' : '⬇️'}
-              </div>
+              <button
+                className={styles.episodePlayTarget}
+                onClick={() => router.push(`/player/${ep.id}`)}
+                aria-label={`เล่น ${ep.title}`}
+              >
+                <span className={styles.epThumbnail}>
+                  <img src={(ep.thumbnailUrl || movie.posterUrl) ?? undefined} alt="" />
+                </span>
+                <span className={styles.epInfo}>
+                  <span className={styles.epTitle}>{ep.title}</span>
+                  <span className={styles.epDuration}>{ep.durationMinutes} นาที</span>
+                  <span className={styles.epDesc}>{ep.description}</span>
+                </span>
+              </button>
+              <button
+                className={styles.epAction}
+                onClick={() => addDownload(ep.id)}
+                aria-label={`ดาวน์โหลด ${ep.title}`}
+              >
+                {downloadedEpisodeIds.has(ep.id) ? '✓' : '⬇️'}
+              </button>
             </div>
           ))}
         </div>

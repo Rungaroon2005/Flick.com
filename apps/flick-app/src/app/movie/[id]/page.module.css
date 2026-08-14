@@ -113,6 +113,17 @@
   align-items: center;
   gap: 0.5rem;
 }
+.playButton:disabled,
+.iconBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.actionMessage {
+  margin: 0.75rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-align: center;
+}
 .actionIcons {
   display: flex;
   justify-content: space-around;
@@ -216,6 +227,19 @@
 .episodeItem.locked {
   opacity: 0.6;
 }
+.episodePlayTarget {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
 .epThumbnail {
   width: 120px;
   aspect-ratio: 16/9;
@@ -232,6 +256,7 @@
   flex: 1;
 }
 .epTitle {
+  display: block;
   margin: 0;
   font-size: 1rem;
 }
@@ -251,6 +276,10 @@
 .epAction {
   font-size: 1.2rem;
   color: white;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0.5rem;
 }
 .similarSection {
   padding: 1rem;

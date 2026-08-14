@@ -5,7 +5,7 @@ import HomeClient from './HomeClient';
 import API_BASE_URL from '@/lib/api';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
-import { Movie } from '@/types';
+import { ContinueWatchingItem, Movie } from '@/types';
 import styles from './page.module.css';
 
 async function getMovies(): Promise<Movie[]> {
@@ -29,6 +29,7 @@ export default async function HomePage() {
 
   let movies: Movie[] = [];
   let bookmarks: Movie[] = [];
+  let continueWatching: ContinueWatchingItem[] = [];
   let error: string | null = null;
 
   try {
@@ -57,6 +58,23 @@ export default async function HomePage() {
   }
   // redirect() throws, so it must be called outside the try/catch above or the
   // catch would swallow its control-flow signal.
+  if (sessionExpired) redirect('/login');
+
+  // Watch history is a third, isolated failure domain. A fault here must not
+  // discard either the healthy catalogue or bookmarks data above.
+  sessionExpired = false;
+  try {
+    continueWatching = await apiFetchServer<ContinueWatchingItem[]>(
+      '/me/continue-watching',
+    );
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) {
+      sessionExpired = true;
+    } else {
+      console.error('Error fetching continue-watching on server:', err);
+      continueWatching = [];
+    }
+  }
   if (sessionExpired) redirect('/login');
 
   return (
@@ -89,7 +107,11 @@ export default async function HomePage() {
           <p>{error}</p>
         </div>
       ) : (
-        <HomeClient initialMovies={movies} initialBookmarks={bookmarks} />
+        <HomeClient
+          initialMovies={movies}
+          initialBookmarks={bookmarks}
+          initialContinueWatching={continueWatching}
+        />
       )}
 
       <BottomNav />

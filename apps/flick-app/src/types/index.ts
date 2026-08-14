@@ -14,11 +14,40 @@ export interface Episode {
   episodeNumber: number;
   title: string;
   description: string | null;
-  videoUrl: string | null;
+  /** Present only in a successful playback authorization response. */
+  videoUrl?: string | null;
   thumbnailUrl: string | null;
   durationMinutes: number;
   coinCost: number;
   releaseDate: string; // ISO string from backend
+}
+
+export type PlaybackAuthorization =
+  | {
+      allowed: true;
+      reason: 'free' | 'subscription' | 'unlocked';
+      videoUrl: string;
+    }
+  | {
+      allowed: false;
+      reason: 'subscription_required' | 'coins_required';
+      coinCost: number;
+    };
+
+export interface ContinueWatchingItem {
+  id: string;
+  progressSeconds: number;
+  episode: Episode;
+  movie: Movie;
+}
+
+export interface DownloadRecord {
+  id: string;
+  episodeId: string;
+  expiresAt: string;
+  downloadedAt: string;
+  episode: Episode;
+  movie: Movie;
 }
 
 export interface Season {

@@ -14,6 +14,18 @@
   justify-content: center;
   height: 100vh;
 }
+.errorPanel {
+  text-align: center;
+}
+.errorPanel button {
+  margin-top: 1rem;
+  padding: 0.6rem 1.25rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--flick-red);
+  color: white;
+  cursor: pointer;
+}
 .header {
   position: absolute;
   top: 0;
@@ -240,4 +252,21 @@
   border: none;
   margin-top: 1rem;
   cursor: pointer;
+}
+.gateMessage {
+  margin: 1rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+.toast {
+  position: absolute;
+  right: 1rem;
+  bottom: 5rem;
+  left: 1rem;
+  z-index: 15;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.8);
+  text-align: center;
 }

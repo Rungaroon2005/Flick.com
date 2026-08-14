@@ -2,19 +2,25 @@
 
 import Link from 'next/link';
 import MovieCard from '@/components/MovieCard';
-import { Movie } from '@/types';
+import { ContinueWatchingItem, Movie } from '@/types';
 import styles from './page.module.css';
 
 interface HomeClientProps {
   initialMovies: Movie[];
   /** This user's real bookmarks, fetched server-side (no-store) in page.tsx. */
   initialBookmarks: Movie[];
+  /** Incomplete watch-history rows, newest first, resolved by the API. */
+  initialContinueWatching: ContinueWatchingItem[];
 }
 
 // Access control for this page now happens server-side in page.tsx
 // (getSession() + redirect), so there is no login check to do here.
-export default function HomeClient({ initialMovies, initialBookmarks }: HomeClientProps) {
-  // Use recommended movies from API (just taking first 6 for demo)
+export default function HomeClient({
+  initialMovies,
+  initialBookmarks,
+  initialContinueWatching,
+}: HomeClientProps) {
+  // Use the newest six real catalogue entries for the compact home row.
   const recommendedMovies = initialMovies.slice(0, 6);
 
   return (
@@ -33,15 +39,51 @@ export default function HomeClient({ initialMovies, initialBookmarks }: HomeClie
           </div>
         </section>
 
-        {/* Continue Watching Section */}
-        {/* TODO(Task 3.4): populate from GET /me/watch-history. Until then this
-            section reports the truth — nothing is known about what was watched. */}
+        {/* Continue Watching Section — real incomplete watch history. */}
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>ดูต่อ</h2>
-            <Link href="/continue-watching" className={styles.seeAllLink}>ทั้งหมด &gt;</Link>
+            <span className={styles.seeAllLink}>ล่าสุด</span>
           </div>
-          <div className={styles.emptyRow}>ยังไม่มีรายการที่ดูค้างไว้</div>
+          {initialContinueWatching.length > 0 ? (
+            <div className={styles.horizontalScroll}>
+              {initialContinueWatching.map((item) => {
+                const totalSeconds = item.episode.durationMinutes * 60;
+                const percentage = totalSeconds > 0
+                  ? Math.min(100, Math.max(0, (item.progressSeconds / totalSeconds) * 100))
+                  : 0;
+                return (
+                  <Link
+                    key={item.id}
+                    href={`/player/${item.episode.id}`}
+                    className={styles.continueCard}
+                  >
+                    <span className={styles.continueArtwork}>
+                      {(item.episode.thumbnailUrl || item.movie.posterUrl) && (
+                        // The API supplies user-uploaded poster URLs; Task 4.5
+                        // configures next/image hosts before these can migrate.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={(item.episode.thumbnailUrl || item.movie.posterUrl) ?? undefined}
+                          alt=""
+                        />
+                      )}
+                      <span className={styles.continueProgressTrack}>
+                        <span
+                          className={styles.continueProgress}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </span>
+                    </span>
+                    <strong>{item.movie.title}</strong>
+                    <span>ตอนที่ {item.episode.episodeNumber}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className={styles.emptyRow}>ยังไม่มีรายการที่ดูค้างไว้</div>
+          )}
         </section>
 
         {/* My List Section — real bookmarks from GET /me/bookmarks. */}

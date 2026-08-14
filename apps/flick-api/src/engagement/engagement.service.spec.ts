@@ -4,6 +4,7 @@ import { EngagementService } from './engagement.service';
 import { PrismaService } from '../prisma.service';
 import { PlaybackService } from '../playback/playback.service';
 import { createPrismaMock } from '../testing/prisma.mock';
+import { GENRES_INCLUDE } from '../movies/movies.service';
 
 describe('EngagementService', () => {
   let service: EngagementService;
@@ -214,11 +215,51 @@ describe('EngagementService', () => {
     });
   });
 
-  it('returns the list of downloads for a user', async () => {
-    prisma.download.findMany.mockResolvedValue([{ id: 'd1' }]);
-    await expect(service.getDownloads('u1')).resolves.toEqual([{ id: 'd1' }]);
+  it('returns download metadata without leaking the episode videoUrl', async () => {
+    prisma.download.findMany.mockResolvedValue([
+      {
+        id: 'd1',
+        episodeId: 'e1',
+        expiresAt: new Date('2026-09-01T00:00:00Z'),
+        episode: {
+          id: 'e1',
+          title: 'ตอนที่หนึ่ง',
+          videoUrl: 'SECRET-URL',
+          season: {
+            movie: {
+              id: 'm1',
+              title: 'เรื่องหนึ่ง',
+              posterUrl: '/poster.jpg',
+              genres: [],
+            },
+          },
+        },
+      },
+    ]);
+
+    const [download] = await service.getDownloads('u1');
+
+    expect(download.episode).not.toHaveProperty('videoUrl');
+    expect(download.episode).not.toHaveProperty('season');
+    expect(download.movie).toEqual({
+      id: 'm1',
+      title: 'เรื่องหนึ่ง',
+      posterUrl: '/poster.jpg',
+      genres: [],
+    });
+    expect(JSON.stringify(download)).not.toContain('SECRET-URL');
     expect(prisma.download.findMany).toHaveBeenCalledWith({
       where: { userId: 'u1' },
+      orderBy: { downloadedAt: 'desc' },
+      include: {
+        episode: {
+          include: {
+            season: {
+              include: { movie: { include: { genres: GENRES_INCLUDE } } },
+            },
+          },
+        },
+      },
     });
   });
 });

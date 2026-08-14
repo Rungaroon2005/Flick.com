@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { Genre } from '@prisma/client';
+import { Genre, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { PlaybackService } from '../playback/playback.service';
 import { GENRES_INCLUDE } from '../movies/movies.service';
@@ -7,6 +7,20 @@ import { GENRES_INCLUDE } from '../movies/movies.service';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const COMPLETION_THRESHOLD = 0.9;
 const CONTINUE_WATCHING_LIMIT = 10;
+
+const DOWNLOAD_INCLUDE = {
+  episode: {
+    include: {
+      season: {
+        include: { movie: { include: { genres: GENRES_INCLUDE } } },
+      },
+    },
+  },
+} satisfies Prisma.DownloadInclude;
+
+type DownloadWithRelations = Prisma.DownloadGetPayload<{
+  include: typeof DOWNLOAD_INCLUDE;
+}>;
 
 // Flattens the MovieGenre join-table shape (`{ genres: [{ genre: {...} }] }`)
 // into the wire shape the frontend expects (`{ genres: Genre[] }`) — the
@@ -156,6 +170,24 @@ export class EngagementService {
   }
 
   async getDownloads(userId: string) {
-    return this.prisma.download.findMany({ where: { userId } });
+    const downloads = await this.prisma.download.findMany({
+      where: { userId },
+      orderBy: { downloadedAt: 'desc' },
+      include: DOWNLOAD_INCLUDE,
+    });
+    return downloads.map((download) => this.toDownloadDto(download));
+  }
+
+  // Download records carry enough real metadata for the UI to render the
+  // episode, while preserving PlaybackService as the only videoUrl owner.
+  private toDownloadDto(download: DownloadWithRelations) {
+    const { episode, ...rest } = download;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { season, videoUrl: _videoUrl, ...episodeRest } = episode;
+    return {
+      ...rest,
+      episode: episodeRest,
+      movie: flattenMovieGenres(season.movie),
+    };
   }
 }

@@ -1408,18 +1408,22 @@ if (!session) redirect('/login');
 
 **Verification:**
 
-- [ ] **Step 1: Prove the current bypass**
+- [x] **Step 1: Prove the current bypass**
 
 In the browser console on `/login`: `localStorage.setItem('flick_auth', '{"id":"fake"}')`, then navigate to `/home`.
 Expected (before the fix): the home page renders. This is the vulnerability.
 
-- [ ] **Step 2: Implement `apiClient`, `session`, `AuthProvider`; gut `lib/auth.ts`; move the redirect server-side**
+Proved without a browser: at `ed74856`, an unauthenticated `curl http://localhost:3000/home` returned `200` with the full 33 KB catalogue — the page never contacted the server about identity.
 
-- [ ] **Step 3: Confirm the bypass is closed**
+- [x] **Step 2: Implement `apiClient`, `session`, `AuthProvider`; gut `lib/auth.ts`; move the redirect server-side**
+
+- [x] **Step 3: Confirm the bypass is closed**
 
 Repeat Step 1. Expected: redirected to `/login`.
 
-- [ ] **Step 4: Confirm a real login works and the dead code is gone**
+After: the same cookie-less `curl` returns `307 → /login` with zero home content; with a real login cookie jar it returns `200`. Two different jars render two different display names, confirming `no-store` holds.
+
+- [x] **Step 4: Confirm a real login works and the dead code is gone**
 
 ```bash
 grep -rn "localStorage" apps/flick-app/src/lib/auth.ts     # expect no matches
@@ -1427,7 +1431,9 @@ cd apps/flick-app && npx tsc --noEmit && npx eslint src     # expect clean
 ```
 Then log in through the UI and confirm `/home` renders with the correct display name.
 
-- [ ] **Step 5: Commit**
+`eslint src` is clean. **`npx tsc --noEmit` aborts on a pre-existing `TS5107`** (`target: es5`, deprecated in TypeScript 6) — a config error that halts the compile before it type-checks anything, so this command as written verifies nothing on this repo. Ran `npx tsc --noEmit --ignoreDeprecations 6.0` (identical target/lib/strict) → clean. **Task 4.5 owns the `tsconfig.json` fix; until it lands, Steps 5 of Tasks 3.2–3.4 must use the same flag or they are no-ops.**
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-app/src

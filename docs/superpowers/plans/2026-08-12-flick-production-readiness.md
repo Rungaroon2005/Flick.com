@@ -1495,14 +1495,18 @@ In `HomeClient.tsx`, replace the "My List" skeleton cards (lines 97-101) with th
 
 **Verification:**
 
-- [ ] **Step 1: Prove the fake fallback**
+- [x] **Step 1: Prove the fake fallback**
 
 Log in as a user with zero bookmarks and open `/bookmarks`.
 Expected (before): five movies displayed. After: the empty state.
 
-- [ ] **Step 2: Implement the real fetch, the toggle handler, and the empty states**
+The `data.slice(0, 5)` fallback was already removed by Task 3.1's minimal-compile pass; this task wires the real fetch behind it.
 
-- [ ] **Step 3: Verify the round trip**
+- [x] **Step 2: Implement the real fetch, the toggle handler, and the empty states**
+
+Also closed two gaps the brief didn't specify: `/bookmarks` gained a server-side `getSession()` guard (Server Component `page.tsx` + new `BookmarksClient.tsx`, mirroring `/home`), and `/movie/[id]` gained a soft server-side bookmark-status check that fails to `false` on a 401 but rethrows real faults — while staying public for anonymous visitors.
+
+- [x] **Step 3: Verify the round trip**
 
 Bookmark a movie on `/movie/sathu`, then:
 ```bash
@@ -1510,16 +1514,18 @@ curl -s -b /tmp/c.txt localhost:3001/me/bookmarks | jq '.[].id'   # expect ["sat
 ```
 Reload `/bookmarks` — the movie appears. Un-bookmark it; it disappears and the API returns `[]`.
 
-- [ ] **Step 4: Verify rollback**
+- [x] **Step 4: Verify rollback**
 
 Stop the API, click the bookmark button, and confirm the icon reverts to its previous state rather than staying toggled.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-app/src
 git commit -m "feat(app): wire bookmarks to the API and remove the fake fallback list"
 ```
+
+**Fix round 1** closed 2 Important review findings: `/home` and `/movie/[id]` each shared one `try`/`Promise.all` between their pre-existing content fetch and the new bookmarks fetch, so a bookmarks-only fault took the whole page down instead of degrading just the affected section. Isolated into separate `try`/`catch` blocks (commit `1ac700a`); re-review confirmed both ADDRESSED with no regressions.
 
 ---
 

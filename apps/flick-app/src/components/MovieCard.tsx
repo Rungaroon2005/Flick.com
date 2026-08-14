@@ -22,7 +22,6 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
           fill
           sizes="(max-width: 480px) 160px, 200px"
           className={styles.image}
-          unoptimized={true}
         />
         {showBookmark && (
           <div className={styles.bookmarkBadge}>

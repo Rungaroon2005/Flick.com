@@ -44,15 +44,13 @@ export default async function MovieDetail({ params }: { params: Promise<{ id: st
   let error: string | null = null;
 
   try {
-    // Fetch all three simultaneously for faster load times
-    const [movieData, similarData, bookmarked] = await Promise.all([
+    // Fetch both simultaneously for faster load times
+    const [movieData, similarData] = await Promise.all([
       getMovie(id),
-      getSimilarMovies(id),
-      getIsBookmarked(id)
+      getSimilarMovies(id)
     ]);
     movie = movieData;
     similarMovies = similarData;
-    isBookmarked = bookmarked;
   } catch (err) {
     console.error('Error fetching movie data:', err);
     error = 'ไม่สามารถโหลดข้อมูลภาพยนตร์ได้';
@@ -66,6 +64,16 @@ export default async function MovieDetail({ params }: { params: Promise<{ id: st
         </div>
       </div>
     );
+  }
+
+  // Bookmark status is fetched separately from the movie itself. This route is
+  // public and its content does not depend on the check, so an engagement-side
+  // fault must degrade to "not bookmarked" rather than hide the movie. (401 is
+  // already converted to false inside getIsBookmarked; only real faults land here.)
+  try {
+    isBookmarked = await getIsBookmarked(id);
+  } catch (err) {
+    console.error('Error fetching bookmark status:', err);
   }
 
   return (

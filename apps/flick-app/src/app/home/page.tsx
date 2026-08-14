@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import HomeClient from './HomeClient';
 import API_BASE_URL from '@/lib/api';
+import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
 import { Movie } from '@/types';
 import styles from './page.module.css';
@@ -31,17 +32,32 @@ export default async function HomePage() {
   let error: string | null = null;
 
   try {
-    // Public catalogue (ISR-cached) and this user's bookmarks (never cached)
-    // in parallel. Past the redirect above the session is guaranteed, so a 401
-    // here would be a genuine fault, not an anonymous visitor.
-    [movies, bookmarks] = await Promise.all([
-      getMovies(),
-      apiFetchServer<Movie[]>('/me/bookmarks'),
-    ]);
+    movies = await getMovies();
   } catch (err) {
     console.error('Error fetching movies on server:', err);
     error = 'ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง';
   }
+
+  // Bookmarks are fetched separately, and deliberately not in the same try as
+  // the catalogue: a bookmarks-only fault must cost the user one empty row, not
+  // the whole home page.
+  let sessionExpired = false;
+  try {
+    bookmarks = await apiFetchServer<Movie[]>('/me/bookmarks');
+  } catch (err) {
+    // 401 means the session died between getSession() above and this call.
+    // Per the engagement contract that is a login redirect, never a generic
+    // error screen.
+    if (err instanceof ApiError && err.status === 401) {
+      sessionExpired = true;
+    } else {
+      console.error('Error fetching bookmarks on server:', err);
+      bookmarks = [];
+    }
+  }
+  // redirect() throws, so it must be called outside the try/catch above or the
+  // catch would swallow its control-flow signal.
+  if (sessionExpired) redirect('/login');
 
   return (
     <div className={styles.container}>

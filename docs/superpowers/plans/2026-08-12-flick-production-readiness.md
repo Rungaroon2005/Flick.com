@@ -1660,7 +1660,7 @@ Episode rows in `MovieClient.tsx:112` currently derive lock state from `ep.coinC
 
 **Verification:**
 
-- [ ] **Step 1: Prove the fakes**
+- [x] **Step 1: Prove the fakes**
 
 ```bash
 grep -n "slice(0, 3)" apps/flick-app/src/app/downloads/page.tsx     # the fake list
@@ -1668,27 +1668,55 @@ grep -n "const isLocked = true" apps/flick-app/src/app/player/\[id\]/page.tsx
 ```
 Expected: both match.
 
-- [ ] **Step 2: Implement the three real fetches and the player gate**
+Verified the hardcoded player lock still existed. The earlier Task 3.1 cleanup
+had already removed the catalogue `slice(0, 3)` fabrication and left an honest
+empty state, so that half of the expected grep no longer matched by design.
 
-- [ ] **Step 3: Verify premium content is gated**
+- [x] **Step 2: Implement the three real fetches and the player gate**
+
+Implemented guarded Server Component / Client Component splits for downloads
+and the player, isolated bookmark/watch-history/download failure domains, and
+changed every movie/episode play navigation to carry an episode id. Extended
+`GET /me/downloads` to include real episode/movie metadata because the original
+bare `Download[]` rows contained only `episodeId`; the DTO strips `videoUrl` and
+flattens genres, with a regression test protecting both established invariants.
+
+- [x] **Step 3: Verify premium content is gated**
 
 As a user with no subscription and zero coins, open the player for a premium episode (`coinCost > 0`).
 Expected: the subscription/coins modal appears; playback does not start; no `videoUrl` is present anywhere in the page source.
 
-- [ ] **Step 4: Verify the unlock path**
+Verified with a fresh zero-balance user against the live API: authorization
+returned `{allowed:false,reason:"coins_required",coinCost:10}`, the guarded
+player SSR returned 200 with the session cookie, and its source contained no
+`videoUrl` key or stream URL.
+
+- [x] **Step 4: Verify the unlock path**
 
 Credit the test user coins directly in `psql` (via a `UserCoin` row plus a matching `coinBalance`), retry the unlock, and confirm playback becomes available and the balance decreases by exactly `coinCost`.
 
-- [ ] **Step 5: Verify dead code is gone**
+Verified live with an `EARNED` ledger credit of 20 coins and a temporary HLS
+URL on one seeded premium episode: `POST /wallet/spend` returned balance 10,
+the SPENT row was `-10` with `balanceAfter:10`, and re-authorization returned
+`allowed:true` with reason `unlocked`. Also round-tripped a 42-second watch
+history record and a download whose metadata contained no `videoUrl`. Removed
+the throwaway user/ledger rows and restored the episode URL afterward.
+
+- [x] **Step 5: Verify dead code is gone**
 
 Run: `cd apps/flick-app && npx eslint src && npx tsc --noEmit` — Expected: clean, no unused-import warnings.
 
-- [ ] **Step 6: Commit**
+Verified clean, plus `apps/flick-api` `npx tsc --noEmit` and the full Jest suite
+(11 suites, 48 tests) passed.
+
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/flick-app/src
 git commit -m "feat(app): wire downloads and continue-watching, and gate playback server-side"
 ```
+
+Committed as `bf1c876`.
 
 ---
 

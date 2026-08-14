@@ -1583,24 +1583,28 @@ Delete `handleBuyCoins`'s call to the removed `addCoins()`. There is no payment 
 
 **Verification:**
 
-- [ ] **Step 1: Prove the hardcoding**
+- [x] **Step 1: Prove the hardcoding**
 
 Run: `grep -n "user@example.com\|พรีเมียมรายเดือน" apps/flick-app/src/app/profile/page.tsx`
 Expected: matches at lines 31 and 39.
 
-- [ ] **Step 2: Implement the server-rendered profile and API-driven plan cards**
+- [x] **Step 2: Implement the server-rendered profile and API-driven plan cards**
 
-- [ ] **Step 3: Verify real data renders**
+Also closed two gaps beyond the brief: `/subscribe` gained a server-side `getSession()` guard (split into a Server Component `page.tsx` + new `SubscribeClient.tsx`, mirroring `/bookmarks`), and a new `LogoutButton.tsx` calls `useAuth().refresh()` before navigating away, closing the stale-client-session gap Task 3.1 flagged as this task's job.
+
+- [x] **Step 3: Verify real data renders**
 
 Log in as a user with **no** subscription and open `/profile`.
 Expected: the real email, and status `ฟรี` — not `พรีเมียมรายเดือน`.
 
-- [ ] **Step 4: Verify subscribing updates the profile**
+- [x] **Step 4: Verify subscribing updates the profile**
 
 Subscribe to `weekly` on `/subscribe`, return to `/profile`.
 Expected: status shows the weekly plan; `curl -s -b /tmp/c.txt localhost:3001/subscriptions/me | jq .planType` returns `"weekly"`.
 
-- [ ] **Step 5: Commit**
+**Note:** coin top-ups remain permanently disabled per this task's own Constraints (no payment gateway exists anywhere in this plan) — verified with no purchase path reachable anywhere in `src/`. Spending coins to unlock an episode is Task 3.4's scope, not this task's; not verified here.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-app/src

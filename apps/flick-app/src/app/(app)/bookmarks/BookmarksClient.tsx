@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MovieCard from '@/components/MovieCard';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorPanel } from '@/components/ui/ErrorPanel';
+import { SkeletonPoster } from '@/components/ui/Skeleton';
 import { ApiError, apiFetch } from '@/lib/apiClient';
 import { Movie } from '@/types';
-import styles from './page.module.css';
 
 // The page's Server Component already proved there was a session when the HTML
 // was rendered; this only has to cope with it expiring afterwards (401 -> login).
@@ -13,6 +15,7 @@ export default function BookmarksClient() {
   const router = useRouter();
   const [movies, setMovies] = useState<Movie[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,34 +38,47 @@ export default function BookmarksClient() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, retryCount]);
+
+  const retry = () => {
+    setError(null);
+    setMovies(null);
+    setRetryCount((count) => count + 1);
+  };
 
   if (error) {
-    return (
-      <div className={styles.emptyState}>
-        <p>{error}</p>
-      </div>
-    );
+    return <ErrorPanel message={error} onRetry={retry} />;
   }
 
   // Distinguish "not loaded yet" (null) from "genuinely empty" ([]) — showing
   // the empty state while the request is still in flight would be another lie.
-  if (movies === null) return null;
-
-  if (movies.length === 0) {
+  if (movies === null) {
     return (
-      <div className={styles.emptyState}>
-        <p>ยังไม่มีรายการที่บันทึกไว้</p>
+      <div className="grid grid-cols-3 gap-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <SkeletonPoster key={i} />
+        ))}
       </div>
     );
   }
 
+  if (movies.length === 0) {
+    return (
+      <EmptyState
+        icon="bookmark"
+        title="ยังไม่มีเรื่องที่บันทึกไว้"
+        description="แตะรูปบุ๊กมาร์กบนเรื่องที่สนใจ แล้วจะมาอยู่ที่นี่"
+        action={{ label: 'ไปดูเรื่องแนะนำ', href: '/discover' }}
+      />
+    );
+  }
+
   return (
-    <div className={styles.grid}>
+    <div className="grid grid-cols-3 gap-2">
       {/* Every item in this list is bookmarked by construction, so the badge
           reflects real state rather than "this happens to be the list". */}
       {movies.map((movie) => (
-        <MovieCard key={movie.id} movie={movie} size="medium" showBookmark />
+        <MovieCard key={movie.id} movie={movie} size="fill" showBookmark />
       ))}
     </div>
   );

@@ -6,7 +6,10 @@ import { Movie } from '@/types';
 
 interface MovieCardProps {
   movie: Movie;
-  size?: 'small' | 'medium' | 'large';
+  /** 'fill' stretches to the parent's width — for CSS grid cells (discover,
+   *  search results) where the card's width is decided by the grid, not
+   *  the card. */
+  size?: 'small' | 'medium' | 'large' | 'fill';
   showBookmark?: boolean;
 }
 
@@ -14,6 +17,7 @@ const sizeClasses = {
   small: 'w-[110px]',
   medium: 'w-[140px]',
   large: 'w-[160px]',
+  fill: 'w-full',
 };
 
 export default function MovieCard({ movie, size = 'medium', showBookmark = false }: MovieCardProps) {

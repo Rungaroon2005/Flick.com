@@ -1,4 +1,57 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+/* next/font generates --font-anuphan / --font-plex-thai / --font-plex-mono as
+   CSS variables on <html> (see layout.tsx). @theme inline is required here
+   because these theme values are themselves var() references. */
+@theme inline {
+  --font-sans: var(--font-plex-thai);
+  --font-display: var(--font-anuphan);
+  --font-mono-thai: var(--font-plex-mono);
+}
+
+/* Tailwind v4 theme — generates bg-, text- and border- utilities from these.
+   Cinnabar system: see docs/FRONTEND_PLAN.md Part 1. */
+@theme {
+  --color-ink: #0B0908;
+  --color-ink-1: #171310;
+  --color-ink-2: #241D18;
+  --color-hairline: #2C241E;
+
+  /* bg-brand is a FILL (5.20:1 with white on top); text-brand-ink is an INK
+     (6.33:1 on --color-ink). Never use bg-brand's hex as a text color on dark. */
+  --color-brand: #CC3300;
+  --color-brand-ink: #FF4D1A;
+  --color-brand-deep: #991F00;
+  --color-coin: #E8B84B;
+
+  --color-fg: #FFFFFF;
+  --color-fg-dim: #A9A099;
+  --color-fg-mute: #7A716B;
+
+  --color-ok: #3FBF9A;
+  --color-warn: #E8B84B;
+  --color-fail: #FF8A7A;
+
+  --text-base--line-height: 1.78;
+  --text-sm--line-height: 1.7;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* Safe-area utilities — Tailwind v4 ships none, and the portrait player and
+   bottom nav both need them (see docs/FRONTEND_PLAN.md Part 2). */
+@utility pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+@utility pt-safe {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
 
 :root {
   /* Brand */
@@ -7,22 +60,23 @@
   --flick-red-light: #FF4D1A;
   --flick-red-glow: rgba(204, 51, 0, 0.3);
 
-  /* Backgrounds */
-  --bg-primary: #000000;
-  --bg-secondary: #0A0A0F;
-  --bg-surface: #1A1A2E;
-  --bg-surface-hover: #252540;
-  --bg-overlay: rgba(0, 0, 0, 0.85);
-  --bg-glass: rgba(26, 26, 46, 0.7);
+  /* Backgrounds — warm-rotated off blue-violet navy so cinnabar stops
+     reading muddy against its own surfaces (docs/FRONTEND_PLAN.md Part 1). */
+  --bg-primary: #0B0908;
+  --bg-secondary: #120E0B;
+  --bg-surface: #171310;
+  --bg-surface-hover: #241D18;
+  --bg-overlay: rgba(11, 9, 8, 0.85);
+  --bg-glass: rgba(23, 19, 16, 0.7);
 
   /* Text */
   --text-primary: #FFFFFF;
-  --text-secondary: #A0A0B0;
-  --text-muted: #666680;
+  --text-secondary: #A9A099;
+  --text-muted: #7A716B;
 
   /* Borders */
-  --border-color: #2A2A3E;
-  --border-light: #333350;
+  --border-color: #2C241E;
+  --border-light: #3A302A;
 
   /* Status */
   --success: #00C853;
@@ -44,7 +98,7 @@
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
-  --transition-slow: 400ms ease;
+  --transition-slow: 320ms ease;
 
   /* Spacing */
   --nav-height: 64px;
@@ -63,7 +117,7 @@ html {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-plex-thai), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.6;

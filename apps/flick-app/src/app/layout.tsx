@@ -1,6 +1,31 @@
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
+import { Anuphan, IBM_Plex_Sans_Thai, IBM_Plex_Mono } from 'next/font/google';
 import AuthProvider from '@/components/AuthProvider';
 import './globals.css';
+
+// Display face — loopless, variable, Thai+Latin. Used ≥20px only.
+const anuphan = Anuphan({
+  subsets: ['thai', 'latin'],
+  variable: '--font-anuphan',
+  display: 'swap',
+});
+
+// Body/UI face — looped, Latin co-designed with the Thai glyphs so mixed
+// Thai/English strings (VIP, 1080p, ฿149) hold one texture.
+const plexThai = IBM_Plex_Sans_Thai({
+  subsets: ['thai', 'latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-plex-thai',
+  display: 'swap',
+});
+
+// Data face — tabular figures for timecodes, coin balances, episode numbers.
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-plex-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Flick — ดูหนังสั้นออนไลน์',
@@ -9,13 +34,23 @@ export const metadata: Metadata = {
   icons: { icon: '/favicon.ico' },
 };
 
+// viewportFit: 'cover' is what makes env(safe-area-inset-*) resolve to a
+// real value instead of 0 — required by the portrait player's safe-area
+// chrome and the bottom nav's pb-safe (docs/FRONTEND_PLAN.md Part 2).
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#0B0908',
+  colorScheme: 'dark',
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#000000" />
-      </head>
+    <html
+      lang="th"
+      className={`${anuphan.variable} ${plexThai.variable} ${plexMono.variable}`}
+    >
       <body>
         <AuthProvider>{children}</AuthProvider>
       </body>

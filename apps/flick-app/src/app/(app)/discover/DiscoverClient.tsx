@@ -1,7 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import BottomNav from '@/components/BottomNav';
 import MovieCard from '@/components/MovieCard';
 import { Movie } from '@/types';
 import styles from './page.module.css';
@@ -85,8 +84,6 @@ export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
           )}
         </div>
       </main>
-
-      <BottomNav />
     </div>
   );
 }

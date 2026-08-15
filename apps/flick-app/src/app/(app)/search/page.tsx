@@ -1,7 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import BottomNav from '@/components/BottomNav';
 import MovieCard from '@/components/MovieCard';
 import API_BASE_URL from '@/lib/api';
 import styles from './page.module.css';
@@ -102,8 +101,6 @@ export default function SearchPage() {
           )}
         </div>
       </main>
-
-      <BottomNav />
     </div>
   );
 }

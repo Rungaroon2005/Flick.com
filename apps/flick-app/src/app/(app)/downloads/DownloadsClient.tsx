@@ -2,7 +2,6 @@
 'use client';
 
 import Link from 'next/link';
-import BottomNav from '@/components/BottomNav';
 import type { DownloadRecord } from '@/types';
 import styles from './page.module.css';
 
@@ -63,8 +62,6 @@ export default function DownloadsClient({
           </div>
         )}
       </main>
-
-      <BottomNav />
     </div>
   );
 }

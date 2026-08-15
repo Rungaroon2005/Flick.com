@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import BottomNav from '@/components/BottomNav';
 import LogoutButton from './LogoutButton';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
@@ -158,8 +157,6 @@ export default async function ProfilePage() {
 
         <LogoutButton className={styles.logoutBtn} />
       </main>
-
-      <BottomNav />
     </div>
   );
 }

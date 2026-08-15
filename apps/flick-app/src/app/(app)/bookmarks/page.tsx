@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import BottomNav from '@/components/BottomNav';
 import BookmarksClient from './BookmarksClient';
 import { getSession } from '@/lib/session';
 import styles from './page.module.css';
@@ -26,8 +25,6 @@ export default async function BookmarksPage() {
         <h1 className={styles.pageTitle}>บันทึก</h1>
         <BookmarksClient />
       </main>
-
-      <BottomNav />
     </div>
   );
 }

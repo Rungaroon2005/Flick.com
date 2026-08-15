@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import BottomNav from '@/components/BottomNav';
 import HomeClient from './HomeClient';
 import API_BASE_URL from '@/lib/api';
 import { ApiError } from '@/lib/apiClient';
@@ -113,8 +112,6 @@ export default async function HomePage() {
           initialContinueWatching={continueWatching}
         />
       )}
-
-      <BottomNav />
     </div>
   );
 }

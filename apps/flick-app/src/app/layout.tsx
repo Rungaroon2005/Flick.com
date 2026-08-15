@@ -1,6 +1,7 @@
 import { Metadata, Viewport } from 'next';
 import { Anuphan, IBM_Plex_Sans_Thai, IBM_Plex_Mono } from 'next/font/google';
 import AuthProvider from '@/components/AuthProvider';
+import { ToastProvider } from '@/components/ui/Toast';
 import './globals.css';
 
 // Display face — loopless, variable, Thai+Latin. Used ≥20px only.
@@ -52,7 +53,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${anuphan.variable} ${plexThai.variable} ${plexMono.variable}`}
     >
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );

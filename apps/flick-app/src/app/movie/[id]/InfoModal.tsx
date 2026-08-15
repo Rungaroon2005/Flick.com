@@ -1,8 +1,7 @@
 'use client';
 
-import { useModalDismiss } from '@/hooks/useModalDismiss';
+import { Sheet } from '@/components/ui/Sheet';
 import type { Movie } from '@/types';
-import styles from './InfoModal.module.css';
 
 interface InfoModalProps {
   movie: Movie;
@@ -10,45 +9,27 @@ interface InfoModalProps {
 }
 
 export default function InfoModal({ movie, onClose }: InfoModalProps) {
-  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
-
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div
-        ref={dialogRef}
-        className={styles.modal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="movie-info-title"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <button
-          type="button"
-          className={styles.closeBtn}
-          onClick={onClose}
-          aria-label="ปิดข้อมูลภาพยนตร์"
-          data-modal-close
-        >
-          ✕
-        </button>
-        <h2 className={styles.title} id="movie-info-title">{movie.title}</h2>
+    <Sheet open onClose={onClose} title={movie.title}>
+      <div className="flex flex-col gap-5">
+        <section>
+          <h3 className="mb-1.5 text-xs font-medium text-fg-dim">รายละเอียด</h3>
+          <p className="text-sm text-fg">{movie.description}</p>
+        </section>
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>รายละเอียด</h3>
-          <p className={styles.text}>{movie.description}</p>
-        </div>
-
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>ข้อมูลเนื้อหา</h3>
-          <div className={styles.tags}>
-            <span className={styles.tag}>{movie.year}</span>
-            <span className={styles.tag}>{movie.contentRating}</span>
+        <section>
+          <h3 className="mb-2 text-xs font-medium text-fg-dim">ข้อมูลเนื้อหา</h3>
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full bg-ink-2 px-3 py-1 text-xs text-fg-dim">{movie.year}</span>
+            <span className="rounded-full bg-ink-2 px-3 py-1 text-xs text-fg-dim">{movie.contentRating}</span>
             {movie.genres.map((genre) => (
-              <span className={styles.tag} key={genre.id}>{genre.name}</span>
+              <span key={genre.id} className="rounded-full bg-ink-2 px-3 py-1 text-xs text-fg-dim">
+                {genre.name}
+              </span>
             ))}
           </div>
-        </div>
+        </section>
       </div>
-    </div>
+    </Sheet>
   );
 }

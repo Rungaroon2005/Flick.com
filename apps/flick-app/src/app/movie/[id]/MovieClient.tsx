@@ -1,10 +1,10 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
-import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import InfoModal from './InfoModal';
-import styles from './page.module.css';
+import MovieCard from '@/components/MovieCard';
+import { Icon } from '@/components/ui/Icon';
 import { ApiError, apiFetch } from '@/lib/apiClient';
 import { Movie } from '@/types';
 
@@ -64,149 +64,167 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
   };
 
   return (
-    <>
-      <header className={styles.header}>
-        <div className={styles.logo}>Flick</div>
-        <button className={styles.closeBtn} onClick={() => router.back()} aria-label="Close">✕</button>
+    <div className="min-h-dvh bg-ink pb-10">
+      <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent px-5 pt-safe pb-6">
+        <div className="text-2xl font-extrabold tracking-tight text-brand-ink">Flick</div>
+        <button
+          onClick={() => router.back()}
+          aria-label="ปิด"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-fg"
+        >
+          <Icon name="close" size={20} />
+        </button>
       </header>
-      
-      <div className={styles.heroSection}>
-        <div className={styles.posterContainer}>
-          <div className={styles.heroGradient}></div>
-          {movie.posterUrl && (
-             <img src={movie.posterUrl ?? undefined} alt={movie.title} className={styles.heroImage} />
-          )}
-        </div>
+
+      <div className="relative aspect-[2/3] max-h-[70vh] w-full overflow-hidden">
+        {movie.posterUrl && (
+          <Image src={movie.posterUrl} alt={movie.title} fill priority sizes="100vw" className="object-cover" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-black/40" />
       </div>
-      
-      <div className={styles.mainInfo}>
-        <h1 className={styles.title}>{movie.title}</h1>
-        <p className={styles.year}>{movie.year} • {movie.contentRating}</p>
-        
-        <div className={styles.actionBar}>
+
+      <div className="relative z-10 -mt-10 px-5">
+        <h1 className="text-display font-display">{movie.title}</h1>
+        <p className="mt-1 text-sm text-fg-dim">{movie.year} • {movie.contentRating}</p>
+
+        <div className="mt-4 flex items-center gap-3">
           <button
-            className={styles.playButton}
             disabled={!firstEpisode}
             onClick={() => firstEpisode && router.push(`/player/${firstEpisode.id}`)}
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-white font-semibold text-ink transition-transform active:scale-95 disabled:opacity-40"
           >
-            ▶ เล่น
+            <Icon name="play" size={18} />
+            เล่น
           </button>
-          
-          <div className={styles.actionIcons}>
-            <div className={styles.actionItem}>
-              <button
-                className={styles.iconBtn}
-                onClick={toggleBookmark}
-                aria-label="Bookmark"
-                aria-pressed={bookmarked}
-              >
-                {bookmarked ? '🔖' : '➕'}
-              </button>
-              <span>บันทึก</span>
-            </div>
-            <div className={styles.actionItem}>
-              <button
-                className={styles.iconBtn}
-                aria-label="ดาวน์โหลดตอนแรก"
-                disabled={!firstEpisode}
-                onClick={() => firstEpisode && addDownload(firstEpisode.id)}
-              >
-                ⬇️
-              </button>
-              <span>ดาวน์โหลด</span>
-            </div>
-          </div>
+          <button
+            onClick={toggleBookmark}
+            aria-label="บันทึก"
+            aria-pressed={bookmarked}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors ${bookmarked ? 'bg-brand text-white' : 'bg-fg/10 text-fg'}`}
+          >
+            <Icon name={bookmarked ? 'bookmarkFilled' : 'bookmark'} size={20} />
+          </button>
+          <button
+            disabled={!firstEpisode}
+            aria-label="ดาวน์โหลดตอนแรก"
+            onClick={() => firstEpisode && addDownload(firstEpisode.id)}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-fg/10 text-fg disabled:opacity-40"
+          >
+            <Icon name="download" size={20} />
+          </button>
         </div>
         {downloadMessage && (
-          <p className={styles.actionMessage} role="status">{downloadMessage}</p>
+          <p role="status" className="mt-3 text-sm text-fg-dim">{downloadMessage}</p>
         )}
       </div>
-      
-      <div className={styles.descriptionSection}>
-        <h2 className={styles.seasonTitle}>{movie.title} ซีซั่นที่ {selectedSeason}</h2>
-        <p className={styles.descriptionText}>{movie.description}</p>
-        <button className={styles.infoBtn} onClick={() => setShowInfo(true)}>ℹ ข้อมูลเพิ่มเติม</button>
+
+      <div className="mt-6 px-5">
+        <h2 className="text-lg font-bold text-fg">{movie.title} ซีซั่นที่ {selectedSeason}</h2>
+        <p className="mt-2 text-base text-fg-dim">{movie.description}</p>
+        <button
+          onClick={() => setShowInfo(true)}
+          className="mt-3 flex items-center gap-1.5 text-sm font-medium text-fg-dim"
+        >
+          <Icon name="infoCircle" size={16} />
+          ข้อมูลเพิ่มเติม
+        </button>
       </div>
-      
-      <div className={styles.episodesContainer}>
-        <div className={styles.seasonSelector}>
-          <button 
-            type="button"
-            className={styles.dropdownBtn}
-            onClick={() => setSeasonDropdownOpen(!seasonDropdownOpen)}
-            aria-expanded={seasonDropdownOpen}
-            aria-haspopup="listbox"
-            aria-controls="season-options"
-          >
-            ซีซั่น {selectedSeason} ▼
-          </button>
-          <span className={styles.episodeCount}>{episodes.length} ตอน</span>
-          
-          {seasonDropdownOpen && (
-            <div className={styles.dropdownMenu} id="season-options" role="listbox">
-              {movie.seasons?.map(s => (
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={s.seasonNumber === selectedSeason}
-                  key={s.id} 
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    setSelectedSeason(s.seasonNumber);
-                    setSeasonDropdownOpen(false);
-                  }}
-                >
-                  ซีซั่น {s.seasonNumber}
-                </button>
-              ))}
-            </div>
-          )}
+
+      <div className="mt-6">
+        <div className="flex items-center justify-between px-5">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setSeasonDropdownOpen(!seasonDropdownOpen)}
+              aria-expanded={seasonDropdownOpen}
+              aria-haspopup="listbox"
+              aria-controls="season-options"
+              className="flex items-center gap-1.5 text-lg font-bold text-fg"
+            >
+              ซีซั่น {selectedSeason}
+              <Icon name="chevronDown" size={18} className={`transition-transform ${seasonDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {seasonDropdownOpen && (
+              <div
+                id="season-options"
+                role="listbox"
+                className="absolute top-full left-0 z-10 mt-2 min-w-32 overflow-hidden rounded-lg border border-hairline bg-ink-1 shadow-[0_8px_40px_rgba(0,0,0,0.8)]"
+              >
+                {movie.seasons?.map((s) => (
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={s.seasonNumber === selectedSeason}
+                    key={s.id}
+                    onClick={() => {
+                      setSelectedSeason(s.seasonNumber);
+                      setSeasonDropdownOpen(false);
+                    }}
+                    className={`block w-full px-4 py-2.5 text-left text-sm ${s.seasonNumber === selectedSeason ? 'bg-brand/15 text-brand-ink' : 'text-fg hover:bg-ink-2'}`}
+                  >
+                    ซีซั่น {s.seasonNumber}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <span className="text-sm text-fg-mute">{episodes.length} ตอน</span>
         </div>
-        
-        <div className={styles.episodeList}>
+
+        <div className="mt-3 flex flex-col gap-2 px-5">
           {episodes.map((ep) => (
-            <div key={ep.id} className={`${styles.episodeItem} ${ep.coinCost > 0 ? styles.locked : ''}`}>
+            <div
+              key={ep.id}
+              className={`flex items-center gap-3 rounded-lg bg-ink-1 p-2 ${ep.coinCost > 0 ? 'opacity-80' : ''}`}
+            >
               <button
-                className={styles.episodePlayTarget}
                 onClick={() => router.push(`/player/${ep.id}`)}
                 aria-label={`เล่น ${ep.title}`}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
               >
-                <span className={styles.epThumbnail}>
-                  <img src={(ep.thumbnailUrl || movie.posterUrl) ?? undefined} alt="" />
-                </span>
-                <span className={styles.epInfo}>
-                  <span className={styles.epTitle}>{ep.title}</span>
-                  {ep.coinCost > 0 && (
-                    <span className={styles.epCost}>ล็อก · {ep.coinCost} เหรียญ</span>
+                <span className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-md bg-ink-2">
+                  {(ep.thumbnailUrl || movie.posterUrl) && (
+                    <Image
+                      src={(ep.thumbnailUrl || movie.posterUrl) ?? '/posters/sathu.jpg'}
+                      alt=""
+                      fill
+                      sizes="112px"
+                      className="object-cover"
+                    />
                   )}
-                  <span className={styles.epDuration}>{ep.durationMinutes} นาที</span>
-                  <span className={styles.epDesc}>{ep.description}</span>
+                </span>
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="truncate text-sm font-medium text-fg">{ep.title}</span>
+                  {ep.coinCost > 0 && (
+                    <span className="text-xs font-medium text-coin">ล็อก · {ep.coinCost} เหรียญ</span>
+                  )}
+                  <span className="text-xs text-fg-mute">{ep.durationMinutes} นาที</span>
+                  <span className="line-clamp-1 text-xs text-fg-mute">{ep.description}</span>
                 </span>
               </button>
               <button
-                className={styles.epAction}
                 onClick={() => addDownload(ep.id)}
                 aria-label={`ดาวน์โหลด ${ep.title}`}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-fg-dim"
               >
-                {downloadedEpisodeIds.has(ep.id) ? '✓' : '⬇️'}
+                <Icon name={downloadedEpisodeIds.has(ep.id) ? 'checkCircle' : 'download'} size={18} />
               </button>
             </div>
           ))}
         </div>
       </div>
-      
-      <div className={styles.similarSection}>
-        <h3 className={styles.similarTitle}>รายการที่คล้ายกัน</h3>
-        <div className={styles.similarScroll}>
-          {similarMovies.slice(0, 5).map(m => (
-            <Link key={m.id} className={styles.similarItem} href={`/movie/${m.id}`}>
-              <img src={m.posterUrl ?? undefined} alt={m.title} />
-            </Link>
+
+      <div className="mt-8">
+        <h3 className="px-5 text-lg font-bold text-fg">รายการที่คล้ายกัน</h3>
+        <div className="mt-3 flex gap-3 overflow-x-auto px-5 pb-2 [&::-webkit-scrollbar]:hidden">
+          {similarMovies.slice(0, 5).map((m) => (
+            <MovieCard key={m.id} movie={m} size="medium" />
           ))}
         </div>
       </div>
 
       {showInfo && <InfoModal movie={movie} onClose={() => setShowInfo(false)} />}
-    </>
+    </div>
   );
 }

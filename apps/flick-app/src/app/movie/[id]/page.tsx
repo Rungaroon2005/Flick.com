@@ -1,5 +1,5 @@
 import MovieClient from './MovieClient';
-import styles from './page.module.css';
+import { ErrorPanel } from '@/components/ui/ErrorPanel';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer } from '@/lib/session';
 import { Movie } from '@/types';
@@ -58,10 +58,8 @@ export default async function MovieDetail({ params }: { params: Promise<{ id: st
 
   if (error || !movie) {
     return (
-      <div className={styles.container}>
-        <div className={styles.loading}>
-          <p>{error || 'Loading...'}</p>
-        </div>
+      <div className="flex min-h-dvh items-center justify-center bg-ink px-6">
+        <ErrorPanel message={error ?? 'กำลังโหลด…'} />
       </div>
     );
   }
@@ -76,9 +74,5 @@ export default async function MovieDetail({ params }: { params: Promise<{ id: st
     console.error('Error fetching bookmark status:', err);
   }
 
-  return (
-    <div className={styles.container}>
-      <MovieClient movie={movie} similarMovies={similarMovies} initialBookmarked={isBookmarked} />
-    </div>
-  );
+  return <MovieClient movie={movie} similarMovies={similarMovies} initialBookmarked={isBookmarked} />;
 }

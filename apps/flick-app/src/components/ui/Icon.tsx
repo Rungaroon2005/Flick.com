@@ -21,6 +21,7 @@ export type IconName =
   | 'settings'
   | 'search'
   | 'alertCircle'
+  | 'infoCircle'
   | 'checkCircle'
   | 'refresh'
   | 'inbox'
@@ -105,6 +106,13 @@ const paths: Record<IconName, React.ReactNode> = {
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="8" x2="12" y2="13" />
       <line x1="12" y1="16.5" x2="12" y2="16.51" />
+    </>
+  ),
+  infoCircle: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="11" x2="12" y2="16" />
+      <line x1="12" y1="7.5" x2="12" y2="7.51" />
     </>
   ),
   checkCircle: (

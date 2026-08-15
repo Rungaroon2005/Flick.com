@@ -5,7 +5,6 @@ import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
 import { MoviesService } from './movies.service';
 import { MoviesController } from './movies.controller';
-import { PrismaService } from '../prisma.service';
 
 const logger = new Logger('MoviesCache');
 
@@ -52,6 +51,6 @@ const logger = new Logger('MoviesCache');
     }),
   ],
   controllers: [MoviesController],
-  providers: [MoviesService, PrismaService],
+  providers: [MoviesService],
 })
 export class MoviesModule {}

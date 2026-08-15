@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, TransactionType } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
+import { AVAILABLE_EPISODE_FILTER } from '../common/content-availability';
 
 /**
  * Canonical `UserCoin.description` format for an episode-unlock ledger row.
@@ -199,8 +200,9 @@ export class WalletService {
         return { balance: user.coinBalance, unlocked: true as const };
       }
 
-      const episode = await tx.episode.findUnique({
-        where: { id: episodeId },
+      const episode = await tx.episode.findFirst({
+        where: { id: episodeId, ...AVAILABLE_EPISODE_FILTER },
+        select: { coinCost: true },
       });
       if (!episode) throw new NotFoundException('ไม่พบตอนนี้');
 

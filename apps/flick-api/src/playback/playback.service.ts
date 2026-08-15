@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { WalletService } from '../wallet/wallet.service';
+import { AVAILABLE_EPISODE_FILTER } from '../common/content-availability';
 
 export type PlaybackAuthorization =
   | {
@@ -51,7 +52,7 @@ export class PlaybackService {
     episodeId: string,
   ): Promise<PlaybackAuthorization> {
     const episode = await this.prisma.episode.findFirst({
-      where: { id: episodeId, deletedAt: null },
+      where: { id: episodeId, ...AVAILABLE_EPISODE_FILTER },
       select: { id: true, videoUrl: true, isPremium: true, coinCost: true },
     });
     if (!episode) throw new NotFoundException('ไม่พบตอนนี้');

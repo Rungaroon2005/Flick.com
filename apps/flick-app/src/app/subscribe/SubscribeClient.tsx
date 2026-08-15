@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ApiError, apiFetch } from '@/lib/apiClient';
+import { apiFetch } from '@/lib/apiClient';
 import styles from './page.module.css';
 import { CoinPack, SubscriptionPlan } from '@/types';
 
@@ -13,16 +13,13 @@ const UNAVAILABLE_MSG = 'ยังไม่เปิดให้ชำระเ�
 
 const FREE_PLAN_ID = 'free';
 
-/** The plan cards are rendered from GET /plans, so the id a card POSTs is by
- *  construction the id the API validates against PLAN_DURATIONS_MS. Hardcoding
- *  them in JSX is what produced the 'vip-weekly' bug (฿49 bought 30 days). */
+/** Plan and pricing copy remains server-owned. Paid actions stay disabled until
+ *  the API has a verified payment-gateway activation path. */
 export default function SubscribeClient() {
   const router = useRouter();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [coinPacks, setCoinPacks] = useState<CoinPack[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,29 +41,6 @@ export default function SubscribeClient() {
     };
   }, []);
 
-  const handleSubscribe = async (planId: string) => {
-    setError(null);
-    setPendingPlanId(planId);
-    try {
-      await apiFetch('/subscriptions', {
-        method: 'POST',
-        body: JSON.stringify({ planId }),
-      });
-      router.push('/home');
-      // Without this the cached Server Component render of /profile still
-      // shows the old membership status when the user navigates back.
-      router.refresh();
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        router.push('/login');
-        return;
-      }
-      setError(err instanceof ApiError ? err.message : 'สมัครสมาชิกไม่สำเร็จ');
-    } finally {
-      setPendingPlanId(null);
-    }
-  };
-
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -78,13 +52,12 @@ export default function SubscribeClient() {
 
       <section className={styles.section}>
         {loadError && <p className={styles.unavailableNote}>{loadError}</p>}
-        {error && <p className={styles.errorNote}>{error}</p>}
+        <p className={styles.unavailableNote}>{UNAVAILABLE_MSG}</p>
         <div className={styles.plansGrid}>
           {plans.map((plan) => {
             // The free plan is identified from the data, never from JSX order.
-            // It must navigate, not POST — the API only accepts paid plan ids.
+            // It navigates normally; paid actions remain deliberately disabled.
             const isFree = plan.id === FREE_PLAN_ID || plan.price === 0;
-            const pending = pendingPlanId === plan.id;
             return (
               <div key={plan.id} className={styles.planCard} style={{ borderColor: plan.color }}>
                 {plan.badge && <div className={styles.badge}>{plan.badge}</div>}
@@ -110,10 +83,9 @@ export default function SubscribeClient() {
                 ) : (
                   <button
                     className={`${styles.selectBtn} ${styles.btnSubscribe}`}
-                    onClick={() => handleSubscribe(plan.id)}
-                    disabled={pendingPlanId !== null}
+                    disabled
                   >
-                    {pending ? 'กำลังดำเนินการ...' : 'สมัครสมาชิก'}
+                    ยังไม่เปิดให้บริการ
                   </button>
                 )}
               </div>

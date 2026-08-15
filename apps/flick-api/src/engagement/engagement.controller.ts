@@ -44,6 +44,33 @@ export class EngagementController {
     return this.engagementService.removeBookmark(user.id, movieId);
   }
 
+  // --- Movie actions -----------------------------------------------------
+
+  @Get('movies/:movieId/actions')
+  getMovieActions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('movieId') movieId: string,
+  ) {
+    return this.engagementService.getMovieActions(user.id, movieId);
+  }
+
+  @Put('likes/:movieId')
+  likeMovie(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('movieId') movieId: string,
+  ) {
+    return this.engagementService.likeMovie(user.id, movieId);
+  }
+
+  @Delete('likes/:movieId')
+  @HttpCode(200)
+  unlikeMovie(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('movieId') movieId: string,
+  ) {
+    return this.engagementService.unlikeMovie(user.id, movieId);
+  }
+
   // --- Watch history / continue watching ----------------------------------
 
   @Get('continue-watching')

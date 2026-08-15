@@ -1,5 +1,6 @@
 .container {
   height: 100vh;
+  height: 100dvh;
   width: 100vw;
   background-color: #000;
   color: white;
@@ -36,9 +37,10 @@
   justify-content: space-between;
   align-items: center;
   z-index: 10;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
 }
-.backBtn, .fullscreenBtn {
+.backBtn,
+.fullscreenBtn {
   background: none;
   border: none;
   color: white;
@@ -62,12 +64,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background-color 180ms ease;
+}
+.videoAreaPortrait {
+  background: radial-gradient(circle at center, #171717 0%, #000 65%);
 }
 .videoElement {
   width: 100%;
   height: 100%;
   object-fit: contain;
   background: #000;
+}
+.videoElementPortrait {
+  width: min(100%, calc(100dvh * 9 / 16));
+  max-width: 100%;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.65);
 }
 .videoOverlay {
   position: absolute;
@@ -80,7 +91,7 @@
   justify-content: center;
 }
 .centerPlayBtn {
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   border: 2px solid white;
   border-radius: 50%;
   width: 60px;
@@ -94,7 +105,7 @@
 }
 .floatingActions {
   position: absolute;
-  right: 1rem;
+  right: max(1rem, calc((100vw - (100dvh * 9 / 16)) / 2 + 1rem));
   top: 50%;
   transform: translateY(-50%);
   display: flex;
@@ -111,7 +122,7 @@
   font-size: 0.75rem;
 }
 .iconBtn {
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   border-radius: 50%;
   width: 40px;
@@ -120,6 +131,21 @@
   font-size: 1.2rem;
   cursor: pointer;
   backdrop-filter: blur(4px);
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+.iconBtn:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+.iconBtn:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.iconBtnActive {
+  background: var(--flick-red);
+  color: #fff;
 }
 .bottomControls {
   position: absolute;
@@ -130,10 +156,11 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
   z-index: 10;
 }
-.playPauseBtn, .settingsBtn {
+.playPauseBtn,
+.settingsBtn {
   background: none;
   border: none;
   color: white;
@@ -156,7 +183,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 20;
   display: flex;
   align-items: flex-end;
@@ -170,8 +197,12 @@
   animation: slideUp var(--transition-normal);
 }
 @keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 .settingsHeader {
   display: flex;
@@ -222,7 +253,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
   z-index: 30;
   display: flex;
   align-items: center;
@@ -272,4 +303,30 @@
   border-radius: var(--radius-md);
   background: rgba(0, 0, 0, 0.8);
   text-align: center;
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0.75rem;
+  }
+  .titleInfo {
+    max-width: calc(100vw - 7rem);
+  }
+  .movieTitle,
+  .episodeTitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .floatingActions {
+    right: 0.65rem;
+    gap: 1rem;
+  }
+  .actionItem {
+    font-size: 0.68rem;
+  }
+  .iconBtn {
+    width: 42px;
+    height: 42px;
+  }
 }

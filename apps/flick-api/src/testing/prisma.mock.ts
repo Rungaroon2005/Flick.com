@@ -26,6 +26,11 @@ export interface PrismaMock {
     upsert: jest.Mock;
     deleteMany: jest.Mock;
   };
+  interaction: {
+    findUnique: jest.Mock;
+    upsert: jest.Mock;
+    deleteMany: jest.Mock;
+  };
   watchHistory: {
     upsert: jest.Mock;
     findMany: jest.Mock;
@@ -68,6 +73,11 @@ export const createPrismaMock = (): PrismaMock => {
       findMany: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    interaction: {
       findUnique: jest.fn(),
       upsert: jest.fn(),
       deleteMany: jest.fn(),

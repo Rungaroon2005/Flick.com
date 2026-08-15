@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { Genre, Prisma } from '@prisma/client';
+import { Genre, InteractionType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { PlaybackService } from '../playback/playback.service';
 import { GENRES_INCLUDE } from '../movies/movies.service';
@@ -74,6 +74,42 @@ export class EngagementService {
       include: { movie: { include: { genres: GENRES_INCLUDE } } },
     });
     return bookmarks.map((bookmark) => flattenMovieGenres(bookmark.movie));
+  }
+
+  // --- Movie actions ----------------------------------------------------
+
+  async getMovieActions(userId: string, movieId: string) {
+    const [bookmark, interaction] = await Promise.all([
+      this.prisma.bookmark.findUnique({
+        where: { userId_movieId: { userId, movieId } },
+        select: { id: true },
+      }),
+      this.prisma.interaction.findUnique({
+        where: { userId_movieId: { userId, movieId } },
+        select: { type: true },
+      }),
+    ]);
+
+    return {
+      bookmarked: bookmark !== null,
+      liked: interaction?.type === InteractionType.LIKE,
+    };
+  }
+
+  async likeMovie(userId: string, movieId: string) {
+    await this.prisma.interaction.upsert({
+      where: { userId_movieId: { userId, movieId } },
+      create: { userId, movieId, type: InteractionType.LIKE },
+      update: { type: InteractionType.LIKE },
+    });
+    return { liked: true };
+  }
+
+  async unlikeMovie(userId: string, movieId: string) {
+    await this.prisma.interaction.deleteMany({
+      where: { userId, movieId, type: InteractionType.LIKE },
+    });
+    return { liked: false };
   }
 
   // --- Watch history / continue watching --------------------------------

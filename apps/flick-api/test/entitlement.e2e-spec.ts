@@ -77,6 +77,23 @@ describe('Content entitlement (e2e)', () => {
     expect(authorization.videoUrl).toBeUndefined();
   });
 
+  it('does not activate paid access from an unverified browser request', async () => {
+    await request(app.getHttpServer())
+      .post('/subscriptions')
+      .set('Cookie', freeUserCookie)
+      .send({ planId: 'weekly' })
+      .expect(503);
+
+    const response = await request(app.getHttpServer())
+      .get(`/playback/${PREMIUM_EPISODE_ID}/authorize`)
+      .set('Cookie', freeUserCookie)
+      .expect(200);
+    expect(response.body).toMatchObject({
+      allowed: false,
+      reason: 'coins_required',
+    });
+  });
+
   it('does not serve draft movies publicly', async () => {
     const list = await request(app.getHttpServer()).get('/movies').expect(200);
     const ids = (list.body as { id: string }[]).map((movie) => movie.id);

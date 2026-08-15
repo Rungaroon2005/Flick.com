@@ -2,9 +2,8 @@ import { redirect } from 'next/navigation';
 import SubscribeClient from './SubscribeClient';
 import { getSession } from '@/lib/session';
 
-// POST /subscriptions 401s without a session, so the page is guarded on the
-// server — same shape as /home and /bookmarks — rather than letting an
-// anonymous visitor click through to a guaranteed failure.
+// Keep plan selection inside the authenticated membership area, even while
+// paid actions are disabled pending a payment-gateway integration.
 //
 // Safe for the registration flow: /register only pushes here after POST
 // /auth/register has already set the session cookie, so the cookie exists by

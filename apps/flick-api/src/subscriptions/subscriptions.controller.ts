@@ -1,6 +1,12 @@
-import { Body, Controller, Delete, Get, HttpCode, Post } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Post,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
-import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/current-user.decorator';
 
@@ -14,11 +20,13 @@ export class SubscriptionsController {
   }
 
   @Post()
-  create(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() dto: CreateSubscriptionDto,
-  ) {
-    return this.subscriptionsService.create(user.id, dto.planId);
+  create(): never {
+    // Paid access must only be activated by a verified, idempotent payment
+    // callback. Until a gateway exists, fail closed instead of minting an
+    // ACTIVE subscription directly from a browser request.
+    throw new ServiceUnavailableException(
+      'ยังไม่เปิดให้ชำระเงินในขณะนี้ (Payments are not available yet)',
+    );
   }
 
   @Delete('me')

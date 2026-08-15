@@ -8,6 +8,8 @@ import type { Episode, Movie, PlaybackAuthorization } from '@/types';
 import styles from './page.module.css';
 
 type DeniedAuthorization = Extract<PlaybackAuthorization, { allowed: false }>;
+type MovieActions = { liked: boolean; bookmarked: boolean };
+type PendingAction = 'like' | 'favorite' | null;
 
 function findEpisode(movies: Movie[], episodeId: string) {
   for (const movie of movies) {
@@ -33,6 +35,13 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gateError, setGateError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [liked, setLiked] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [actionsForMovieId, setActionsForMovieId] = useState<string | null>(
+    null,
+  );
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [unlocking, setUnlocking] = useState(false);
   const progressRef = useRef(0);
   const lastReportedRef = useRef(0);
@@ -43,7 +52,12 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
     closeSettings,
     showSettings,
   );
-  const gateDialogRef = useModalDismiss<HTMLDivElement>(closeGate, gate !== null);
+  const gateDialogRef = useModalDismiss<HTMLDivElement>(
+    closeGate,
+    gate !== null,
+  );
+  const movieId = movie?.id ?? null;
+  const movieActionsLoading = movieId === null || actionsForMovieId !== movieId;
 
   // Public catalogue metadata deliberately remains a separate request from
   // entitlement. It never contains videoUrl, and a metadata fault cannot turn
@@ -75,6 +89,35 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
     };
   }, [episodeId, router]);
 
+  useEffect(() => {
+    if (!movieId) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const actions = await apiFetch<MovieActions>(
+          `/me/movies/${movieId}/actions`,
+        );
+        if (cancelled) return;
+        setLiked(actions.liked);
+        setBookmarked(actions.bookmarked);
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 401) {
+          router.push('/login');
+          return;
+        }
+        setNotice('ไม่สามารถโหลดสถานะถูกใจและรายการโปรดได้');
+      } finally {
+        if (!cancelled) setActionsForMovieId(movieId);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [movieId, router]);
+
   const applyAuthorization = useCallback((auth: PlaybackAuthorization) => {
     if (auth.allowed) {
       setVideoUrl(auth.videoUrl);
@@ -103,7 +146,11 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
           router.push('/login');
           return;
         }
-        setError(err instanceof ApiError ? err.message : 'ไม่สามารถตรวจสอบสิทธิ์การรับชมได้');
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : 'ไม่สามารถตรวจสอบสิทธิ์การรับชมได้',
+        );
       }
     })();
     return () => {
@@ -124,7 +171,8 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
           body: JSON.stringify({ progressSeconds: seconds }),
         });
       } catch (err) {
-        if (err instanceof ApiError && err.status === 401) router.push('/login');
+        if (err instanceof ApiError && err.status === 401)
+          router.push('/login');
       }
     },
     [episodeId, router],
@@ -138,7 +186,8 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
     let hls: import('hls.js').default | undefined;
     setPlaybackError(null);
 
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    const isHlsSource = /\.m3u8(?:$|[?#])/i.test(videoUrl);
+    if (!isHlsSource || video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = videoUrl;
       video.load();
     } else {
@@ -196,7 +245,9 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
       await video.play();
     } catch {
       setIsPlaying(false);
-      setPlaybackError('เบราว์เซอร์ไม่อนุญาตให้เล่นอัตโนมัติ กรุณากดเล่นอีกครั้ง');
+      setPlaybackError(
+        'เบราว์เซอร์ไม่อนุญาตให้เล่นอัตโนมัติ กรุณากดเล่นอีกครั้ง',
+      );
     }
   };
 
@@ -244,23 +295,83 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
         router.push('/login');
         return;
       }
-      setGateError(err instanceof ApiError ? err.message : 'ไม่สามารถปลดล็อกตอนนี้ได้');
+      setGateError(
+        err instanceof ApiError ? err.message : 'ไม่สามารถปลดล็อกตอนนี้ได้',
+      );
     } finally {
       setUnlocking(false);
     }
   };
 
   const addDownload = async () => {
-    setGateError(null);
+    setNotice(null);
     try {
       await apiFetch(`/me/downloads/${episodeId}`, { method: 'PUT' });
-      setGateError('บันทึกรายการดาวน์โหลดแล้ว');
+      setNotice('บันทึกรายการดาวน์โหลดแล้ว');
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         router.push('/login');
         return;
       }
-      setGateError(err instanceof ApiError ? err.message : 'ไม่สามารถบันทึกรายการดาวน์โหลดได้');
+      setNotice(
+        err instanceof ApiError
+          ? err.message
+          : 'ไม่สามารถบันทึกรายการดาวน์โหลดได้',
+      );
+    }
+  };
+
+  const toggleLike = async () => {
+    if (!movieId || pendingAction) return;
+
+    const shouldLike = !liked;
+    setPendingAction('like');
+    setNotice(null);
+    try {
+      const result = await apiFetch<{ liked: boolean }>(
+        `/me/likes/${movieId}`,
+        { method: shouldLike ? 'PUT' : 'DELETE' },
+      );
+      setLiked(result.liked);
+      setNotice(result.liked ? 'ถูกใจเรื่องนี้แล้ว' : 'ยกเลิกถูกใจแล้ว');
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.push('/login');
+        return;
+      }
+      setNotice(
+        err instanceof ApiError ? err.message : 'ไม่สามารถอัปเดตการถูกใจได้',
+      );
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (!movieId || pendingAction) return;
+
+    const shouldBookmark = !bookmarked;
+    setPendingAction('favorite');
+    setNotice(null);
+    try {
+      const result = await apiFetch<{ bookmarked: boolean }>(
+        `/me/bookmarks/${movieId}`,
+        { method: shouldBookmark ? 'PUT' : 'DELETE' },
+      );
+      setBookmarked(result.bookmarked);
+      setNotice(
+        result.bookmarked ? 'เพิ่มในรายการโปรดแล้ว' : 'นำออกจากรายการโปรดแล้ว',
+      );
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.push('/login');
+        return;
+      }
+      setNotice(
+        err instanceof ApiError ? err.message : 'ไม่สามารถอัปเดตรายการโปรดได้',
+      );
+    } finally {
+      setPendingAction(null);
     }
   };
 
@@ -275,29 +386,45 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
     );
   }
 
-  if (!movie || !episode) return <div className={styles.loading}>กำลังโหลด…</div>;
+  if (!movie || !episode)
+    return <div className={styles.loading}>กำลังโหลด…</div>;
 
   const durationSeconds = mediaDuration || episode.durationMinutes * 60;
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <button className={styles.backBtn} onClick={() => router.back()} aria-label="กลับ">←</button>
+        <button
+          className={styles.backBtn}
+          onClick={() => router.back()}
+          aria-label="กลับ"
+        >
+          ←
+        </button>
         <div className={styles.titleInfo}>
           <div className={styles.movieTitle}>{movie.title}</div>
           <div className={styles.episodeTitle}>{episode.title}</div>
         </div>
-        <button className={styles.fullscreenBtn} onClick={toggleFullscreen} aria-label="เต็มหน้าจอ">⛶</button>
+        <button
+          className={styles.fullscreenBtn}
+          onClick={toggleFullscreen}
+          aria-label="เต็มหน้าจอ"
+        >
+          ⛶
+        </button>
       </div>
 
-      <div className={styles.videoArea}>
+      <div className={`${styles.videoArea} ${styles.videoAreaPortrait}`}>
         <video
           ref={videoRef}
-          className={styles.videoElement}
+          className={`${styles.videoElement} ${styles.videoElementPortrait}`}
           poster={movie.posterUrl ?? undefined}
           aria-label={`${movie.title} ${episode.title}`}
           playsInline
           preload="metadata"
+          controlsList="nodownload noremoteplayback"
+          disablePictureInPicture
+          disableRemotePlayback
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={(event) => {
             if (Number.isFinite(event.currentTarget.duration)) {
@@ -327,7 +454,37 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
 
       <div className={styles.floatingActions}>
         <div className={styles.actionItem}>
-          <button className={styles.iconBtn} aria-label="ดาวน์โหลด" onClick={addDownload}>⬇️</button>
+          <button
+            className={`${styles.iconBtn} ${liked ? styles.iconBtnActive : ''}`}
+            aria-label={liked ? 'ยกเลิกถูกใจ' : 'ถูกใจ'}
+            aria-pressed={liked}
+            disabled={movieActionsLoading || pendingAction !== null}
+            onClick={toggleLike}
+          >
+            {liked ? '♥' : '♡'}
+          </button>
+          <span>ถูกใจ</span>
+        </div>
+        <div className={styles.actionItem}>
+          <button
+            className={`${styles.iconBtn} ${bookmarked ? styles.iconBtnActive : ''}`}
+            aria-label={bookmarked ? 'นำออกจากรายการโปรด' : 'เพิ่มในรายการโปรด'}
+            aria-pressed={bookmarked}
+            disabled={movieActionsLoading || pendingAction !== null}
+            onClick={toggleFavorite}
+          >
+            {bookmarked ? '★' : '☆'}
+          </button>
+          <span>รายการโปรด</span>
+        </div>
+        <div className={styles.actionItem}>
+          <button
+            className={styles.iconBtn}
+            aria-label="ดาวน์โหลด"
+            onClick={addDownload}
+          >
+            ⇩
+          </button>
           <span>ดาวน์โหลด</span>
         </div>
       </div>
@@ -413,7 +570,9 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
             aria-labelledby="player-gate-title"
           >
             <h3 id="player-gate-title">
-              {gate.reason === 'coins_required' ? 'ปลดล็อกตอนนี้' : 'สมัครสมาชิกเพื่อรับชม'}
+              {gate.reason === 'coins_required'
+                ? 'ปลดล็อกตอนนี้'
+                : 'สมัครสมาชิกเพื่อรับชม'}
             </h3>
             <p>
               {gate.reason === 'coins_required'
@@ -421,11 +580,18 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
                 : 'เนื้อหานี้สงวนไว้สำหรับสมาชิกพรีเมียมเท่านั้น'}
             </p>
             {gate.reason === 'coins_required' && (
-              <button className={styles.subBtn} onClick={unlockWithCoins} disabled={unlocking}>
+              <button
+                className={styles.subBtn}
+                onClick={unlockWithCoins}
+                disabled={unlocking}
+              >
                 {unlocking ? 'กำลังปลดล็อก…' : `ใช้ ${gate.coinCost} เหรียญ`}
               </button>
             )}
-            <button className={styles.subBtn} onClick={() => router.push('/subscribe')}>
+            <button
+              className={styles.subBtn}
+              onClick={() => router.push('/subscribe')}
+            >
               ดูแพ็กเกจสมาชิก
             </button>
             <button
@@ -435,13 +601,19 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
             >
               กลับ
             </button>
-            {gateError && <p className={styles.gateMessage} role="status">{gateError}</p>}
+            {gateError && (
+              <p className={styles.gateMessage} role="status">
+                {gateError}
+              </p>
+            )}
           </div>
         </div>
       )}
 
-      {!gate && (playbackError || gateError) && (
-        <p className={styles.toast} role="status">{playbackError ?? gateError}</p>
+      {!gate && (playbackError || notice) && (
+        <p className={styles.toast} role="status">
+          {playbackError ?? notice}
+        </p>
       )}
     </div>
   );

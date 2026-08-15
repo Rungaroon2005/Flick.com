@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma.service';
 import { PlaybackService } from '../playback/playback.service';
 import { createPrismaMock } from '../testing/prisma.mock';
 import { GENRES_INCLUDE } from '../movies/movies.service';
+import { InteractionType } from '@prisma/client';
 
 describe('EngagementService', () => {
   let service: EngagementService;
@@ -86,6 +87,45 @@ describe('EngagementService', () => {
         ],
       },
     ]);
+  });
+
+  // --- Movie actions -------------------------------------------------
+
+  it('returns the current like and favorite state for a movie', async () => {
+    prisma.bookmark.findUnique.mockResolvedValue({ id: 'b1' });
+    prisma.interaction.findUnique.mockResolvedValue({
+      type: InteractionType.LIKE,
+    });
+
+    await expect(service.getMovieActions('u1', 'm1')).resolves.toEqual({
+      bookmarked: true,
+      liked: true,
+    });
+    expect(prisma.bookmark.findUnique).toHaveBeenCalledWith({
+      where: { userId_movieId: { userId: 'u1', movieId: 'm1' } },
+      select: { id: true },
+    });
+  });
+
+  it('likes a movie using an idempotent upsert', async () => {
+    prisma.interaction.upsert.mockResolvedValue({ id: 'i1' });
+
+    await expect(service.likeMovie('u1', 'm1')).resolves.toEqual({
+      liked: true,
+    });
+    expect(prisma.interaction.upsert).toHaveBeenCalledWith({
+      where: { userId_movieId: { userId: 'u1', movieId: 'm1' } },
+      create: { userId: 'u1', movieId: 'm1', type: InteractionType.LIKE },
+      update: { type: InteractionType.LIKE },
+    });
+  });
+
+  it('treats unliking an unliked movie as a successful no-op', async () => {
+    prisma.interaction.deleteMany.mockResolvedValue({ count: 0 });
+
+    await expect(service.unlikeMovie('u1', 'm1')).resolves.toEqual({
+      liked: false,
+    });
   });
 
   // --- Watch history / continue watching -----------------------------

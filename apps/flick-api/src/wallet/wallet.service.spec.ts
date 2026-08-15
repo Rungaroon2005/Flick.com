@@ -75,7 +75,7 @@ describe('WalletService', () => {
     // first call's userCoin.create is what makes the SECOND call's
     // findFirst see an existing row.
     tx.$queryRaw.mockResolvedValue([{ coinBalance: 100 }]);
-    tx.episode.findUnique.mockResolvedValue({ id: 'e1', coinCost: 10 });
+    tx.episode.findFirst.mockResolvedValue({ coinCost: 10 });
     let unlocked = false;
     tx.userCoin.findFirst.mockImplementation(() =>
       Promise.resolve(unlocked ? { id: 'existing' } : null),
@@ -91,5 +91,27 @@ describe('WalletService', () => {
     expect(first.unlocked).toBe(true);
     expect(second.unlocked).toBe(true);
     expect(tx.userCoin.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not charge for a deleted episode or one belonging to hidden content', async () => {
+    tx.$queryRaw.mockResolvedValue([{ coinBalance: 100 }]);
+    tx.userCoin.findFirst.mockResolvedValue(null);
+    tx.episode.findFirst.mockResolvedValue(null);
+
+    await expect(service.unlockEpisode('u1', 'hidden')).rejects.toThrow();
+
+    expect(tx.episode.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'hidden',
+          deletedAt: null,
+          season: {
+            movie: { status: 'PUBLISHED', deletedAt: null },
+          },
+        }) as object,
+      }),
+    );
+    expect(tx.userCoin.create).not.toHaveBeenCalled();
+    expect(tx.user.update).not.toHaveBeenCalled();
   });
 });

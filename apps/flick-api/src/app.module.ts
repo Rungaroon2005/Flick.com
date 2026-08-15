@@ -15,11 +15,12 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PlaybackModule } from './playback/playback.module';
 import { EngagementModule } from './engagement/engagement.module';
 import { validateEnv } from './common/config.validation';
-import { PrismaService } from './prisma.service';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+    DatabaseModule,
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
     MoviesModule,
     UsersModule,
@@ -32,7 +33,6 @@ import { PrismaService } from './prisma.service';
   controllers: [AppController, PlansController],
   providers: [
     AppService,
-    PrismaService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard }, // order matters: authn then authz

@@ -50,6 +50,13 @@ export class MoviesService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
+  private logCacheFailure(operation: string, err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    this.logger.warn(
+      `Movie cache ${operation} failed; continuing without cache: ${message}`,
+    );
+  }
+
   // Flattens the MovieGenre join-table shape (`{ genres: [{ genre: {...} }] }`)
   // into the wire shape the frontend expects (`{ genres: Genre[] }`), AND
   // strips `videoUrl` off every nested episode. `videoUrl` is the one piece
@@ -84,7 +91,6 @@ export class MoviesService {
 
   async create(createMovieDto: CreateMovieDto) {
     const { genreSlugs, ...movieData } = createMovieDto;
-    await this.cacheManager.del(CACHE_KEY_ALL_MOVIES);
     const movie = await this.prisma.movie.create({
       data: {
         ...movieData,
@@ -101,13 +107,23 @@ export class MoviesService {
       },
       include: { genres: GENRES_INCLUDE },
     });
+    try {
+      await this.cacheManager.del(CACHE_KEY_ALL_MOVIES);
+    } catch (err) {
+      this.logCacheFailure('invalidation', err);
+    }
     return this.toDto(movie);
   }
 
   async findAll(): Promise<MovieDto[]> {
     // 1. Check cache
-    const cachedMovies =
-      await this.cacheManager.get<MovieDto[]>(CACHE_KEY_ALL_MOVIES);
+    let cachedMovies: MovieDto[] | undefined;
+    try {
+      cachedMovies =
+        await this.cacheManager.get<MovieDto[]>(CACHE_KEY_ALL_MOVIES);
+    } catch (err) {
+      this.logCacheFailure('read', err);
+    }
     if (cachedMovies) {
       this.logger.debug('Returning movies from cache');
       return cachedMovies;
@@ -124,7 +140,11 @@ export class MoviesService {
     const dtos = movies.map((movie) => this.toDto(movie));
 
     // 3. Store in cache for future requests
-    await this.cacheManager.set(CACHE_KEY_ALL_MOVIES, dtos, CACHE_TTL_MS);
+    try {
+      await this.cacheManager.set(CACHE_KEY_ALL_MOVIES, dtos, CACHE_TTL_MS);
+    } catch (err) {
+      this.logCacheFailure('write', err);
+    }
 
     return dtos;
   }

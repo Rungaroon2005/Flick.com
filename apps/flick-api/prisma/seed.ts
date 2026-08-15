@@ -39,7 +39,7 @@ async function main() {
             episodeCount: 5,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'อยู่อย่างยาก', description: 'ตอนที่ 1', durationMinutes: 10, thumbnailUrl: '/posters/sathu.jpg', coinCost: 0, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'อยู่อย่างยาก', description: 'คลิปตัวอย่างจาก movie1.MOV', durationMinutes: 1, thumbnailUrl: '/posters/sathu.jpg', videoUrl: '/videos/movie1-preview.m4v', coinCost: 0, releaseDate: new Date() },
                 { id: 'sathu-premium', episodeNumber: 2, title: 'อยู่อย่างง่าย', description: 'ตอนที่ 2', durationMinutes: 10, thumbnailUrl: '/posters/sathu.jpg', videoUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', isPremium: true, coinCost: 10, releaseDate: new Date() },
               ],
             },
@@ -76,7 +76,7 @@ async function main() {
             episodeCount: 2,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'เพื่อนไม่คบ', description: 'ตอนที่ 1', durationMinutes: 14, thumbnailUrl: '/posters/dao.jpg', coinCost: 0, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'เพื่อนไม่คบ', description: 'คลิปตัวอย่างจาก movie2.MOV', durationMinutes: 1, thumbnailUrl: '/posters/dao.jpg', videoUrl: '/videos/movie2-preview.m4v', coinCost: 0, releaseDate: new Date() },
                 { episodeNumber: 2, title: 'ดาวตก', description: 'ตอนที่ 2', durationMinutes: 14, thumbnailUrl: '/posters/dao.jpg', coinCost: 10, releaseDate: new Date() },
               ],
             },

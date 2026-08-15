@@ -115,6 +115,25 @@ describe('PlaybackService', () => {
     );
   });
 
+  it('requires the episode to belong to a published, non-deleted movie', async () => {
+    prisma.episode.findFirst.mockResolvedValue(null);
+
+    await expect(service.authorize('u1', 'hidden')).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(prisma.episode.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'hidden',
+          deletedAt: null,
+          season: {
+            movie: { status: 'PUBLISHED', deletedAt: null },
+          },
+        },
+      }),
+    );
+  });
+
   it('throws ServiceUnavailableException when access is allowed but videoUrl is null', async () => {
     prisma.episode.findFirst.mockResolvedValue({
       id: 'e1',

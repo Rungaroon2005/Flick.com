@@ -46,6 +46,13 @@ describe('MoviesService', () => {
     expect(prismaMock.movie.create).toHaveBeenCalled();
   });
 
+  it('still creates a movie when cache invalidation fails', async () => {
+    prismaMock.movie.create.mockResolvedValue({ id: 'm1', genres: [] });
+    cacheManager.del.mockRejectedValue(new Error('redis unavailable'));
+
+    await expect(service.create(validDto)).resolves.toMatchObject({ id: 'm1' });
+  });
+
   interface CreateCallArg {
     data: {
       genres: {
@@ -84,6 +91,26 @@ describe('MoviesService', () => {
     ]);
     const [movie] = await service.findAll();
     expect(movie.genres).toEqual([{ id: 'g1', name: 'ดราม่า', slug: 'drama' }]);
+  });
+
+  it('falls back to Postgres when the cache read fails', async () => {
+    cacheManager.get.mockRejectedValue(new Error('redis unavailable'));
+    prismaMock.movie.findMany.mockResolvedValue([{ id: 'm1', genres: [] }]);
+
+    await expect(service.findAll()).resolves.toEqual([
+      { id: 'm1', genres: [] },
+    ]);
+    expect(prismaMock.movie.findMany).toHaveBeenCalled();
+  });
+
+  it('returns Postgres results when the cache write fails', async () => {
+    cacheManager.get.mockResolvedValue(undefined);
+    cacheManager.set.mockRejectedValue(new Error('redis unavailable'));
+    prismaMock.movie.findMany.mockResolvedValue([{ id: 'm1', genres: [] }]);
+
+    await expect(service.findAll()).resolves.toEqual([
+      { id: 'm1', genres: [] },
+    ]);
   });
 
   it('flattens genres for findOne', async () => {

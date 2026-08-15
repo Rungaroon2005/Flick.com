@@ -9,9 +9,9 @@
  * `weekly`/`monthly`/`trial`, so the lookup silently fell through to
  * `durations.monthly` — ฿49 bought 30 days instead of 7. By deriving
  * `PaidPlanId` from this object's keys, any caller that passes a plan id
- * not present here is a compile-time type error (in TS callers) and a
- * runtime 400 (via the DTO's `@IsIn` below) — it can never again silently
- * default to the wrong duration.
+ * not present here is a compile-time type error in TypeScript callers. These
+ * durations are reserved for the future verified payment callback; browser
+ * activation remains disabled until that integration exists.
  */
 export const PLAN_DURATIONS_MS = {
   weekly: 7 * 24 * 60 * 60 * 1000,

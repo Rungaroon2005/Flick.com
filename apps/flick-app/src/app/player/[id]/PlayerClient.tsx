@@ -1,51 +1,66 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ApiError, apiFetch } from '@/lib/apiClient';
 import { useModalDismiss } from '@/hooks/useModalDismiss';
-import type { Episode, Movie, PlaybackAuthorization } from '@/types';
+import { useEntitlement } from './hooks/useEntitlement';
+import { useHlsPlayer } from './hooks/useHlsPlayer';
+import { useWatchProgress } from './hooks/useWatchProgress';
+import { useMovieActions } from './hooks/useMovieActions';
 import styles from './page.module.css';
 
-type DeniedAuthorization = Extract<PlaybackAuthorization, { allowed: false }>;
-type MovieActions = { liked: boolean; bookmarked: boolean };
-type PendingAction = 'like' | 'favorite' | null;
-
-function findEpisode(movies: Movie[], episodeId: string) {
-  for (const movie of movies) {
-    for (const season of movie.seasons ?? []) {
-      const episode = season.episodes.find((item) => item.id === episodeId);
-      if (episode) return { movie, episode };
-    }
-  }
-  return null;
-}
-
+/**
+ * Composition-only: all state and side effects live in the four hooks this
+ * pulls together (docs/FRONTEND_PLAN.md Phase 4 Step 1 — extracted with no
+ * behavior change, verified against test/entitlement.e2e-spec.ts before any
+ * markup below was touched). The player-shell rebuild (three-zone layout,
+ * icon set, balance-branched gate sheet) is a separate, later commit.
+ */
 export default function PlayerClient({ episodeId }: { episodeId: string }) {
   const router = useRouter();
-  const [movie, setMovie] = useState<Movie | null>(null);
-  const [episode, setEpisode] = useState<Episode | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [gate, setGate] = useState<DeniedAuthorization | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progressSeconds, setProgressSeconds] = useState(0);
-  const [mediaDuration, setMediaDuration] = useState(0);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [playbackError, setPlaybackError] = useState<string | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [gateError, setGateError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [liked, setLiked] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
-  const [actionsForMovieId, setActionsForMovieId] = useState<string | null>(
-    null,
-  );
-  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [unlocking, setUnlocking] = useState(false);
-  const progressRef = useRef(0);
-  const lastReportedRef = useRef(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const {
+    movie,
+    episode,
+    videoUrl,
+    gate,
+    error: entitlementError,
+    gateError,
+    unlocking,
+    unlockWithCoins,
+  } = useEntitlement(episodeId, router);
+
+  const {
+    isPlaying,
+    setIsPlaying,
+    mediaDuration,
+    setMediaDuration,
+    playbackRate,
+    playbackError,
+    setPlaybackError,
+    fatalError,
+    togglePlayback,
+    changePlaybackRate,
+    toggleFullscreen,
+  } = useHlsPlayer(videoRef, episode, videoUrl);
+
+  const { progressSeconds, setProgress, handleTimeUpdate, reportProgress } =
+    useWatchProgress(episodeId, router, videoRef);
+
+  const movieId = movie?.id ?? null;
+  const {
+    liked,
+    bookmarked,
+    movieActionsLoading,
+    pendingAction,
+    notice,
+    toggleLike,
+    toggleFavorite,
+    addDownload,
+  } = useMovieActions(movieId, episodeId, router);
+
   const closeSettings = useCallback(() => setShowSettings(false), []);
   const closeGate = useCallback(() => router.back(), [router]);
   const settingsDialogRef = useModalDismiss<HTMLDivElement>(
@@ -56,324 +71,18 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
     closeGate,
     gate !== null,
   );
-  const movieId = movie?.id ?? null;
-  const movieActionsLoading = movieId === null || actionsForMovieId !== movieId;
-
-  // Public catalogue metadata deliberately remains a separate request from
-  // entitlement. It never contains videoUrl, and a metadata fault cannot turn
-  // into an authorization grant.
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const movies = await apiFetch<Movie[]>('/movies');
-        const result = findEpisode(movies, episodeId);
-        if (cancelled) return;
-        if (!result) {
-          setError('ไม่พบตอนนี้');
-          return;
-        }
-        setMovie(result.movie);
-        setEpisode(result.episode);
-      } catch (err) {
-        if (cancelled) return;
-        if (err instanceof ApiError && err.status === 401) {
-          router.push('/login');
-          return;
-        }
-        setError('ไม่สามารถโหลดข้อมูลตอนนี้ได้');
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [episodeId, router]);
-
-  useEffect(() => {
-    if (!movieId) return;
-
-    let cancelled = false;
-    void (async () => {
-      try {
-        const actions = await apiFetch<MovieActions>(
-          `/me/movies/${movieId}/actions`,
-        );
-        if (cancelled) return;
-        setLiked(actions.liked);
-        setBookmarked(actions.bookmarked);
-      } catch (err) {
-        if (cancelled) return;
-        if (err instanceof ApiError && err.status === 401) {
-          router.push('/login');
-          return;
-        }
-        setNotice('ไม่สามารถโหลดสถานะถูกใจและรายการโปรดได้');
-      } finally {
-        if (!cancelled) setActionsForMovieId(movieId);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [movieId, router]);
-
-  const applyAuthorization = useCallback((auth: PlaybackAuthorization) => {
-    if (auth.allowed) {
-      setVideoUrl(auth.videoUrl);
-      setGate(null);
-      setGateError(null);
-    } else {
-      setVideoUrl(null);
-      setIsPlaying(false);
-      setGate(auth);
-    }
-  }, []);
-
-  // The server is the only entitlement authority. The cancellation guard is
-  // load-bearing: route changes must not let a late response mutate this page.
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const auth = await apiFetch<PlaybackAuthorization>(
-          `/playback/${episodeId}/authorize`,
-        );
-        if (!cancelled) applyAuthorization(auth);
-      } catch (err) {
-        if (cancelled) return;
-        if (err instanceof ApiError && err.status === 401) {
-          router.push('/login');
-          return;
-        }
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : 'ไม่สามารถตรวจสอบสิทธิ์การรับชมได้',
-        );
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [applyAuthorization, episodeId, router]);
-
-  const reportProgress = useCallback(
-    async (seconds: number) => {
-      if (seconds <= 0 || seconds === lastReportedRef.current) return;
-      // Reserve this checkpoint before awaiting the network so several
-      // timeupdate events in the same second cannot enqueue duplicate writes.
-      lastReportedRef.current = seconds;
-      try {
-        await apiFetch(`/me/watch-history/${episodeId}`, {
-          method: 'PUT',
-          keepalive: true,
-          body: JSON.stringify({ progressSeconds: seconds }),
-        });
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 401)
-          router.push('/login');
-      }
-    },
-    [episodeId, router],
-  );
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !videoUrl) return;
-
-    let cancelled = false;
-    let hls: import('hls.js').default | undefined;
-    setPlaybackError(null);
-
-    const isHlsSource = /\.m3u8(?:$|[?#])/i.test(videoUrl);
-    if (!isHlsSource || video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = videoUrl;
-      video.load();
-    } else {
-      void import('hls.js').then(({ default: Hls }) => {
-        if (cancelled) return;
-        if (!Hls.isSupported()) {
-          setError('เบราว์เซอร์นี้ไม่รองรับการเล่นวิดีโอ');
-          return;
-        }
-        hls = new Hls();
-        hls.loadSource(videoUrl);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (!data.fatal) return;
-          hls?.destroy();
-          setError('เกิดข้อผิดพลาดในการเล่นวิดีโอ');
-        });
-      });
-    }
-
-    return () => {
-      cancelled = true;
-      hls?.destroy();
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-    };
-  }, [episode, videoUrl]);
-
-  useEffect(
-    () => () => {
-      void reportProgress(progressRef.current);
-    },
-    [reportProgress],
-  );
-
-  const handleTimeUpdate = () => {
-    const seconds = Math.max(0, Math.floor(videoRef.current?.currentTime ?? 0));
-    progressRef.current = seconds;
-    setProgressSeconds(seconds);
-    if (seconds > 0 && Math.abs(seconds - lastReportedRef.current) >= 10) {
-      void reportProgress(seconds);
-    }
-  };
-
-  const togglePlayback = async () => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (!video.paused) {
-      video.pause();
-      return;
-    }
-    try {
-      setPlaybackError(null);
-      await video.play();
-    } catch {
-      setIsPlaying(false);
-      setPlaybackError(
-        'เบราว์เซอร์ไม่อนุญาตให้เล่นอัตโนมัติ กรุณากดเล่นอีกครั้ง',
-      );
-    }
-  };
 
   const seekTo = (seconds: number) => {
     const video = videoRef.current;
     if (!video) return;
     video.currentTime = seconds;
-    progressRef.current = seconds;
-    setProgressSeconds(seconds);
+    setProgress(seconds);
   };
 
-  const changePlaybackRate = (rate: number) => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.playbackRate = rate;
-    setPlaybackRate(rate);
-  };
-
-  const toggleFullscreen = async () => {
-    const video = videoRef.current;
-    if (!video) return;
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await video.requestFullscreen();
-    } catch {
-      setPlaybackError('ไม่สามารถเปิดโหมดเต็มหน้าจอได้');
-    }
-  };
-
-  const unlockWithCoins = async () => {
-    setUnlocking(true);
-    setGateError(null);
-    try {
-      await apiFetch('/wallet/spend', {
-        method: 'POST',
-        body: JSON.stringify({ episodeId }),
-      });
-      // Never grant optimistically after a spend: ask the authority again.
-      const auth = await apiFetch<PlaybackAuthorization>(
-        `/playback/${episodeId}/authorize`,
-      );
-      applyAuthorization(auth);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        router.push('/login');
-        return;
-      }
-      setGateError(
-        err instanceof ApiError ? err.message : 'ไม่สามารถปลดล็อกตอนนี้ได้',
-      );
-    } finally {
-      setUnlocking(false);
-    }
-  };
-
-  const addDownload = async () => {
-    setNotice(null);
-    try {
-      await apiFetch(`/me/downloads/${episodeId}`, { method: 'PUT' });
-      setNotice('บันทึกรายการดาวน์โหลดแล้ว');
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        router.push('/login');
-        return;
-      }
-      setNotice(
-        err instanceof ApiError
-          ? err.message
-          : 'ไม่สามารถบันทึกรายการดาวน์โหลดได้',
-      );
-    }
-  };
-
-  const toggleLike = async () => {
-    if (!movieId || pendingAction) return;
-
-    const shouldLike = !liked;
-    setPendingAction('like');
-    setNotice(null);
-    try {
-      const result = await apiFetch<{ liked: boolean }>(
-        `/me/likes/${movieId}`,
-        { method: shouldLike ? 'PUT' : 'DELETE' },
-      );
-      setLiked(result.liked);
-      setNotice(result.liked ? 'ถูกใจเรื่องนี้แล้ว' : 'ยกเลิกถูกใจแล้ว');
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        router.push('/login');
-        return;
-      }
-      setNotice(
-        err instanceof ApiError ? err.message : 'ไม่สามารถอัปเดตการถูกใจได้',
-      );
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const toggleFavorite = async () => {
-    if (!movieId || pendingAction) return;
-
-    const shouldBookmark = !bookmarked;
-    setPendingAction('favorite');
-    setNotice(null);
-    try {
-      const result = await apiFetch<{ bookmarked: boolean }>(
-        `/me/bookmarks/${movieId}`,
-        { method: shouldBookmark ? 'PUT' : 'DELETE' },
-      );
-      setBookmarked(result.bookmarked);
-      setNotice(
-        result.bookmarked ? 'เพิ่มในรายการโปรดแล้ว' : 'นำออกจากรายการโปรดแล้ว',
-      );
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        router.push('/login');
-        return;
-      }
-      setNotice(
-        err instanceof ApiError ? err.message : 'ไม่สามารถอัปเดตรายการโปรดได้',
-      );
-    } finally {
-      setPendingAction(null);
-    }
-  };
+  // Two independent hooks can each fail fatally (entitlement's own fetches,
+  // or a fatal HLS.js/unsupported-browser condition); either blocks the
+  // whole page the same way the original single `error` state did.
+  const error = entitlementError ?? fatalError;
 
   if (error) {
     return (

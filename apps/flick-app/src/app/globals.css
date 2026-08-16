@@ -72,6 +72,17 @@
   padding-top: max(1rem, env(safe-area-inset-top));
 }
 
+/* Every horizontal shelf (home, discover chips, bookmarks) hides its
+   scrollbar across all three engines — snap-scrolling rows read as a
+   native carousel, not a webpage with a visible scroll track. */
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* fadeIn / fadeInUp back the .animate-fade-in / .animate-fade-in-up
    utilities below, used by DiscoverClient, search, and Toast. */
 @keyframes fadeIn {

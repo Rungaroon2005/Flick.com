@@ -27,9 +27,10 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
     <Link
       href={`/movie/${movie.id}`}
       className={`group relative block aspect-[2/3] shrink-0 overflow-hidden rounded-md bg-ink-1
+        shadow-[0_8px_20px_-10px_rgba(0,0,0,0.7)]
         [-webkit-tap-highlight-color:transparent]
-        transition-transform duration-250
-        [@media(hover:hover)]:hover:z-10 [@media(hover:hover)]:hover:scale-105
+        transition-[transform,box-shadow] duration-250
+        [@media(hover:hover)]:hover:z-10 [@media(hover:hover)]:hover:scale-105 [@media(hover:hover)]:hover:shadow-[0_18px_34px_-12px_rgba(0,0,0,0.85)]
         active:scale-[0.98]
         ${sizeClasses[size]}`}
     >

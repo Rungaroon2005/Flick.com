@@ -6,6 +6,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { ReactionButton } from '@/components/ui/ReactionButton';
 import { Button } from '@/components/ui/Button';
+import { Sheet } from '@/components/ui/Sheet';
 import type { Movie, PlaybackAuthorization } from '@/types';
 
 interface DiscoverClientProps {
@@ -39,6 +40,8 @@ export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
   const router = useRouter();
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const activeGenreLabel = GENRES.find((g) => g.slug === activeSlug)?.label;
 
   const items: FeedItem[] = useMemo(() => {
     const filtered =
@@ -55,18 +58,36 @@ export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
 
   return (
     <div className="relative h-dvh w-full bg-ink">
-      {/* Glass top overlay — genre chips only, no logo/icons: the bottom
-          nav already covers navigation, and a TikTok-style top bar is
-          just the category row. */}
-      <div className="absolute inset-x-0 top-0 z-30 border-b border-white/5 bg-black/25 pt-safe backdrop-blur-xl">
-        <div className="flex gap-2 overflow-x-auto px-4 py-3 [&::-webkit-scrollbar]:hidden">
+      {/* One small trigger, not a bar across the video — the whole
+          complaint about the old chip row was that it stayed on screen
+          permanently and competed with the content. Tapping it opens the
+          genre list as a sheet; nothing sits over the video by default. */}
+      <div className="absolute inset-x-0 top-0 z-30 pt-safe">
+        <button
+          onClick={() => setFilterOpen(true)}
+          className="mt-3 ml-4 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/35 py-2 pr-3.5 pl-3 text-sm font-medium text-white backdrop-blur-md"
+        >
+          <Icon name="filter" size={14} />
+          {activeGenreLabel ?? 'ทั้งหมด'}
+        </button>
+      </div>
+
+      <Sheet open={filterOpen} onClose={() => setFilterOpen(false)} title="หมวดหมู่">
+        <div className="flex flex-wrap gap-2">
           {GENRES.map(({ label, slug }) => (
-            <Chip key={label} active={activeSlug === slug} onClick={() => setActiveSlug(slug)}>
+            <Chip
+              key={label}
+              active={activeSlug === slug}
+              onClick={() => {
+                setActiveSlug(slug);
+                setFilterOpen(false);
+              }}
+            >
               {label}
             </Chip>
           ))}
         </div>
-      </div>
+      </Sheet>
 
       {items.length > 0 ? (
         <div className="h-full w-full snap-y snap-mandatory overflow-y-scroll [&::-webkit-scrollbar]:hidden">
@@ -83,7 +104,9 @@ export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
           <Icon name="inbox" size={32} className="text-fg-mute" />
-          <p className="text-base font-medium text-fg">ยังไม่มีเรื่องในหมวดนี้</p>
+          <p className="text-base font-medium text-fg">
+            {activeSlug ? `ยังไม่มีเรื่องในหมวด${activeGenreLabel}` : 'ยังไม่มีเรื่องในตอนนี้'}
+          </p>
           <button onClick={() => setActiveSlug(null)} className="text-sm font-medium text-brand-ink">
             ดูทั้งหมด
           </button>
@@ -373,7 +396,7 @@ function FeedSlide({
       <button
         onClick={onToggleMute}
         aria-label={isMuted ? 'เปิดเสียง' : 'ปิดเสียง'}
-        className="absolute top-20 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-md"
+        className="absolute top-[calc(max(1rem,env(safe-area-inset-top))+0.75rem)] right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-md"
       >
         <Icon name={isMuted ? 'volumeOff' : 'volumeOn'} size={18} />
       </button>

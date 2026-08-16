@@ -29,7 +29,8 @@ export type IconName =
   | 'spinner'
   | 'plus'
   | 'volumeOn'
-  | 'volumeOff';
+  | 'volumeOff'
+  | 'filter';
 
 interface IconProps {
   name: IconName;
@@ -167,6 +168,7 @@ const paths: Record<IconName, React.ReactNode> = {
       <line x1="23" y1="9" x2="17" y2="15" />
     </>
   ),
+  filter: <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />,
 };
 
 export function Icon({ name, className, size = 24 }: IconProps) {

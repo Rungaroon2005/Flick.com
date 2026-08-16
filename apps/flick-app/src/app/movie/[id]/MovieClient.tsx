@@ -2,6 +2,7 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ViewTransition } from 'react';
 import InfoModal from './InfoModal';
 import MovieCard from '@/components/MovieCard';
 import { Icon } from '@/components/ui/Icon';
@@ -78,7 +79,9 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
 
       <div className="relative aspect-[2/3] max-h-[70vh] w-full overflow-hidden">
         {movie.posterUrl && (
-          <Image src={movie.posterUrl} alt={movie.title} fill priority sizes="100vw" className="object-cover" />
+          <ViewTransition name={`poster-${movie.id}`}>
+            <Image src={movie.posterUrl} alt={movie.title} fill priority sizes="100vw" className="object-cover" />
+          </ViewTransition>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-black/40" />
       </div>
@@ -185,13 +188,15 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
               >
                 <span className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-md bg-ink-2">
                   {(ep.thumbnailUrl || movie.posterUrl) && (
-                    <Image
-                      src={(ep.thumbnailUrl || movie.posterUrl) ?? '/posters/sathu.jpg'}
-                      alt=""
-                      fill
-                      sizes="112px"
-                      className="object-cover"
-                    />
+                    <ViewTransition name={`episode-${ep.id}`}>
+                      <Image
+                        src={(ep.thumbnailUrl || movie.posterUrl) ?? '/posters/sathu.jpg'}
+                        alt=""
+                        fill
+                        sizes="112px"
+                        className="object-cover"
+                      />
+                    </ViewTransition>
                   )}
                 </span>
                 <span className="flex min-w-0 flex-col gap-0.5">

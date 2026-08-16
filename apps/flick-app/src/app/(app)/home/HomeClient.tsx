@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { ViewTransition } from 'react';
 import MovieCard from '@/components/MovieCard';
 import { ContinueWatchingItem, Movie } from '@/types';
 
@@ -67,7 +68,9 @@ export default function HomeClient({
                 >
                   <span className="relative aspect-video w-full overflow-hidden rounded-md bg-ink-1">
                     {artwork && (
-                      <Image src={artwork} alt="" fill sizes="190px" className="object-cover" />
+                      <ViewTransition name={`episode-${item.episode.id}`}>
+                        <Image src={artwork} alt="" fill sizes="190px" className="object-cover" />
+                      </ViewTransition>
                     )}
                     <span className="absolute inset-x-1.5 bottom-1.5 block h-[3px] overflow-hidden rounded-full bg-white/35">
                       <span className="block h-full bg-brand" style={{ width: `${percentage}%` }} />

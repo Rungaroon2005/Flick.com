@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, ViewTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Sheet } from '@/components/ui/Sheet';
@@ -208,30 +208,36 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
       {/* Stage */}
       <div className="flex h-full items-center justify-center" onClick={recallChrome}>
         <div className="relative h-full max-w-full [aspect-ratio:9/16]">
-          <video
-            ref={videoRef}
-            className="h-full w-full bg-black object-contain"
-            poster={movie.posterUrl ?? undefined}
-            aria-label={`${movie.title} ${episode.title}`}
-            playsInline
-            preload="metadata"
-            controlsList="nodownload noremoteplayback"
-            disablePictureInPicture
-            disableRemotePlayback
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={(event) => {
-              if (Number.isFinite(event.currentTarget.duration)) {
-                setMediaDuration(event.currentTarget.duration);
-              }
-            }}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onEnded={() => {
-              setIsPlaying(false);
-              void reportProgress(Math.floor(videoRef.current?.currentTime ?? 0));
-            }}
-            onError={() => setPlaybackError('เกิดข้อผิดพลาดในการเล่นวิดีโอ')}
-          />
+          {/* Named to match the episode thumbnail in MovieClient/HomeClient
+              — tapping an episode morphs into the stage instead of a hard
+              cut (docs/FRONTEND_PLAN.md Part 4 Tier 2, the highest-value
+              transition in the app). */}
+          <ViewTransition name={`episode-${episode.id}`}>
+            <video
+              ref={videoRef}
+              className="h-full w-full bg-black object-contain"
+              poster={movie.posterUrl ?? undefined}
+              aria-label={`${movie.title} ${episode.title}`}
+              playsInline
+              preload="metadata"
+              controlsList="nodownload noremoteplayback"
+              disablePictureInPicture
+              disableRemotePlayback
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={(event) => {
+                if (Number.isFinite(event.currentTarget.duration)) {
+                  setMediaDuration(event.currentTarget.duration);
+                }
+              }}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={() => {
+                setIsPlaying(false);
+                void reportProgress(Math.floor(videoRef.current?.currentTime ?? 0));
+              }}
+              onError={() => setPlaybackError('เกิดข้อผิดพลาดในการเล่นวิดีโอ')}
+            />
+          </ViewTransition>
 
           {!isPlaying && videoUrl && (
             <div className="absolute inset-0 flex items-center justify-center">

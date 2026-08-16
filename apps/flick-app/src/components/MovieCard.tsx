@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { ViewTransition } from 'react';
 import { Icon } from './ui/Icon';
 
 import { Movie } from '@/types';
@@ -34,13 +35,18 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
         ${sizeClasses[size]}`}
     >
       <div className="relative h-full w-full">
-        <Image
-          src={movie.posterUrl || '/posters/sathu.jpg'}
-          alt={movie.title || 'Movie'}
-          fill
-          sizes="(max-width: 480px) 160px, 200px"
-          className="object-cover transition-[filter] duration-250"
-        />
+        {/* Named to match the hero image in MovieClient — the browser
+            morphs position/size across the route change instead of a hard
+            cut (docs/FRONTEND_PLAN.md Part 4 Tier 2). */}
+        <ViewTransition name={`poster-${movie.id}`}>
+          <Image
+            src={movie.posterUrl || '/posters/sathu.jpg'}
+            alt={movie.title || 'Movie'}
+            fill
+            sizes="(max-width: 480px) 160px, 200px"
+            className="object-cover transition-[filter] duration-250"
+          />
+        </ViewTransition>
         {showBookmark && (
           <div className="absolute top-2 right-2 z-[2] flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
             <Icon name="bookmarkFilled" size={16} />

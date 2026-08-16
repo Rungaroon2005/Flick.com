@@ -72,24 +72,6 @@
   padding-top: max(1rem, env(safe-area-inset-top));
 }
 
-/* One-off splash-screen logo reveal (src/app/page.tsx) — deliberately not
-   tokenized further; it has exactly one consumer. */
-@theme {
-  --animate-logo-f: logoFReveal 1.5s ease forwards;
-  --animate-logo-full: logoFullReveal 1.5s ease 1.5s forwards;
-}
-@keyframes logoFReveal {
-  0% { transform: scale(0.5); opacity: 0; filter: blur(10px); }
-  30% { transform: scale(1.1); opacity: 1; filter: blur(0px); }
-  50% { transform: scale(1); opacity: 1; }
-  80% { transform: scale(1); opacity: 1; filter: blur(0px); }
-  100% { transform: scale(1.5); opacity: 0; filter: blur(10px); }
-}
-@keyframes logoFullReveal {
-  0% { transform: scale(0.8); opacity: 0; filter: blur(10px); }
-  100% { transform: scale(1); opacity: 1; filter: blur(0px); }
-}
-
 /* fadeIn / fadeInUp back the .animate-fade-in / .animate-fade-in-up
    utilities below, used by DiscoverClient, search, and Toast. */
 @keyframes fadeIn {
@@ -99,6 +81,17 @@
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Landing page hero — a slow, small bob on the front card of the poster
+   fan, inviting a swipe without spelling out a tutorial. Covered by the
+   blanket prefers-reduced-motion floor below; no separate override needed. */
+@theme {
+  --animate-card-peek: card-peek 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes card-peek {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
 /* ReactionButton (like/bookmark) — a spring bounce on the icon plus a
@@ -120,17 +113,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Reduced motion removes the animated reveal, never the information —
-     show the resting state (wordmark) directly instead of the two letters
-     briefly overlapping with no transition between them. */
-  .animate-logo-f {
-    display: none;
-  }
-  .animate-logo-full {
-    animation: none !important;
-    opacity: 1;
-  }
-
   /* Blanket floor for everything else — every duration- and ease- utility in
    * the app (card hover-scale, Sheet slide-in, player chrome fade, toast
    * entry, etc.) collapses to effectively instant. Unlayered on purpose:

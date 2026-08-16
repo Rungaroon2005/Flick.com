@@ -30,7 +30,11 @@ export type IconName =
   | 'plus'
   | 'volumeOn'
   | 'volumeOff'
-  | 'filter';
+  | 'filter'
+  | 'mail'
+  | 'lock'
+  | 'eye'
+  | 'eyeOff';
 
 interface IconProps {
   name: IconName;
@@ -169,6 +173,31 @@ const paths: Record<IconName, React.ReactNode> = {
     </>
   ),
   filter: <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />,
+  mail: (
+    <>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 6-10 7L2 6" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-3.35 2.42A9.12 9.12 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 4.22-5.94" />
+      <path d="M9.5 9.5a3 3 0 0 0 4.24 4.24" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+    </>
+  ),
 };
 
 export function Icon({ name, className, size = 24 }: IconProps) {

@@ -38,7 +38,7 @@ export function Sheet({ open, onClose, title, children, hideHeader = false }: Sh
 
   return (
     <div
-      className={`fixed inset-0 z-30 flex items-end justify-center bg-black/60 transition-opacity duration-200
+      className={`fixed inset-0 z-30 flex items-end justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-300
         ${entered ? 'opacity-100' : 'opacity-0'}`}
       onClick={onClose}
     >
@@ -47,13 +47,14 @@ export function Sheet({ open, onClose, title, children, hideHeader = false }: Sh
         role="dialog"
         aria-modal="true"
         aria-labelledby="sheet-title"
-        className={`w-full max-w-lg rounded-t-2xl bg-ink-1 p-6 pb-safe shadow-[0_8px_40px_rgba(0,0,0,0.8)]
-          transition-transform duration-[240ms] ease-out
+        className={`w-full max-w-lg rounded-t-3xl border-t border-white/10 bg-ink-1/95 p-7 pb-safe
+          shadow-[0_-16px_60px_-12px_rgba(0,0,0,0.7)] backdrop-blur-2xl
+          transition-transform duration-300 ease-out
           ${entered ? 'translate-y-0' : 'translate-y-full'}`}
         onClick={(event) => event.stopPropagation()}
       >
         {!hideHeader && (
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-6 flex items-center justify-between">
             <h3 id="sheet-title" className="text-title font-display">
               {title}
             </h3>
@@ -61,9 +62,9 @@ export function Sheet({ open, onClose, title, children, hideHeader = false }: Sh
               onClick={onClose}
               aria-label="ปิด"
               data-modal-close
-              className="text-fg-dim hover:text-fg"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-fg-dim transition-all duration-300 ease-out hover:bg-white/5 hover:text-fg active:scale-90"
             >
-              <Icon name="close" size={22} />
+              <Icon name="close" size={20} />
             </button>
           </div>
         )}

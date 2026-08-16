@@ -47,7 +47,7 @@ export default function SubscribeClient() {
         <button
           onClick={() => router.push('/home')}
           aria-label="ปิด"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-fg/10 text-fg"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-300 ease-out hover:bg-fg/15 active:scale-90"
         >
           <Icon name="close" size={18} />
         </button>
@@ -61,12 +61,12 @@ export default function SubscribeClient() {
             {loadError}
           </p>
         )}
-        <p className="mb-5 flex items-start gap-2 rounded-lg bg-ink-1 p-3 text-sm text-fg-dim">
+        <p className="mb-5 flex items-start gap-2 rounded-2xl border border-white/5 bg-ink-1 p-4 text-sm text-fg-dim">
           <Icon name="infoCircle" size={16} className="mt-0.5 shrink-0 text-fg-mute" />
           {UNAVAILABLE_MSG}
         </p>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           {plans.map((plan) => {
             // The free plan is identified from the data, never from JSX order.
             // It navigates normally; paid plans render as previews.
@@ -74,7 +74,7 @@ export default function SubscribeClient() {
             return (
               <div
                 key={plan.id}
-                className={`relative rounded-2xl border p-5 ${isFree ? 'border-brand-ink' : 'border-hairline opacity-90'}`}
+                className={`relative rounded-3xl border p-6 shadow-lg shadow-black/20 transition-all duration-300 ease-out ${isFree ? 'border-brand-ink' : 'border-white/10 opacity-90'}`}
               >
                 {plan.badge && !isFree && (
                   <span className="absolute -top-2.5 right-5 rounded-full bg-coin px-3 py-1 text-xs font-semibold text-ink">
@@ -86,7 +86,7 @@ export default function SubscribeClient() {
                     เร็ว ๆ นี้
                   </span>
                 )}
-                <h2 className="text-lg font-bold text-fg">{plan.name}</h2>
+                <h2 className="font-display text-lg font-bold text-fg">{plan.name}</h2>
                 <div className="mt-1 text-2xl font-extrabold text-fg">
                   ฿{plan.price} <span className="text-sm font-normal text-fg-dim">{plan.period}</span>
                 </div>
@@ -101,14 +101,14 @@ export default function SubscribeClient() {
                 {isFree ? (
                   <button
                     onClick={() => router.push('/home')}
-                    className="mt-5 flex h-11 w-full items-center justify-center rounded-xl bg-brand font-semibold text-white transition-transform active:scale-95"
+                    className="mt-5 flex h-11 w-full items-center justify-center rounded-full bg-brand font-semibold text-white shadow-lg shadow-black/25 transition-all duration-300 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
                   >
                     ใช้งานฟรี
                   </button>
                 ) : (
                   <button
                     disabled
-                    className="mt-5 flex h-11 w-full items-center justify-center rounded-xl bg-ink-2 font-semibold text-fg-mute"
+                    className="mt-5 flex h-11 w-full items-center justify-center rounded-full bg-ink-2 font-semibold text-fg-mute"
                   >
                     เร็ว ๆ นี้
                   </button>
@@ -119,13 +119,13 @@ export default function SubscribeClient() {
         </div>
       </section>
 
-      <section className="mt-8 px-5">
-        <h2 className="text-lg font-bold text-fg">เติมเหรียญ (สำหรับปลดล็อคตอน)</h2>
+      <section className="mt-10 px-5">
+        <h2 className="font-display text-lg font-bold text-fg">เติมเหรียญ (สำหรับปลดล็อคตอน)</h2>
         <div className="mt-4 grid grid-cols-3 gap-3">
           {coinPacks.map((pack) => (
             <div
               key={pack.id}
-              className="relative flex flex-col items-center gap-1 rounded-xl border border-hairline p-4 text-center opacity-90"
+              className="relative flex flex-col items-center gap-1 rounded-2xl border border-white/10 p-4 text-center opacity-90"
             >
               {pack.badge && (
                 <span className="absolute -top-2.5 rounded-full bg-coin px-2.5 py-0.5 text-[10px] font-semibold text-ink">

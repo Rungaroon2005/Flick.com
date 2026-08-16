@@ -72,7 +72,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
         <button
           onClick={() => router.back()}
           aria-label="ปิด"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-fg"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/40 text-fg backdrop-blur-xl transition-all duration-300 ease-out active:scale-90"
         >
           <Icon name="close" size={20} />
         </button>
@@ -94,7 +94,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
           <button
             disabled={!firstEpisode}
             onClick={() => firstEpisode && router.push(`/player/${firstEpisode.id}`)}
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-white font-semibold text-ink transition-transform active:scale-95 disabled:opacity-40"
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-white font-semibold text-ink shadow-lg shadow-black/25 transition-all duration-300 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-95 disabled:opacity-40 disabled:hover:translate-y-0"
           >
             <Icon name="play" size={18} />
             เล่น
@@ -112,7 +112,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
             disabled={!firstEpisode}
             aria-label="ดาวน์โหลดตอนแรก"
             onClick={() => firstEpisode && addDownload(firstEpisode.id)}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-fg/10 text-fg disabled:opacity-40"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-300 ease-out hover:bg-fg/15 active:scale-90 disabled:opacity-40"
           >
             <Icon name="download" size={20} />
           </button>
@@ -122,19 +122,19 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
         )}
       </div>
 
-      <div className="mt-6 px-5">
-        <h2 className="text-lg font-bold text-fg">{movie.title} ซีซั่นที่ {selectedSeason}</h2>
+      <div className="mt-8 px-5">
+        <h2 className="font-display text-lg font-bold text-fg">{movie.title} ซีซั่นที่ {selectedSeason}</h2>
         <p className="mt-2 text-base text-fg-dim">{movie.description}</p>
         <button
           onClick={() => setShowInfo(true)}
-          className="mt-3 flex items-center gap-1.5 text-sm font-medium text-fg-dim"
+          className="mt-3 flex items-center gap-1.5 text-sm font-medium text-fg-dim transition-opacity duration-300 active:opacity-70"
         >
           <Icon name="infoCircle" size={16} />
           ข้อมูลเพิ่มเติม
         </button>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-8">
         <div className="flex items-center justify-between px-5">
           <div className="relative">
             <button
@@ -143,17 +143,17 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
               aria-expanded={seasonDropdownOpen}
               aria-haspopup="listbox"
               aria-controls="season-options"
-              className="flex items-center gap-1.5 text-lg font-bold text-fg"
+              className="flex items-center gap-1.5 font-display text-lg font-bold text-fg"
             >
               ซีซั่น {selectedSeason}
-              <Icon name="chevronDown" size={18} className={`transition-transform ${seasonDropdownOpen ? 'rotate-180' : ''}`} />
+              <Icon name="chevronDown" size={18} className={`transition-transform duration-300 ${seasonDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {seasonDropdownOpen && (
               <div
                 id="season-options"
                 role="listbox"
-                className="absolute top-full left-0 z-10 mt-2 min-w-32 overflow-hidden rounded-lg border border-hairline bg-ink-1 shadow-[0_8px_40px_rgba(0,0,0,0.8)]"
+                className="absolute top-full left-0 z-10 mt-2 min-w-32 overflow-hidden rounded-2xl border border-white/10 bg-ink-1/95 shadow-[0_16px_50px_-12px_rgba(0,0,0,0.7)] backdrop-blur-xl"
               >
                 {movie.seasons?.map((s) => (
                   <button
@@ -165,7 +165,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
                       setSelectedSeason(s.seasonNumber);
                       setSeasonDropdownOpen(false);
                     }}
-                    className={`block w-full px-4 py-2.5 text-left text-sm ${s.seasonNumber === selectedSeason ? 'bg-brand/15 text-brand-ink' : 'text-fg hover:bg-ink-2'}`}
+                    className={`block w-full px-4 py-2.5 text-left text-sm transition-colors duration-300 ${s.seasonNumber === selectedSeason ? 'bg-brand/15 text-brand-ink' : 'text-fg hover:bg-white/5'}`}
                   >
                     ซีซั่น {s.seasonNumber}
                   </button>
@@ -176,18 +176,18 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
           <span className="text-sm text-fg-mute">{episodes.length} ตอน</span>
         </div>
 
-        <div className="mt-3 flex flex-col gap-2 px-5">
+        <div className="mt-4 flex flex-col gap-3 px-5">
           {episodes.map((ep) => (
             <div
               key={ep.id}
-              className={`flex items-center gap-3 rounded-lg bg-ink-1 p-2 ${ep.coinCost > 0 ? 'opacity-80' : ''}`}
+              className={`flex items-center gap-3 rounded-2xl border border-white/5 bg-ink-1 p-3 transition-all duration-300 ease-out [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:bg-ink-2 ${ep.coinCost > 0 ? 'opacity-80' : ''}`}
             >
               <button
                 onClick={() => router.push(`/player/${ep.id}`)}
                 aria-label={`เล่น ${ep.title}`}
-                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                className="flex min-w-0 flex-1 items-center gap-3 text-left transition-transform duration-300 active:scale-[0.98]"
               >
-                <span className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-md bg-ink-2">
+                <span className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-xl bg-ink-2">
                   {(ep.thumbnailUrl || movie.posterUrl) && (
                     <ViewTransition name={`episode-${ep.id}`}>
                       <Image
@@ -212,7 +212,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
               <button
                 onClick={() => addDownload(ep.id)}
                 aria-label={`ดาวน์โหลด ${ep.title}`}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-fg-dim"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-fg-dim transition-all duration-300 ease-out hover:bg-white/5 active:scale-90"
               >
                 <Icon name={downloadedEpisodeIds.has(ep.id) ? 'checkCircle' : 'download'} size={18} />
               </button>
@@ -221,9 +221,9 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
         </div>
       </div>
 
-      <div className="mt-8">
-        <h3 className="px-5 text-lg font-bold text-fg">รายการที่คล้ายกัน</h3>
-        <div className="mt-3 flex gap-3 overflow-x-auto px-5 pb-2 [&::-webkit-scrollbar]:hidden">
+      <div className="mt-10">
+        <h3 className="px-5 font-display text-lg font-bold text-fg">รายการที่คล้ายกัน</h3>
+        <div className="scrollbar-hide mt-3 flex gap-3 overflow-x-auto px-5 pb-2">
           {similarMovies.slice(0, 5).map((m) => (
             <MovieCard key={m.id} movie={m} size="medium" />
           ))}

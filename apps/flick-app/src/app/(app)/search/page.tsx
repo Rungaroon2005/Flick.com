@@ -88,7 +88,7 @@ export default function SearchPage() {
           <Link
             href="/downloads"
             aria-label="ดาวน์โหลด"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-colors hover:bg-fg/15"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-300 ease-out hover:bg-fg/15 active:scale-90"
           >
             <Icon name="download" size={18} />
           </Link>
@@ -100,7 +100,7 @@ export default function SearchPage() {
 
       <main className="flex flex-col">
         <div className="sticky top-16 z-[99] bg-ink px-5 pt-2 pb-6">
-          <div className="flex h-12 items-center gap-3 rounded-lg border border-hairline bg-ink-1 px-4 transition-colors focus-within:border-brand-ink">
+          <div className="flex h-12 items-center gap-3 rounded-full border border-white/10 bg-ink-1/80 px-5 backdrop-blur-xl transition-colors duration-300 focus-within:border-brand-ink">
             <Icon name="search" size={20} className="shrink-0 text-fg-mute" />
             <input
               type="text"
@@ -115,7 +115,7 @@ export default function SearchPage() {
             {query && (
               <button
                 aria-label="ล้างคำค้นหา"
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-fg-mute hover:text-fg"
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-fg-mute transition-all duration-300 ease-out hover:text-fg active:scale-90"
                 onClick={() => setQuery('')}
               >
                 <Icon name="close" size={16} />

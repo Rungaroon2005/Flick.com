@@ -20,10 +20,10 @@ export default function InfoModal({ movie, onClose }: InfoModalProps) {
         <section>
           <h3 className="mb-2 text-xs font-medium text-fg-dim">ข้อมูลเนื้อหา</h3>
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-ink-2 px-3 py-1 text-xs text-fg-dim">{movie.year}</span>
-            <span className="rounded-full bg-ink-2 px-3 py-1 text-xs text-fg-dim">{movie.contentRating}</span>
+            <span className="rounded-full border border-white/5 bg-ink-2 px-3 py-1.5 text-xs text-fg-dim">{movie.year}</span>
+            <span className="rounded-full border border-white/5 bg-ink-2 px-3 py-1.5 text-xs text-fg-dim">{movie.contentRating}</span>
             {movie.genres.map((genre) => (
-              <span key={genre.id} className="rounded-full bg-ink-2 px-3 py-1 text-xs text-fg-dim">
+              <span key={genre.id} className="rounded-full border border-white/5 bg-ink-2 px-3 py-1.5 text-xs text-fg-dim">
                 {genre.name}
               </span>
             ))}

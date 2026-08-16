@@ -54,7 +54,7 @@ export default function BookmarksClient() {
   // the empty state while the request is still in flight would be another lie.
   if (movies === null) {
     return (
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <SkeletonPoster key={i} />
         ))}
@@ -74,7 +74,7 @@ export default function BookmarksClient() {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-3 gap-3">
       {/* Every item in this list is bookmarked by construction, so the badge
           reflects real state rather than "this happens to be the list". */}
       {movies.map((movie) => (

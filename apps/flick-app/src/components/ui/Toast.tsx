@@ -47,9 +47,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <button
             key={toast.id}
             onClick={() => dismiss(toast.id)}
-            className="pointer-events-auto animate-fade-in-up rounded-full border border-hairline
-              bg-ink-1/95 px-5 py-2.5 text-sm font-medium text-fg shadow-[0_8px_40px_rgba(0,0,0,0.8)]
-              backdrop-blur-xl"
+            className="pointer-events-auto animate-fade-in-up rounded-full border border-white/10
+              bg-ink-1/90 px-5 py-2.5 text-sm font-medium text-fg shadow-xl shadow-black/40
+              backdrop-blur-xl transition-transform duration-300 ease-out active:scale-95"
           >
             {toast.message}
           </button>

@@ -13,7 +13,7 @@ interface ErrorPanelProps {
  */
 export function ErrorPanel({ message, onRetry }: ErrorPanelProps) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-lg border border-hairline bg-ink-1 px-6 py-10 text-center">
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-ink-1/80 px-6 py-12 text-center backdrop-blur-xl">
       <Icon name="alertCircle" size={28} className="text-fail" />
       <p className="text-sm text-fg-dim">{message}</p>
       {onRetry && (

@@ -65,7 +65,7 @@ export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
       <div className="absolute inset-x-0 top-0 z-30 pt-safe">
         <button
           onClick={() => setFilterOpen(true)}
-          className="mt-3 ml-4 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/35 py-2 pr-3.5 pl-3 text-sm font-medium text-white backdrop-blur-md"
+          className="mt-3 ml-4 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/35 py-2 pr-3.5 pl-3 text-sm font-medium text-white backdrop-blur-xl transition-all duration-300 ease-out active:scale-95"
         >
           <Icon name="filter" size={14} />
           {activeGenreLabel ?? 'ทั้งหมด'}
@@ -90,7 +90,7 @@ export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
       </Sheet>
 
       {items.length > 0 ? (
-        <div className="h-full w-full snap-y snap-mandatory overflow-y-scroll [&::-webkit-scrollbar]:hidden">
+        <div className="scrollbar-hide h-full w-full snap-y snap-mandatory overflow-y-scroll">
           {items.map((item) => (
             <FeedSlide
               key={item.episodeId}
@@ -396,7 +396,7 @@ function FeedSlide({
       <button
         onClick={onToggleMute}
         aria-label={isMuted ? 'เปิดเสียง' : 'ปิดเสียง'}
-        className="absolute top-[calc(max(1rem,env(safe-area-inset-top))+0.75rem)] right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-md"
+        className="absolute top-[calc(max(1rem,env(safe-area-inset-top))+0.75rem)] right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-xl transition-all duration-300 ease-out active:scale-90"
       >
         <Icon name={isMuted ? 'volumeOff' : 'volumeOn'} size={18} />
       </button>

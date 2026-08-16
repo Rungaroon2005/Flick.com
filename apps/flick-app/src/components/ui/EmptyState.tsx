@@ -15,17 +15,25 @@ interface EmptyStateProps {
  */
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-      <Icon name={icon} size={32} className="text-fg-mute" />
+    <div className="flex flex-col items-center gap-4 px-6 py-20 text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-ink-1">
+        <Icon name={icon} size={28} className="text-fg-mute" />
+      </div>
       <p className="text-base font-medium text-fg">{title}</p>
       {description && <p className="max-w-xs text-sm text-fg-dim">{description}</p>}
       {action &&
         ('href' in action ? (
-          <Link href={action.href} className="mt-1 text-sm font-medium text-brand-ink">
+          <Link
+            href={action.href}
+            className="mt-1 text-sm font-medium text-brand-ink transition-opacity duration-300 active:opacity-70"
+          >
             {action.label}
           </Link>
         ) : (
-          <button onClick={action.onClick} className="mt-1 text-sm font-medium text-brand-ink">
+          <button
+            onClick={action.onClick}
+            className="mt-1 text-sm font-medium text-brand-ink transition-opacity duration-300 active:opacity-70"
+          >
             {action.label}
           </button>
         ))}

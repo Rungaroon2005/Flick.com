@@ -9,7 +9,7 @@ interface SkeletonProps {
  * a substitute for matching the real grid/row count.
  */
 export function Skeleton({ className = '' }: SkeletonProps) {
-  return <div className={`animate-pulse rounded-md bg-ink-2 ${className}`} />;
+  return <div className={`animate-pulse rounded-lg bg-ink-2 ${className}`} />;
 }
 
 export function SkeletonPoster({ className = '' }: SkeletonProps) {

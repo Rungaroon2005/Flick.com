@@ -26,12 +26,12 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
   return (
     <Link
       href={`/movie/${movie.id}`}
-      className={`group relative block aspect-[2/3] shrink-0 overflow-hidden rounded-md bg-ink-1
+      className={`group relative block aspect-[2/3] shrink-0 overflow-hidden rounded-2xl bg-ink-1
         shadow-[0_8px_20px_-10px_rgba(0,0,0,0.7)]
         [-webkit-tap-highlight-color:transparent]
-        transition-[transform,box-shadow] duration-250
-        [@media(hover:hover)]:hover:z-10 [@media(hover:hover)]:hover:scale-105 [@media(hover:hover)]:hover:shadow-[0_18px_34px_-12px_rgba(0,0,0,0.85)]
-        active:scale-[0.98]
+        transition-all duration-300 ease-out
+        [@media(hover:hover)]:hover:z-10 [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:scale-105 [@media(hover:hover)]:hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.85)]
+        active:scale-95
         ${sizeClasses[size]}`}
     >
       <div className="relative h-full w-full">
@@ -49,7 +49,7 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
           alt={movie.title || 'Movie'}
           fill
           sizes="(max-width: 480px) 160px, 200px"
-          className="object-cover transition-[filter] duration-250"
+          className="object-cover transition-[filter] duration-300"
         />
         {showBookmark && (
           <div className="absolute top-2 right-2 z-[2] flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
@@ -59,7 +59,7 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
       </div>
       <div
         className="absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/90 to-transparent
-          px-2 pt-4 pb-2 opacity-0 transition-opacity duration-250
+          px-2 pt-4 pb-2 opacity-0 transition-opacity duration-300
           [@media(hover:hover)]:group-hover:opacity-100"
       >
         {movie.title && (

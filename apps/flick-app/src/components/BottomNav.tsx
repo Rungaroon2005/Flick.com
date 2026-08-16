@@ -82,25 +82,38 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 z-[1000] flex w-full items-center border-t border-hairline
-        bg-black/90 backdrop-blur-xl
-        h-[calc(72px+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-4 z-[1000] flex justify-center"
+      style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
     >
-      <ul className="m-0 flex w-full list-none justify-around p-0">
+      <ul
+        className="m-0 flex w-full max-w-sm list-none items-center justify-around rounded-full
+          border border-white/10 bg-zinc-900/75 p-2
+          shadow-lg shadow-black/20 backdrop-blur-xl"
+      >
         {navItems.map((item) => {
           const isActive = pathname === item.path;
           return (
-            <li key={item.path} className="flex-1">
+            <li key={item.path}>
               <Link
                 href={item.path}
-                className={`flex h-full flex-col items-center justify-center gap-1 py-3 no-underline transition-colors duration-150
-                  ${isActive ? 'text-brand-ink' : 'text-fg-mute'}`}
+                aria-label={item.name}
+                aria-current={isActive ? 'page' : undefined}
+                className="relative flex h-12 w-12 items-center justify-center rounded-full no-underline"
               >
-                <span className={`flex items-center justify-center ${isActive ? 'scale-110' : ''}`}>
+                {/* Cozy active state — a soft tinted glow behind the icon
+                    rather than a hard color snap, so switching tabs feels
+                    tactile instead of a flat state toggle. */}
+                {isActive && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-0 rounded-full bg-brand/15 shadow-[0_0_18px_-2px_rgba(255,77,26,0.55)]"
+                  />
+                )}
+                <span
+                  className={`relative flex items-center justify-center transition-transform duration-200
+                    ${isActive ? 'scale-110 text-brand-ink' : 'text-neutral-400'}`}
+                >
                   {isActive ? item.activeIcon : item.icon}
-                </span>
-                <span className={`text-[10px] ${isActive ? 'font-semibold' : 'font-medium'}`}>
-                  {item.name}
                 </span>
               </Link>
             </li>

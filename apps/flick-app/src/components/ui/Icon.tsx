@@ -27,7 +27,9 @@ export type IconName =
   | 'inbox'
   | 'coin'
   | 'spinner'
-  | 'plus';
+  | 'plus'
+  | 'volumeOn'
+  | 'volumeOff';
 
 interface IconProps {
   name: IconName;
@@ -149,6 +151,20 @@ const paths: Record<IconName, React.ReactNode> = {
     <>
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
+    </>
+  ),
+  volumeOn: (
+    <>
+      <polygon points="4 9 8 9 12 5 12 19 8 15 4 15 4 9" />
+      <path d="M16.5 8.5a5 5 0 0 1 0 7" />
+      <path d="M19 6a9 9 0 0 1 0 12" />
+    </>
+  ),
+  volumeOff: (
+    <>
+      <polygon points="4 9 8 9 12 5 12 19 8 15 4 15 4 9" />
+      <line x1="17" y1="9" x2="23" y2="15" />
+      <line x1="23" y1="9" x2="17" y2="15" />
     </>
   ),
 };

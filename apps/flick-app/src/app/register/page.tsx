@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { register } from '@/lib/auth';
 import { useAuth } from '@/components/AuthProvider';
-import styles from './page.module.css';
+import { Button } from '@/components/ui/Button';
 
 interface RegisterFormData {
   name: string;
@@ -16,6 +16,9 @@ interface RegisterFormData {
   acceptTerms: boolean;
 }
 
+const inputClass =
+  'h-12 rounded-lg border border-hairline bg-ink-2 px-4 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink';
+
 export default function RegisterPage() {
   const router = useRouter();
   const { refresh } = useAuth();
@@ -25,16 +28,16 @@ export default function RegisterPage() {
     phone: '',
     password: '',
     confirmPassword: '',
-    acceptTerms: false
+    acceptTerms: false,
   });
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
@@ -46,7 +49,7 @@ export default function RegisterPage() {
       setError('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
       return;
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       setError('รหัสผ่านไม่ตรงกัน');
       return;
@@ -67,9 +70,9 @@ export default function RegisterPage() {
         displayName: formData.name,
         email: formData.email,
         phone: formData.phone,
-        password: formData.password
+        password: formData.password,
       });
-      
+
       if (result.success) {
         // Registration sets the session cookie server-side; re-read it.
         await refresh();
@@ -87,99 +90,98 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.logo}>Flick</div>
-      
-      <div className={styles.formCard}>
-        <h1 className={styles.header}>สมัครสมาชิก</h1>
-        
-        {error && <div className={styles.errorMsg}>{error}</div>}
-        
-        <form onSubmit={handleSubmit}>
-          <div className={styles.formGroup}>
-            <input 
-              type="text" 
-              name="name"
-              className={styles.input} 
-              placeholder="ชื่อที่แสดง" 
-              aria-label="ชื่อที่แสดง"
-              value={formData.name}
-              onChange={handleChange}
-            />
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-ink px-6 py-12">
+      <div className="text-4xl font-extrabold tracking-tight text-brand-ink">Flick</div>
+
+      <div className="mt-8 w-full max-w-sm rounded-2xl bg-ink-1 p-6">
+        <h1 className="text-title mb-5 font-display">สมัครสมาชิก</h1>
+
+        {error && (
+          <div role="alert" className="mb-4 rounded-lg bg-fail/15 px-3 py-2.5 text-sm text-fail">
+            {error}
           </div>
-          
-          <div className={styles.formGroup}>
-            <input 
-              type="email" 
-              name="email"
-              className={styles.input} 
-              placeholder="อีเมล" 
-              aria-label="อีเมล"
-              value={formData.email}
+        )}
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <input
+            type="text"
+            name="name"
+            className={inputClass}
+            placeholder="ชื่อที่แสดง"
+            aria-label="ชื่อที่แสดง"
+            value={formData.name}
+            onChange={handleChange}
+          />
+
+          <input
+            type="email"
+            name="email"
+            className={inputClass}
+            placeholder="อีเมล"
+            aria-label="อีเมล"
+            value={formData.email}
+            onChange={handleChange}
+          />
+
+          <input
+            type="tel"
+            name="phone"
+            className={inputClass}
+            placeholder="เบอร์โทรศัพท์ (ไม่บังคับ)"
+            aria-label="เบอร์โทรศัพท์"
+            value={formData.phone}
+            onChange={handleChange}
+          />
+
+          <div className="relative flex items-center">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              className={`${inputClass} w-full pr-16`}
+              placeholder="รหัสผ่าน"
+              aria-label="รหัสผ่าน"
+              value={formData.password}
               onChange={handleChange}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 text-sm text-fg-mute"
+            >
+              {showPassword ? 'ซ่อน' : 'แสดง'}
+            </button>
           </div>
 
-          <div className={styles.formGroup}>
-            <input 
-              type="tel" 
-              name="phone"
-              className={styles.input} 
-              placeholder="เบอร์โทรศัพท์ (ไม่บังคับ)" 
-              aria-label="เบอร์โทรศัพท์"
-              value={formData.phone}
-              onChange={handleChange}
-            />
-          </div>
-          
-          <div className={styles.formGroup}>
-            <div className={styles.inputWrapper}>
-              <input 
-                type={showPassword ? "text" : "password"} 
-                name="password"
-                className={styles.input} 
-                placeholder="รหัสผ่าน" 
-                aria-label="รหัสผ่าน"
-                value={formData.password}
-                onChange={handleChange}
-              />
-              <button 
-                type="button" 
-                className={styles.toggleBtn}
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? "ซ่อน" : "แสดง"}
-              </button>
-            </div>
-          </div>
+          <input
+            type="password"
+            name="confirmPassword"
+            className={inputClass}
+            placeholder="ยืนยันรหัสผ่าน"
+            aria-label="ยืนยันรหัสผ่าน"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+          />
 
-          <div className={styles.formGroup}>
-            <input 
-              type="password" 
-              name="confirmPassword"
-              className={styles.input} 
-              placeholder="ยืนยันรหัสผ่าน" 
-              value={formData.confirmPassword}
-              onChange={handleChange}
-            />
-          </div>
-          
-          <div className={styles.termsRow}>
-            <input 
-              type="checkbox" 
+          <label className="mt-1 flex items-center gap-2 text-sm text-fg-dim">
+            <input
+              type="checkbox"
               name="acceptTerms"
-              className={styles.checkbox} 
+              className="accent-brand"
               checked={formData.acceptTerms}
               onChange={handleChange}
             />
-            <label>ยอมรับ เงื่อนไข และ นโยบายความเป็นส่วนตัว</label>
-          </div>
-          
-          <button type="submit" className={styles.submitBtn}>สมัครสมาชิก</button>
+            ยอมรับ เงื่อนไข และ นโยบายความเป็นส่วนตัว
+          </label>
+
+          <Button type="submit" variant="primary" size="lg" className="mt-2 w-full">
+            สมัครสมาชิก
+          </Button>
         </form>
-        
-        <div className={styles.loginLink}>
-          <Link href="/login">มีบัญชีแล้ว? เข้าสู่ระบบ</Link>
+
+        <div className="mt-5 text-center text-sm">
+          <Link href="/login" className="font-medium text-brand-ink">
+            มีบัญชีแล้ว? เข้าสู่ระบบ
+          </Link>
         </div>
       </div>
     </div>

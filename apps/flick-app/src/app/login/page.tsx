@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { login } from '@/lib/auth';
 import { useAuth } from '@/components/AuthProvider';
-import styles from './page.module.css';
+import { Button } from '@/components/ui/Button';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function LoginPage() {
       setError('กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
     }
-    
+
     try {
       const result = await login(email, password);
       if (result.success) {
@@ -41,74 +41,69 @@ export default function LoginPage() {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.logo}>Flick</div>
-      
-      <div className={styles.formCard}>
-        <h1 className={styles.header}>เข้าสู่ระบบ</h1>
-        
-        {error && <div className={styles.errorMsg}>{error}</div>}
-        
-        <form onSubmit={handleSubmit}>
-          <div className={styles.formGroup}>
-            <input 
-              type="email" 
-              className={styles.input} 
-              placeholder="บัญชีผู้ใช้" 
-              aria-label="บัญชีผู้ใช้ (อีเมล)"
-              value={email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-ink px-6 py-12">
+      <div className="text-4xl font-extrabold tracking-tight text-brand-ink">Flick</div>
+
+      <div className="mt-8 w-full max-w-sm rounded-2xl bg-ink-1 p-6">
+        <h1 className="text-title mb-5 font-display">เข้าสู่ระบบ</h1>
+
+        {error && (
+          <div role="alert" className="mb-4 rounded-lg bg-fail/15 px-3 py-2.5 text-sm text-fail">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <input
+            type="email"
+            className="h-12 rounded-lg border border-hairline bg-ink-2 px-4 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink"
+            placeholder="บัญชีผู้ใช้"
+            aria-label="บัญชีผู้ใช้ (อีเมล)"
+            value={email}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+          />
+
+          <div className="relative flex items-center">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              className="h-12 w-full rounded-lg border border-hairline bg-ink-2 px-4 pr-16 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink"
+              placeholder="รหัสผ่าน"
+              aria-label="รหัสผ่าน"
+              value={password}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 text-sm text-fg-mute"
+            >
+              {showPassword ? 'ซ่อน' : 'แสดง'}
+            </button>
           </div>
-          
-          <div className={styles.formGroup}>
-            <div className={styles.inputWrapper || "input-wrapper-fallback"} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <input 
-                type={showPassword ? "text" : "password"} 
-                className={styles.input} 
-                placeholder="รหัสผ่าน" 
-                aria-label="รหัสผ่าน"
-                value={password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                style={{ flex: 1 }}
-              />
-              <button 
-                type="button" 
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  background: 'none',
-                  border: 'none',
-                  color: '#A0A0A0',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                {showPassword ? "ซ่อน" : "แสดง"}
-              </button>
-            </div>
-          </div>
-          
-          <div className={styles.optionsRow}>
-            <label className={styles.checkboxLabel}>
-              <input type="checkbox" className={styles.checkbox} />
+
+          <div className="mt-1 flex items-center justify-between text-sm">
+            <label className="flex items-center gap-2 text-fg-dim">
+              <input type="checkbox" className="accent-brand" />
               จดจำรหัสผ่าน
             </label>
-            <Link href="#" className={styles.link}>ลืมรหัสผ่าน?</Link>
+            <span className="text-fg-mute">ลืมรหัสผ่าน?</span>
           </div>
-          
-          <button type="submit" className={styles.submitBtn}>เข้าสู่ระบบ</button>
+
+          <Button type="submit" variant="primary" size="lg" className="mt-2 w-full">
+            เข้าสู่ระบบ
+          </Button>
         </form>
-        
-        <div className={styles.registerLink}>
-          <Link href="/register" className={styles.link}>สมัครสมาชิก</Link>
+
+        <div className="mt-5 text-center text-sm">
+          <Link href="/register" className="font-medium text-brand-ink">
+            สมัครสมาชิก
+          </Link>
         </div>
-        
-        <div className={styles.footerLinks}>
-          <Link href="#" className={styles.link}>ชำระค่าบริการ?</Link>
-          <Link href="#" className={styles.link}>เงื่อนไข?</Link>
-          <Link href="#" className={styles.link}>นโยบาย?</Link>
+
+        <div className="mt-6 flex justify-center gap-4 text-xs text-fg-mute">
+          <span>ชำระค่าบริการ?</span>
+          <span>เงื่อนไข?</span>
+          <span>นโยบาย?</span>
         </div>
       </div>
     </div>

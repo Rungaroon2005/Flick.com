@@ -41,10 +41,12 @@ export default function HomeClient({
       {/* Hero — a portrait showcase, not a VOD banner. The lead title's own
           poster doubles as an immersive blurred backdrop (there is no
           separate landscape key art in this catalogue — everything is
-          portrait), and the play action lives inside the 9:16 card itself
-          rather than a pair of pill buttons beside it. */}
+          portrait). Stacked on mobile; at md+ the 9:16 card sits beside its
+          own title/CTA block instead of stretching to fill the viewport
+          height — a mobile-proportioned card just floats in a sea of empty
+          space otherwise. */}
       {featured && (
-        <section className="relative -mt-2 overflow-hidden pb-2">
+        <section className="relative -mt-2 overflow-hidden pb-2 md:py-10">
           <div className="absolute inset-0" aria-hidden="true">
             {featured.posterUrl && (
               <Image
@@ -62,47 +64,27 @@ export default function HomeClient({
             <div className="absolute inset-0 bg-gradient-to-b from-ink/10 via-ink/60 to-ink" />
           </div>
 
-          <div className="relative flex flex-col items-center gap-4 px-5 pt-6 text-center">
-            <span className="text-[11px] font-medium tracking-wide text-coin">แนะนำวันนี้</span>
-
+          <div className="relative mx-auto flex max-w-4xl flex-col items-center gap-5 px-5 pt-6 text-center md:flex-row md:justify-center md:gap-10 md:px-8 md:text-left">
             {featured.posterUrl && (
-              <div className="relative aspect-[9/16] w-48 shrink-0 overflow-hidden rounded-[28px] ring-1 ring-white/15 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.85)] sm:w-60 lg:w-72">
+              <div className="relative aspect-[9/16] w-48 shrink-0 overflow-hidden rounded-[28px] ring-1 ring-white/15 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.85)] sm:w-60 md:h-[380px] md:w-auto lg:h-[420px]">
                 <Image
                   src={featured.posterUrl}
                   alt={featured.title}
                   fill
                   priority
-                  sizes="(max-width: 640px) 192px, (max-width: 1024px) 240px, 288px"
+                  sizes="(max-width: 640px) 192px, (max-width: 768px) 240px, 340px"
                   className="object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-
-                <Link
-                  href={featuredEpisodeId ? `/player/${featuredEpisodeId}` : `/movie/${featured.id}`}
-                  aria-label={`เล่น ${featured.title}`}
-                  className="absolute inset-0 flex items-center justify-center"
-                >
-                  <span
-                    className="animate-cta-pulse absolute h-16 w-16 rounded-full border border-brand-ink/70"
-                    aria-hidden="true"
-                  />
-                  <span
-                    className="animate-cta-pulse absolute h-16 w-16 rounded-full border border-brand-ink/70"
-                    style={{ animationDelay: '1.1s' }}
-                    aria-hidden="true"
-                  />
-                  <span className="relative flex h-14 w-14 items-center justify-center rounded-full border border-white/25 bg-brand/90 shadow-[0_0_32px_-4px_rgba(255,77,26,0.75)] backdrop-blur-xl transition-transform active:scale-90">
-                    <Icon name="play" size={20} className="text-white" />
-                  </span>
-                </Link>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               </div>
             )}
 
-            <div className="flex max-w-xs flex-col items-center gap-1.5">
-              <h1 className="font-display text-2xl leading-tight font-extrabold text-fg [text-wrap:balance] sm:text-3xl">
+            <div className="flex max-w-xs flex-col items-center gap-2 md:max-w-sm md:items-start">
+              <span className="text-[11px] font-medium tracking-wide text-coin">แนะนำวันนี้</span>
+              <h1 className="font-display text-2xl leading-tight font-extrabold text-fg [text-wrap:balance] sm:text-3xl md:text-4xl">
                 {featured.title}
               </h1>
-              <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-fg-mute">
+              <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-fg-mute md:justify-start">
                 <span>{featured.year}</span>
                 {featured.genres.slice(0, 2).map((g) => (
                   <span key={g.id} className="before:mr-1.5 before:content-['·']">
@@ -110,12 +92,21 @@ export default function HomeClient({
                   </span>
                 ))}
               </div>
-              <Link
-                href={`/movie/${featured.id}`}
-                className="mt-1 text-sm text-fg-dim underline-offset-4 active:underline"
-              >
-                ข้อมูลเพิ่มเติม
-              </Link>
+              <div className="mt-3 flex items-center gap-4">
+                <Link
+                  href={featuredEpisodeId ? `/player/${featuredEpisodeId}` : `/movie/${featured.id}`}
+                  className="inline-flex h-12 items-center gap-2 rounded-full border border-white/25 bg-brand/90 px-6 text-sm font-semibold text-white shadow-[0_0_32px_-4px_rgba(255,77,26,0.75)] backdrop-blur-xl transition-transform active:scale-95"
+                >
+                  <Icon name="play" size={14} />
+                  ดูเลย
+                </Link>
+                <Link
+                  href={`/movie/${featured.id}`}
+                  className="text-sm text-fg-dim underline-offset-4 active:underline"
+                >
+                  ข้อมูลเพิ่มเติม
+                </Link>
+              </div>
             </div>
           </div>
         </section>

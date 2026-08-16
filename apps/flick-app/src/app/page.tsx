@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import styles from './page.module.css';
 
 export default function SplashPage() {
   const router = useRouter();
@@ -24,10 +23,14 @@ export default function SplashPage() {
   }, [router, user, loading, startedAt]);
 
   return (
-    <div className={styles.container}>
-      <div className={styles.logoContainer}>
-        <div className={styles.logoF}>F</div>
-        <div className={styles.logoFull}>Flick</div>
+    <div className="flex min-h-dvh items-center justify-center overflow-hidden bg-ink">
+      <div className="relative flex items-center justify-center">
+        <div className="animate-logo-f absolute text-9xl font-black text-brand-ink [text-shadow:0_0_20px_var(--color-brand)]">
+          F
+        </div>
+        <div className="animate-logo-full text-6xl font-black tracking-tight text-brand-ink opacity-0 [text-shadow:0_0_20px_var(--color-brand)]">
+          Flick
+        </div>
       </div>
     </div>
   );

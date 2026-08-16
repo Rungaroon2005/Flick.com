@@ -1,6 +1,5 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ViewTransition } from 'react';
 import { Icon } from './ui/Icon';
 
 import { Movie } from '@/types';
@@ -35,18 +34,22 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
         ${sizeClasses[size]}`}
     >
       <div className="relative h-full w-full">
-        {/* Named to match the hero image in MovieClient — the browser
-            morphs position/size across the route change instead of a hard
-            cut (docs/FRONTEND_PLAN.md Part 4 Tier 2). */}
-        <ViewTransition name={`poster-${movie.id}`}>
-          <Image
-            src={movie.posterUrl || '/posters/sathu.jpg'}
-            alt={movie.title || 'Movie'}
-            fill
-            sizes="(max-width: 480px) 160px, 200px"
-            className="object-cover transition-[filter] duration-250"
-          />
-        </ViewTransition>
+        {/* No ViewTransition morph here: MovieCard is reused across rows
+            that can render the same movie more than once on one page (a
+            bookmarked movie appears in both "แนะนำ" and "รายการของฉัน" on
+            /home). React's ViewTransition requires unique names among
+            simultaneously-mounted instances — errors otherwise
+            ("two <ViewTransition name=...> mounted at the same time"),
+            found via the dev overlay while verifying Phase 6. The
+            episode-thumbnail -> player morph doesn't have this problem
+            (an episode renders at most once per page) and is kept. */}
+        <Image
+          src={movie.posterUrl || '/posters/sathu.jpg'}
+          alt={movie.title || 'Movie'}
+          fill
+          sizes="(max-width: 480px) 160px, 200px"
+          className="object-cover transition-[filter] duration-250"
+        />
         {showBookmark && (
           <div className="absolute top-2 right-2 z-[2] flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
             <Icon name="bookmarkFilled" size={16} />

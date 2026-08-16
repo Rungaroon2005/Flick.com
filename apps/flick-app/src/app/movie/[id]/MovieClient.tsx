@@ -78,10 +78,9 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
       </header>
 
       <div className="relative aspect-[2/3] max-h-[70vh] w-full overflow-hidden">
+        {/* No poster morph here — see the comment in MovieCard.tsx for why. */}
         {movie.posterUrl && (
-          <ViewTransition name={`poster-${movie.id}`}>
-            <Image src={movie.posterUrl} alt={movie.title} fill priority sizes="100vw" className="object-cover" />
-          </ViewTransition>
+          <Image src={movie.posterUrl} alt={movie.title} fill priority sizes="100vw" className="object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-black/40" />
       </div>

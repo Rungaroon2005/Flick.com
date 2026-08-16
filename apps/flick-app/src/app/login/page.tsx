@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { login } from '@/lib/auth';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,11 +22,9 @@ export default function LoginPage() {
       setError('กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
     }
-
     try {
       const result = await login(email, password);
       if (result.success) {
-        // Re-read the server session so the app reflects the new cookie.
         await refresh();
         router.push('/home');
       } else {
@@ -41,50 +40,72 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-ink px-6 py-12">
-      <div className="text-4xl font-extrabold tracking-tight text-brand-ink">Flick</div>
+    <div
+      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-ink px-6 py-12"
+      style={{
+        backgroundImage:
+          'radial-gradient(ellipse 100% 45% at 50% 0%, rgba(204,51,0,0.16), transparent 70%)',
+      }}
+    >
+      <Link
+        href="/"
+        aria-label="กลับหน้าแรก"
+        className="absolute left-4 flex h-10 w-10 items-center justify-center rounded-full text-fg-dim transition-colors hover:text-fg"
+        style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
+      >
+        <Icon name="chevronLeft" size={22} />
+      </Link>
 
-      <div className="mt-8 w-full max-w-sm rounded-2xl bg-ink-1 p-6">
-        <h1 className="text-title mb-5 font-display">เข้าสู่ระบบ</h1>
+      <div className="text-3xl font-extrabold tracking-tight text-brand-ink">Flick</div>
+
+      <div className="mt-7 w-full max-w-sm rounded-2xl border border-hairline bg-ink-1/70 p-6 backdrop-blur-xl">
+        <h1 className="text-title font-display">เข้าสู่ระบบ</h1>
+        <p className="mt-1 text-sm text-fg-mute">ดูหนังสั้นที่ค้างไว้ต่อได้เลย</p>
 
         {error && (
-          <div role="alert" className="mb-4 rounded-lg bg-fail/15 px-3 py-2.5 text-sm text-fail">
+          <div role="alert" className="mt-4 flex items-center gap-2 rounded-lg bg-fail/15 px-3 py-2.5 text-sm text-fail">
+            <Icon name="alertCircle" size={16} className="shrink-0" />
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <input
-            type="email"
-            className="h-12 rounded-lg border border-hairline bg-ink-2 px-4 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink"
-            placeholder="บัญชีผู้ใช้"
-            aria-label="บัญชีผู้ใช้ (อีเมล)"
-            value={email}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-          />
+        <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3">
+          <div className="relative flex items-center">
+            <Icon name="mail" size={18} className="pointer-events-none absolute left-3.5 text-fg-mute" />
+            <input
+              type="email"
+              className="h-12 w-full rounded-xl border border-hairline bg-ink-2 pl-11 pr-4 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink"
+              placeholder="อีเมล"
+              aria-label="อีเมล"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
           <div className="relative flex items-center">
+            <Icon name="lock" size={18} className="pointer-events-none absolute left-3.5 text-fg-mute" />
             <input
               type={showPassword ? 'text' : 'password'}
-              className="h-12 w-full rounded-lg border border-hairline bg-ink-2 px-4 pr-16 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink"
+              className="h-12 w-full rounded-xl border border-hairline bg-ink-2 pl-11 pr-11 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink"
               placeholder="รหัสผ่าน"
               aria-label="รหัสผ่าน"
               value={password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 text-sm text-fg-mute"
+              aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+              className="absolute right-3.5 text-fg-mute transition-colors hover:text-fg"
             >
-              {showPassword ? 'ซ่อน' : 'แสดง'}
+              <Icon name={showPassword ? 'eyeOff' : 'eye'} size={18} />
             </button>
           </div>
 
           <div className="mt-1 flex items-center justify-between text-sm">
             <label className="flex items-center gap-2 text-fg-dim">
               <input type="checkbox" className="accent-brand" />
-              จดจำรหัสผ่าน
+              จดจำฉันไว้
             </label>
             <span className="text-fg-mute">ลืมรหัสผ่าน?</span>
           </div>
@@ -94,17 +115,17 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="mt-5 text-center text-sm">
+        <div className="mt-5 text-center text-sm text-fg-dim">
+          ยังไม่มีบัญชี?{' '}
           <Link href="/register" className="font-medium text-brand-ink">
             สมัครสมาชิก
           </Link>
         </div>
+      </div>
 
-        <div className="mt-6 flex justify-center gap-4 text-xs text-fg-mute">
-          <span>ชำระค่าบริการ?</span>
-          <span>เงื่อนไข?</span>
-          <span>นโยบาย?</span>
-        </div>
+      <div className="mt-6 flex justify-center gap-4 text-xs text-fg-mute">
+        <span>เงื่อนไขการใช้งาน</span>
+        <span>นโยบายความเป็นส่วนตัว</span>
       </div>
     </div>
   );

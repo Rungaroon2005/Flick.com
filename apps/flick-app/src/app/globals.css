@@ -112,6 +112,23 @@
     animation: none !important;
     opacity: 1;
   }
+
+  /* Blanket floor for everything else — every duration- and ease- utility in
+   * the app (card hover-scale, Sheet slide-in, player chrome fade, toast
+   * entry, etc.) collapses to effectively instant. Unlayered on purpose:
+   * these utilities live in Tailwind's layered `utilities` layer, and only
+   * an unlayered rule is guaranteed to win regardless of which of them
+   * matches (docs/FRONTEND_PLAN.md Part 4 — reduced motion removes
+   * animation, never information, so nothing here is display:none). Scroll
+   * position changes (router navigation, anchor jumps) still respect this
+   * via the `scroll-behavior` override.
+   */
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer base {

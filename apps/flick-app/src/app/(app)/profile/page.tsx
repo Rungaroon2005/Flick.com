@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import LogoutButton from './LogoutButton';
+import { Icon } from '@/components/ui/Icon';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
 import { Subscription } from '@/types';
-import styles from './page.module.css';
 
 /** Display-only label for a plan id. Falls back to the raw planType, so an id
  *  this map has not heard of degrades to something truthful rather than
@@ -21,24 +21,13 @@ function planLabel(subscription: Subscription | null): string {
   return PLAN_LABELS[subscription.planType] ?? subscription.planType;
 }
 
-const settingsRows = [
-  'ตั้งค่าบัญชี',
-  'การแจ้งเตือน',
-  'การเล่นวิดีโอ',
-  'ภาษา',
-  'ลักษณะการแสดงผล',
-  'ความเป็นส่วนตัว',
-  'อุปกรณ์ที่เข้าสู่ระบบ',
-  'ล้างแคช',
-];
-
-const supportRows = [
-  'ศูนย์ช่วยเหลือ',
-  'ติดต่อเรา',
-  'ให้คะแนนแอพ',
-  'ข้อกำหนดการใช้งาน',
-  'นโยบายความเป็นส่วนตัว',
-];
+// Every other settings/support row from the old list had no screen behind
+// it — a chevron that promised navigation to nowhere. These three are kept
+// because they're the only ones backed by real schema (User.language,
+// User.theme, the Device model) — genuinely coming, not decoration — so
+// they get a "เร็ว ๆ นี้" chip instead of a false chevron
+// (docs/FRONTEND_PLAN.md Part 3).
+const settingsRows = ['ภาษา', 'ลักษณะการแสดงผล', 'อุปกรณ์ที่เข้าสู่ระบบ'];
 
 export default async function ProfilePage() {
   // Authorisation happens on the server, before any of this page is sent.
@@ -78,26 +67,38 @@ export default async function ProfilePage() {
   if (sessionExpired) redirect('/login');
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.logo}>Flick</div>
-        <div className={styles.headerIcons}>
-          <button className={styles.iconBtn} aria-label="Downloads">⬇️</button>
-          <button className={styles.iconBtn} aria-label="Search">🔍</button>
+    <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
+      <header className="flex items-center justify-between px-5 py-4">
+        <div className="text-2xl font-extrabold tracking-tight text-brand-ink">Flick</div>
+        <div className="flex gap-4">
+          <Link
+            href="/downloads"
+            aria-label="ดาวน์โหลด"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg"
+          >
+            <Icon name="download" size={18} />
+          </Link>
+          <Link
+            href="/search"
+            aria-label="ค้นหา"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg"
+          >
+            <Icon name="search" size={18} />
+          </Link>
         </div>
       </header>
 
-      <main className={styles.main}>
-        <div className={styles.userInfo}>
-          <div className={styles.avatar}></div>
-          <div className={styles.userDetails}>
-            <h2 className={styles.name}>{session.displayName}</h2>
-            {session.email && <p className={styles.email}>{session.email}</p>}
+      <main className="px-5">
+        <div className="flex items-center gap-4">
+          <div className="h-16 w-16 shrink-0 rounded-full bg-ink-2" />
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-bold text-fg">{session.displayName}</h2>
+            {session.email && <p className="truncate text-sm text-fg-dim">{session.email}</p>}
             <button
-              className={styles.editBtn}
               aria-disabled="true"
               disabled
               title="ยังไม่เปิดให้ใช้งาน"
+              className="mt-1 text-sm text-fg-mute"
             >
               แก้ไขโปรไฟล์ &gt;
             </button>
@@ -105,57 +106,58 @@ export default async function ProfilePage() {
         </div>
 
         {error ? (
-          <p className={styles.errorNote}>{error}</p>
+          <p className="mt-6 text-sm text-fail">{error}</p>
         ) : (
-          <>
-            <div className={styles.subCard}>
-              <div className={styles.subInfo}>
-                <h3>สถานะสมาชิก</h3>
-                <p className={styles.planName}>{planLabel(subscription)}</p>
+          <div className="mt-6 flex flex-col gap-3">
+            <div className="flex items-center justify-between rounded-xl bg-ink-1 p-4">
+              <div>
+                <h3 className="text-xs font-medium text-fg-dim">สถานะสมาชิก</h3>
+                <p className="mt-1 font-semibold text-fg">{planLabel(subscription)}</p>
                 {subscription && (
-                  <p className={styles.subMeta}>
-                    ใช้ได้ถึง{' '}
-                    {new Date(subscription.endDate).toLocaleDateString('th-TH')}
+                  <p className="mt-0.5 text-xs text-fg-mute">
+                    ใช้ได้ถึง {new Date(subscription.endDate).toLocaleDateString('th-TH')}
                   </p>
                 )}
               </div>
-              <Link href="/subscribe" className={styles.manageBtn}>
+              <Link
+                href="/subscribe"
+                className="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white"
+              >
                 จัดการ
               </Link>
             </div>
 
-            <div className={styles.walletCard}>
-              <div className={styles.subInfo}>
-                <h3>เหรียญคงเหลือ</h3>
-                <p className={styles.coinBalance}>
-                  <span aria-hidden="true">🟡</span> {wallet?.balance ?? 0}
-                </p>
-              </div>
+            <div className="rounded-xl bg-ink-1 p-4">
+              <h3 className="text-xs font-medium text-fg-dim">เหรียญคงเหลือ</h3>
+              <p className="mt-1 flex items-center gap-1.5 text-data font-medium text-coin">
+                <Icon name="coin" size={18} />
+                {wallet?.balance ?? 0}
+              </p>
             </div>
-          </>
+          </div>
         )}
 
-        <div className={styles.settingsGroup}>
-          {settingsRows.map((label) => (
-            <div key={label} className={styles.settingItemDisabled} aria-disabled="true">
-              <span>{label}</span> <span className={styles.chevron}>&gt;</span>
+        <div className="mt-6 overflow-hidden rounded-xl bg-ink-1">
+          {settingsRows.map((label, i) => (
+            <div
+              key={label}
+              aria-disabled="true"
+              className={`flex items-center justify-between px-4 py-3.5 text-sm text-fg-dim ${
+                i > 0 ? 'border-t border-hairline' : ''
+              }`}
+            >
+              <span>{label}</span>
+              <span className="rounded-full bg-ink-2 px-2.5 py-1 text-xs text-fg-mute">เร็ว ๆ นี้</span>
             </div>
           ))}
         </div>
 
-        <div className={styles.settingsGroup}>
-          {supportRows.map((label) => (
-            <div key={label} className={styles.settingItemDisabled} aria-disabled="true">
-              <span>{label}</span> <span className={styles.chevron}>&gt;</span>
-            </div>
-          ))}
-          <div className={styles.settingItemStatic}>
-            <span>เวอร์ชัน</span>
-            <span className={styles.version}>1.0.0</span>
-          </div>
+        <div className="mt-6 flex items-center justify-between px-1 text-sm text-fg-mute">
+          <span>เวอร์ชัน</span>
+          <span>1.0.0</span>
         </div>
 
-        <LogoutButton className={styles.logoutBtn} />
+        <LogoutButton className="mt-6 flex h-12 w-full items-center justify-center rounded-xl bg-ink-1 font-medium text-fail" />
       </main>
     </div>
   );

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Sheet } from '@/components/ui/Sheet';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
+import { ReactionButton } from '@/components/ui/ReactionButton';
 import { apiFetch } from '@/lib/apiClient';
 import { useEntitlement } from './hooks/useEntitlement';
 import { useHlsPlayer } from './hooks/useHlsPlayer';
@@ -257,38 +258,32 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
           {/* Zone C — rail, anchored to the stage. Persists while playing;
               like/bookmark/download are expressive, not navigational. */}
           <div className="absolute top-1/2 right-3 z-10 flex -translate-y-1/2 flex-col gap-5">
-            <div className="flex flex-col items-center gap-1">
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  void toggleLike();
-                }}
-                aria-label={liked ? 'ยกเลิกถูกใจ' : 'ถูกใจ'}
-                aria-pressed={liked}
-                disabled={movieActionsLoading || pendingAction !== null}
-                className={`flex h-11 w-11 items-center justify-center rounded-full backdrop-blur-sm transition-transform active:scale-90 disabled:opacity-50
-                  ${liked ? 'bg-brand text-white' : 'bg-black/50 text-white'}`}
-              >
-                <Icon name={liked ? 'heartFilled' : 'heart'} size={22} />
-              </button>
-              <span className="text-xs text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">ถูกใจ</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  void toggleFavorite();
-                }}
-                aria-label={bookmarked ? 'นำออกจากรายการโปรด' : 'เพิ่มในรายการโปรด'}
-                aria-pressed={bookmarked}
-                disabled={movieActionsLoading || pendingAction !== null}
-                className={`flex h-11 w-11 items-center justify-center rounded-full backdrop-blur-sm transition-transform active:scale-90 disabled:opacity-50
-                  ${bookmarked ? 'bg-brand text-white' : 'bg-black/50 text-white'}`}
-              >
-                <Icon name={bookmarked ? 'bookmarkFilled' : 'bookmark'} size={22} />
-              </button>
-              <span className="text-xs text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">รายการโปรด</span>
-            </div>
+            <ReactionButton
+              active={liked}
+              icon="heart"
+              activeIcon="heartFilled"
+              label="ถูกใจ"
+              activeLabel="ยกเลิกถูกใจ"
+              disabled={movieActionsLoading || pendingAction !== null}
+              showLabel
+              onClick={(event) => {
+                event.stopPropagation();
+                void toggleLike();
+              }}
+            />
+            <ReactionButton
+              active={bookmarked}
+              icon="bookmark"
+              activeIcon="bookmarkFilled"
+              label="รายการโปรด"
+              activeLabel="นำออกจากรายการโปรด"
+              disabled={movieActionsLoading || pendingAction !== null}
+              showLabel
+              onClick={(event) => {
+                event.stopPropagation();
+                void toggleFavorite();
+              }}
+            />
             <div className="flex flex-col items-center gap-1">
               <button
                 onClick={(event) => {
@@ -296,9 +291,9 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
                   void addDownload();
                 }}
                 aria-label="ดาวน์โหลด"
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-transform active:scale-90"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition-[background-color] duration-150 active:scale-90 hover:bg-black/60"
               >
-                <Icon name="download" size={22} />
+                <Icon name="download" size={20} />
               </button>
               <span className="text-xs text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">ดาวน์โหลด</span>
             </div>

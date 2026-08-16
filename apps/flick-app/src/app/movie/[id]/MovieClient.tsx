@@ -6,6 +6,7 @@ import { ViewTransition } from 'react';
 import InfoModal from './InfoModal';
 import MovieCard from '@/components/MovieCard';
 import { Icon } from '@/components/ui/Icon';
+import { ReactionButton } from '@/components/ui/ReactionButton';
 import { ApiError, apiFetch } from '@/lib/apiClient';
 import { Movie } from '@/types';
 
@@ -98,14 +99,15 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
             <Icon name="play" size={18} />
             เล่น
           </button>
-          <button
+          <ReactionButton
+            active={bookmarked}
+            icon="bookmark"
+            activeIcon="bookmarkFilled"
+            label="บันทึก"
+            activeLabel="นำออกจากรายการที่บันทึกไว้"
+            size={48}
             onClick={toggleBookmark}
-            aria-label="บันทึก"
-            aria-pressed={bookmarked}
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors ${bookmarked ? 'bg-brand text-white' : 'bg-fg/10 text-fg'}`}
-          >
-            <Icon name={bookmarked ? 'bookmarkFilled' : 'bookmark'} size={20} />
-          </button>
+          />
           <button
             disabled={!firstEpisode}
             aria-label="ดาวน์โหลดตอนแรก"

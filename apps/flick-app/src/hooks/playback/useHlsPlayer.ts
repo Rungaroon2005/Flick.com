@@ -1,21 +1,9 @@
 import { useEffect, useState, type RefObject } from 'react';
-import type { Episode } from '@/types';
 
-/**
- * Owns the <video> element itself: HLS.js attach/detach, playback state,
- * and the imperative transport controls. Extracted unchanged from
- * PlayerClient (Phase 4 Step 1 — see useEntitlement.ts for the same note).
- *
- * Two distinct error surfaces are preserved exactly as they were:
- * `fatalError` (unsupported browser, or a fatal HLS.js stream error) blocks
- * the whole page, same as an entitlement fault. `playbackError` (blocked
- * autoplay, a native <video> error event, fullscreen failing) is a
- * recoverable, in-place condition — the player stays interactive.
- */
 export function useHlsPlayer(
   videoRef: RefObject<HTMLVideoElement | null>,
-  episode: Episode | null,
   videoUrl: string | null,
+  enabled = true,
 ) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [mediaDuration, setMediaDuration] = useState(0);
@@ -25,7 +13,7 @@ export function useHlsPlayer(
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !videoUrl) return;
+    if (!video || !videoUrl || !enabled) return;
 
     let cancelled = false;
     let hls: import('hls.js').default | undefined;
@@ -59,8 +47,9 @@ export function useHlsPlayer(
       video.pause();
       video.removeAttribute('src');
       video.load();
+      setIsPlaying(false);
     };
-  }, [videoRef, episode, videoUrl]);
+  }, [enabled, videoRef, videoUrl]);
 
   const togglePlayback = async () => {
     const video = videoRef.current;

@@ -5,16 +5,11 @@ import { ApiError, apiFetch } from '@/lib/apiClient';
 type MovieActions = { liked: boolean; bookmarked: boolean };
 export type PendingAction = 'like' | 'favorite' | null;
 
-/**
- * Owns the three engagement actions below the player: like, bookmark, and
- * download for this episode. Extracted unchanged from PlayerClient (Phase 4
- * Step 1 — see useEntitlement.ts for the same note). `notice` is the shared
- * feedback slot for all three (identical to the original component).
- */
 export function useMovieActions(
   movieId: string | null,
   episodeId: string,
   router: ReturnType<typeof useRouter>,
+  enabled = true,
 ) {
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
@@ -25,31 +20,28 @@ export function useMovieActions(
   const movieActionsLoading = movieId === null || actionsForMovieId !== movieId;
 
   useEffect(() => {
-    if (!movieId) return;
+    if (!movieId || !enabled || actionsForMovieId === movieId) return;
 
     let cancelled = false;
-    void (async () => {
-      try {
-        const actions = await apiFetch<MovieActions>(`/me/movies/${movieId}/actions`);
+    void apiFetch<MovieActions>(`/me/movies/${movieId}/actions`)
+      .then((actions) => {
         if (cancelled) return;
         setLiked(actions.liked);
         setBookmarked(actions.bookmarked);
-      } catch (err) {
+      })
+      .catch((err: unknown) => {
         if (cancelled) return;
-        if (err instanceof ApiError && err.status === 401) {
-          router.push('/login');
-          return;
-        }
-        setNotice('ไม่สามารถโหลดสถานะถูกใจและรายการโปรดได้');
-      } finally {
+        if (err instanceof ApiError && err.status === 401) router.push('/login');
+        else setNotice('ไม่สามารถโหลดสถานะถูกใจและรายการโปรดได้');
+      })
+      .finally(() => {
         if (!cancelled) setActionsForMovieId(movieId);
-      }
-    })();
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [movieId, router]);
+  }, [actionsForMovieId, enabled, movieId, router]);
 
   const addDownload = async () => {
     setNotice(null);
@@ -57,17 +49,13 @@ export function useMovieActions(
       await apiFetch(`/me/downloads/${episodeId}`, { method: 'PUT' });
       setNotice('บันทึกรายการดาวน์โหลดแล้ว');
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        router.push('/login');
-        return;
-      }
-      setNotice(err instanceof ApiError ? err.message : 'ไม่สามารถบันทึกรายการดาวน์โหลดได้');
+      if (err instanceof ApiError && err.status === 401) router.push('/login');
+      else setNotice(err instanceof ApiError ? err.message : 'ไม่สามารถบันทึกรายการดาวน์โหลดได้');
     }
   };
 
   const toggleLike = async () => {
     if (!movieId || pendingAction) return;
-
     const shouldLike = !liked;
     setPendingAction('like');
     setNotice(null);
@@ -78,11 +66,8 @@ export function useMovieActions(
       setLiked(result.liked);
       setNotice(result.liked ? 'ถูกใจเรื่องนี้แล้ว' : 'ยกเลิกถูกใจแล้ว');
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        router.push('/login');
-        return;
-      }
-      setNotice(err instanceof ApiError ? err.message : 'ไม่สามารถอัปเดตการถูกใจได้');
+      if (err instanceof ApiError && err.status === 401) router.push('/login');
+      else setNotice(err instanceof ApiError ? err.message : 'ไม่สามารถอัปเดตการถูกใจได้');
     } finally {
       setPendingAction(null);
     }
@@ -90,7 +75,6 @@ export function useMovieActions(
 
   const toggleFavorite = async () => {
     if (!movieId || pendingAction) return;
-
     const shouldBookmark = !bookmarked;
     setPendingAction('favorite');
     setNotice(null);
@@ -101,11 +85,8 @@ export function useMovieActions(
       setBookmarked(result.bookmarked);
       setNotice(result.bookmarked ? 'เพิ่มในรายการโปรดแล้ว' : 'นำออกจากรายการโปรดแล้ว');
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        router.push('/login');
-        return;
-      }
-      setNotice(err instanceof ApiError ? err.message : 'ไม่สามารถอัปเดตรายการโปรดได้');
+      if (err instanceof ApiError && err.status === 401) router.push('/login');
+      else setNotice(err instanceof ApiError ? err.message : 'ไม่สามารถอัปเดตรายการโปรดได้');
     } finally {
       setPendingAction(null);
     }

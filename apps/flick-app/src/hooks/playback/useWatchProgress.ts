@@ -2,12 +2,6 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import type { useRouter } from 'next/navigation';
 import { ApiError, apiFetch } from '@/lib/apiClient';
 
-/**
- * Owns reporting playback position to PUT /me/watch-history/:episodeId —
- * throttled to once per 10 real seconds of progress, flushed once more on
- * unmount. Extracted unchanged from PlayerClient (Phase 4 Step 1 — see
- * useEntitlement.ts for the same note).
- */
 export function useWatchProgress(
   episodeId: string,
   router: ReturnType<typeof useRouter>,
@@ -20,8 +14,6 @@ export function useWatchProgress(
   const reportProgress = useCallback(
     async (seconds: number) => {
       if (seconds <= 0 || seconds === lastReportedRef.current) return;
-      // Reserve this checkpoint before awaiting the network so several
-      // timeupdate events in the same second cannot enqueue duplicate writes.
       lastReportedRef.current = seconds;
       try {
         await apiFetch(`/me/watch-history/${episodeId}`, {

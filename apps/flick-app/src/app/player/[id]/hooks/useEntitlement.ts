@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { useRouter } from 'next/navigation';
 import { ApiError, apiFetch } from '@/lib/apiClient';
-import type { Episode, Movie, PlaybackAuthorization } from '@/types';
-
-export type DeniedAuthorization = Extract<PlaybackAuthorization, { allowed: false }>;
+import { usePlaybackAuthorization } from '@/hooks/playback/usePlaybackAuthorization';
+import type { Episode, Movie } from '@/types';
 
 function findEpisode(movies: Movie[], episodeId: string) {
   for (const movie of movies) {
@@ -25,11 +24,8 @@ function findEpisode(movies: Movie[], episodeId: string) {
 export function useEntitlement(episodeId: string, router: ReturnType<typeof useRouter>) {
   const [movie, setMovie] = useState<Movie | null>(null);
   const [episode, setEpisode] = useState<Episode | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [gate, setGate] = useState<DeniedAuthorization | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [gateError, setGateError] = useState<string | null>(null);
-  const [unlocking, setUnlocking] = useState(false);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
+  const authorization = usePlaybackAuthorization(episodeId, router);
 
   // Public catalogue metadata deliberately remains a separate request from
   // entitlement. It never contains videoUrl, and a metadata fault cannot turn
@@ -42,7 +38,7 @@ export function useEntitlement(episodeId: string, router: ReturnType<typeof useR
         const result = findEpisode(movies, episodeId);
         if (cancelled) return;
         if (!result) {
-          setError('ไม่พบตอนนี้');
+          setMetadataError('ไม่พบตอนนี้');
           return;
         }
         setMovie(result.movie);
@@ -53,7 +49,7 @@ export function useEntitlement(episodeId: string, router: ReturnType<typeof useR
           router.push('/login');
           return;
         }
-        setError('ไม่สามารถโหลดข้อมูลตอนนี้ได้');
+        setMetadataError('ไม่สามารถโหลดข้อมูลตอนนี้ได้');
       }
     })();
     return () => {
@@ -61,70 +57,5 @@ export function useEntitlement(episodeId: string, router: ReturnType<typeof useR
     };
   }, [episodeId, router]);
 
-  const applyAuthorization = useCallback((auth: PlaybackAuthorization) => {
-    if (auth.allowed) {
-      setVideoUrl(auth.videoUrl);
-      setGate(null);
-      setGateError(null);
-    } else {
-      setVideoUrl(null);
-      setGate(auth);
-    }
-  }, []);
-
-  // The server is the only entitlement authority. The cancellation guard is
-  // load-bearing: route changes must not let a late response mutate this page.
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const auth = await apiFetch<PlaybackAuthorization>(
-          `/playback/${episodeId}/authorize`,
-        );
-        if (!cancelled) applyAuthorization(auth);
-      } catch (err) {
-        if (cancelled) return;
-        if (err instanceof ApiError && err.status === 401) {
-          router.push('/login');
-          return;
-        }
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : 'ไม่สามารถตรวจสอบสิทธิ์การรับชมได้',
-        );
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [applyAuthorization, episodeId, router]);
-
-  const unlockWithCoins = useCallback(async () => {
-    setUnlocking(true);
-    setGateError(null);
-    try {
-      await apiFetch('/wallet/spend', {
-        method: 'POST',
-        body: JSON.stringify({ episodeId }),
-      });
-      // Never grant optimistically after a spend: ask the authority again.
-      const auth = await apiFetch<PlaybackAuthorization>(
-        `/playback/${episodeId}/authorize`,
-      );
-      applyAuthorization(auth);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        router.push('/login');
-        return;
-      }
-      setGateError(
-        err instanceof ApiError ? err.message : 'ไม่สามารถปลดล็อกตอนนี้ได้',
-      );
-    } finally {
-      setUnlocking(false);
-    }
-  }, [applyAuthorization, episodeId, router]);
-
-  return { movie, episode, videoUrl, gate, error, gateError, unlocking, unlockWithCoins };
+  return { movie, episode, ...authorization, error: metadataError ?? authorization.error };
 }

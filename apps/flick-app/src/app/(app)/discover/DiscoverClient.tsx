@@ -1,13 +1,16 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ApiError, apiFetch } from '@/lib/apiClient';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { ReactionButton } from '@/components/ui/ReactionButton';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
-import type { Movie, PlaybackAuthorization } from '@/types';
+import { useHlsPlayer } from '@/hooks/playback/useHlsPlayer';
+import { useMovieActions } from '@/hooks/playback/useMovieActions';
+import { usePlaybackAuthorization } from '@/hooks/playback/usePlaybackAuthorization';
+import { useWatchProgress } from '@/hooks/playback/useWatchProgress';
+import type { Movie } from '@/types';
 
 interface DiscoverClientProps {
   initialMovies: Movie[];
@@ -116,7 +119,6 @@ export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
   );
 }
 
-type DeniedAuthorization = Extract<PlaybackAuthorization, { allowed: false }>;
 type DragLock = 'x' | 'y' | null;
 
 function FeedSlide({
@@ -134,14 +136,11 @@ function FeedSlide({
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isActive, setIsActive] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [gate, setGate] = useState<DeniedAuthorization | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [liked, setLiked] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
-  const [actionsLoaded, setActionsLoaded] = useState(false);
-  const lastReportedRef = useRef(0);
+  const { videoUrl, gate, error: loadError } = usePlaybackAuthorization(episodeId, router, isActive);
+  const { isPlaying, setIsPlaying } = useHlsPlayer(videoRef, videoUrl);
+  const { handleTimeUpdate, reportProgress } = useWatchProgress(episodeId, router, videoRef);
+  const { liked, bookmarked, movieActionsLoading, pendingAction, toggleLike, toggleFavorite } =
+    useMovieActions(movie.id, episodeId, router, isActive);
 
   // Drag-to-preview: the slide visually follows the finger on a rightward
   // swipe (touch-action: pan-y below leaves vertical scroll to the browser
@@ -163,85 +162,8 @@ function FeedSlide({
     return () => observer.disconnect();
   }, []);
 
-  // Entitlement — resolved once, the first time this slide becomes active,
-  // through the same server-authoritative endpoint the dedicated player
-  // uses. Never derived from the public /movies list, which has no videoUrl.
-  useEffect(() => {
-    if (!isActive || videoUrl || gate || loadError) return;
-    let cancelled = false;
-    apiFetch<PlaybackAuthorization>(`/playback/${episodeId}/authorize`)
-      .then((auth) => {
-        if (cancelled) return;
-        if (auth.allowed) setVideoUrl(auth.videoUrl);
-        else setGate(auth);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        if (err instanceof ApiError && err.status === 401) {
-          router.push('/login');
-          return;
-        }
-        // A non-401 fault (e.g. the API's own content-availability rule
-        // returning 503) must surface, not leave the slide silently stuck
-        // on its poster forever — the exact failure mode a bare
-        // `if (status === 401)` check with no else produces.
-        setLoadError(err instanceof ApiError ? err.message : 'ไม่สามารถเล่นวิดีโอได้');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isActive, episodeId, videoUrl, gate, loadError, router]);
-
-  useEffect(() => {
-    if (!isActive || actionsLoaded) return;
-    let cancelled = false;
-    apiFetch<{ liked: boolean; bookmarked: boolean }>(`/me/movies/${movie.id}/actions`)
-      .then((actions) => {
-        if (cancelled) return;
-        setLiked(actions.liked);
-        setBookmarked(actions.bookmarked);
-      })
-      .catch((err) => {
-        if (!cancelled && err instanceof ApiError && err.status === 401) router.push('/login');
-      })
-      .finally(() => {
-        if (!cancelled) setActionsLoaded(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isActive, actionsLoaded, movie.id, router]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !videoUrl) return;
-
-    let cancelled = false;
-    let hls: import('hls.js').default | undefined;
-    const isHlsSource = /\.m3u8(?:$|[?#])/i.test(videoUrl);
-    if (!isHlsSource || video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = videoUrl;
-      video.load();
-    } else {
-      void import('hls.js').then(({ default: Hls }) => {
-        if (cancelled || !Hls.isSupported()) return;
-        hls = new Hls();
-        hls.loadSource(videoUrl);
-        hls.attachMedia(video);
-      });
-    }
-    return () => {
-      cancelled = true;
-      hls?.destroy();
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-    };
-  }, [videoUrl]);
-
   // Play only the slide that's actually on screen; report progress via the
-  // same PUT /me/watch-history/:episodeId the dedicated player uses when a
-  // slide scrolls away with real playback to save.
+  // shared progress reporter when a slide scrolls away with playback to save.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoUrl) return;
@@ -250,44 +172,9 @@ function FeedSlide({
     } else {
       video.pause();
       const seconds = Math.floor(video.currentTime);
-      if (seconds > 0 && seconds !== lastReportedRef.current) {
-        lastReportedRef.current = seconds;
-        void apiFetch(`/me/watch-history/${episodeId}`, {
-          method: 'PUT',
-          keepalive: true,
-          body: JSON.stringify({ progressSeconds: seconds }),
-        }).catch(() => {});
-      }
+      void reportProgress(seconds);
     }
-  }, [isActive, videoUrl, episodeId]);
-
-  const toggleLike = async () => {
-    const shouldLike = !liked;
-    setLiked(shouldLike);
-    try {
-      const result = await apiFetch<{ liked: boolean }>(`/me/likes/${movie.id}`, {
-        method: shouldLike ? 'PUT' : 'DELETE',
-      });
-      setLiked(result.liked);
-    } catch (err) {
-      setLiked(!shouldLike);
-      if (err instanceof ApiError && err.status === 401) router.push('/login');
-    }
-  };
-
-  const toggleFavorite = async () => {
-    const shouldBookmark = !bookmarked;
-    setBookmarked(shouldBookmark);
-    try {
-      const result = await apiFetch<{ bookmarked: boolean }>(`/me/bookmarks/${movie.id}`, {
-        method: shouldBookmark ? 'PUT' : 'DELETE',
-      });
-      setBookmarked(result.bookmarked);
-    } catch (err) {
-      setBookmarked(!shouldBookmark);
-      if (err instanceof ApiError && err.status === 401) router.push('/login');
-    }
-  };
+  }, [isActive, reportProgress, videoUrl]);
 
   const openDetails = () => {
     setLeaving(true);
@@ -356,6 +243,7 @@ function FeedSlide({
           disablePictureInPicture
           disableRemotePlayback
           onClick={onToggleMute}
+          onTimeUpdate={handleTimeUpdate}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
         />
@@ -432,6 +320,7 @@ function FeedSlide({
             activeIcon="heartFilled"
             label="ถูกใจ"
             activeLabel="ยกเลิกถูกใจ"
+            disabled={movieActionsLoading || pendingAction !== null}
             showLabel
             onClick={(event) => {
               event.stopPropagation();
@@ -444,6 +333,7 @@ function FeedSlide({
             activeIcon="bookmarkFilled"
             label="บันทึก"
             activeLabel="นำออกจากรายการโปรด"
+            disabled={movieActionsLoading || pendingAction !== null}
             showLabel
             onClick={(event) => {
               event.stopPropagation();

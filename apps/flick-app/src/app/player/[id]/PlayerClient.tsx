@@ -9,9 +9,9 @@ import { Button } from '@/components/ui/Button';
 import { ReactionButton } from '@/components/ui/ReactionButton';
 import { apiFetch } from '@/lib/apiClient';
 import { useEntitlement } from './hooks/useEntitlement';
-import { useHlsPlayer } from './hooks/useHlsPlayer';
-import { useWatchProgress } from './hooks/useWatchProgress';
-import { useMovieActions } from './hooks/useMovieActions';
+import { useHlsPlayer } from '@/hooks/playback/useHlsPlayer';
+import { useWatchProgress } from '@/hooks/playback/useWatchProgress';
+import { useMovieActions } from '@/hooks/playback/useMovieActions';
 
 const CHROME_IDLE_MS = 2500;
 
@@ -69,7 +69,7 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
     togglePlayback,
     changePlaybackRate,
     toggleFullscreen,
-  } = useHlsPlayer(videoRef, episode, videoUrl);
+  } = useHlsPlayer(videoRef, videoUrl);
 
   const { progressSeconds, setProgress, handleTimeUpdate, reportProgress } =
     useWatchProgress(episodeId, router, videoRef);

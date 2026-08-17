@@ -1,9 +1,9 @@
 // Auth actions for Flick. The session itself lives in an HttpOnly cookie set by
 // the API — it is never readable or forgeable from the client. Read the current
-// session with useAuth() (client) or getSession() (server), not from here.
+// session with getSession() on the server, not from here.
 'use client';
 import { ApiError, apiFetch } from '@/lib/apiClient';
-import { clearLegacyLocalState } from '@/lib/legacyStorage';
+import { clearLegacyLocalState } from './legacyStorage';
 
 interface AuthUser {
   id: string;

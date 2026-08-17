@@ -7,10 +7,12 @@ import { Icon } from '@/components/ui/Icon';
 import { ReactionButton } from '@/components/ui/ReactionButton';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
-import { useHlsPlayer } from '@/hooks/playback/useHlsPlayer';
-import { useMovieActions } from '@/hooks/playback/useMovieActions';
-import { usePlaybackAuthorization } from '@/hooks/playback/usePlaybackAuthorization';
-import { useWatchProgress } from '@/hooks/playback/useWatchProgress';
+import {
+  useHlsPlayer,
+  useMovieActions,
+  usePlaybackAuthorization,
+  useWatchProgress,
+} from '@/features/playback';
 import type { Movie } from '@/types';
 
 interface DiscoverClientProps {

@@ -1,4 +1,4 @@
-import MovieCard from '@/components/MovieCard';
+import { MovieCard } from '@/features/catalog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Movie } from '@/types';
 

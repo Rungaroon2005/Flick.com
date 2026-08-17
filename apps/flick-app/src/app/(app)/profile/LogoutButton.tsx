@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { logout } from '@/lib/auth';
+import { logout } from '@/features/auth';
 
 /**
  * The only interactive part of /profile, kept as a small client child so the

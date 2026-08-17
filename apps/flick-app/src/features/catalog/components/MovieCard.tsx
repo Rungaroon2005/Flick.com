@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Icon } from './ui/Icon';
+import { Icon } from '@/components/ui/Icon';
 
 import { Movie } from '@/types';
 

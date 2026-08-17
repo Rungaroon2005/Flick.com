@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ViewTransition } from 'react';
 import InfoModal from './InfoModal';
-import MovieCard from '@/components/MovieCard';
+import { MovieCard } from '@/features/catalog';
 import { Icon } from '@/components/ui/Icon';
 import { ReactionButton } from '@/components/ui/ReactionButton';
 import { ApiError, apiFetch } from '@/lib/apiClient';

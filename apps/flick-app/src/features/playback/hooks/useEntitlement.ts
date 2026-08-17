@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { useRouter } from 'next/navigation';
 import { ApiError, apiFetch } from '@/lib/apiClient';
-import { usePlaybackAuthorization } from '@/hooks/playback/usePlaybackAuthorization';
+import { usePlaybackAuthorization } from './usePlaybackAuthorization';
 import type { Episode, Movie, PlaybackAuthorization } from '@/types';
 
 function findEpisode(movies: Movie[], episodeId: string) {

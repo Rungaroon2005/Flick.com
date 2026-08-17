@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ViewTransition } from 'react';
-import MovieCard from '@/components/MovieCard';
+import { MovieCard } from '@/features/catalog';
 import { Icon } from '@/components/ui/Icon';
 import { ContinueWatchingItem, Movie } from '@/types';
 

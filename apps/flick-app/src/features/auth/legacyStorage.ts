@@ -1,6 +1,6 @@
 'use client';
 
-// Keys written by the pre-Phase-3 localStorage "auth" layer. The server is now
+// Keys written by the legacy localStorage auth layer. The server is now
 // authoritative for every one of these, so the stale client-authored copies are
 // purged on login/register rather than migrated — they were never real data.
 const LEGACY_KEYS = [

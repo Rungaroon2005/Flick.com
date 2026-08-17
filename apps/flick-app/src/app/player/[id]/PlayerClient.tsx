@@ -7,10 +7,7 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { ReactionButton } from '@/components/ui/ReactionButton';
-import { useEntitlement } from './hooks/useEntitlement';
-import { useHlsPlayer } from '@/hooks/playback/useHlsPlayer';
-import { useWatchProgress } from '@/hooks/playback/useWatchProgress';
-import { useMovieActions } from '@/hooks/playback/useMovieActions';
+import { useEntitlement, useHlsPlayer, useMovieActions, useWatchProgress } from '@/features/playback';
 import type { Episode, Movie, PlaybackAuthorization } from '@/types';
 
 const CHROME_IDLE_MS = 2500;

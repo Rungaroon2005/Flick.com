@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import MovieCard from '@/components/MovieCard';
+import { MovieCard } from '@/features/catalog';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';

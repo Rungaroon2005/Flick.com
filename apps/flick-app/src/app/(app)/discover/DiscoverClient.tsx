@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { ReactionButton } from '@/components/ui/ReactionButton';
@@ -41,7 +42,9 @@ interface FeedItem {
  */
 export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
   const router = useRouter();
+  const feedRef = useRef<HTMLDivElement>(null);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
+  const [visibleEpisodeId, setVisibleEpisodeId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
   const activeGenreLabel = GENRES.find((g) => g.slug === activeSlug)?.label;
@@ -58,6 +61,32 @@ export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
       return first ? [{ movie, episodeId: first.id }] : [];
     });
   }, [activeSlug, initialMovies]);
+
+  const activeEpisodeId = items.some((item) => item.episodeId === visibleEpisodeId)
+    ? visibleEpisodeId
+    : (items[0]?.episodeId ?? null);
+
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+
+    const ratios = new Map<string, number>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const episodeId = (entry.target as HTMLElement).dataset.episodeId;
+          if (episodeId) ratios.set(episodeId, entry.isIntersecting ? entry.intersectionRatio : 0);
+        }
+
+        const nextActive = [...ratios.entries()].sort((a, b) => b[1] - a[1])[0];
+        if (nextActive && nextActive[1] >= 0.6) setVisibleEpisodeId(nextActive[0]);
+      },
+      { root: feed, threshold: [0, 0.6, 1] },
+    );
+
+    feed.querySelectorAll<HTMLElement>('[data-episode-id]').forEach((slide) => observer.observe(slide));
+    return () => observer.disconnect();
+  }, [items]);
 
   return (
     <div className="relative h-dvh w-full bg-ink">
@@ -93,11 +122,12 @@ export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
       </Sheet>
 
       {items.length > 0 ? (
-        <div className="scrollbar-hide h-full w-full snap-y snap-mandatory overflow-y-scroll">
+        <div ref={feedRef} className="scrollbar-hide h-full w-full snap-y snap-mandatory overflow-y-scroll">
           {items.map((item) => (
             <FeedSlide
               key={item.episodeId}
               item={item}
+              isActive={activeEpisodeId === item.episodeId}
               isMuted={isMuted}
               onToggleMute={() => setIsMuted((m) => !m)}
               router={router}
@@ -123,21 +153,21 @@ type DragLock = 'x' | 'y' | null;
 
 function FeedSlide({
   item,
+  isActive,
   isMuted,
   onToggleMute,
   router,
 }: {
   item: FeedItem;
+  isActive: boolean;
   isMuted: boolean;
   onToggleMute: () => void;
   router: ReturnType<typeof useRouter>;
 }) {
   const { movie, episodeId } = item;
-  const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isActive, setIsActive] = useState(false);
   const { videoUrl, gate, error: loadError } = usePlaybackAuthorization(episodeId, router, isActive);
-  const { isPlaying, setIsPlaying } = useHlsPlayer(videoRef, videoUrl);
+  const { isPlaying, setIsPlaying } = useHlsPlayer(videoRef, videoUrl, isActive);
   const { handleTimeUpdate, reportProgress } = useWatchProgress(episodeId, router, videoRef);
   const { liked, bookmarked, movieActionsLoading, pendingAction, toggleLike, toggleFavorite } =
     useMovieActions(movie.id, episodeId, router, isActive);
@@ -150,17 +180,6 @@ function FeedSlide({
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [leaving, setLeaving] = useState(false);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsActive(entry.isIntersecting && entry.intersectionRatio >= 0.6),
-      { threshold: [0, 0.6, 1] },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   // Play only the slide that's actually on screen; report progress via the
   // shared progress reporter when a slide scrolls away with playback to save.
@@ -219,7 +238,7 @@ function FeedSlide({
 
   return (
     <div
-      ref={containerRef}
+      data-episode-id={episodeId}
       className="relative h-dvh w-full snap-start overflow-hidden bg-ink [touch-action:pan-y]"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -231,11 +250,22 @@ function FeedSlide({
         transition: dragging ? 'none' : leaving ? 'transform 180ms ease-in' : 'transform 220ms cubic-bezier(0,0,0.2,1)',
       }}
     >
-      {(movie.posterUrl || videoUrl) && (
+      {movie.posterUrl && (
+        <Image
+          src={movie.posterUrl}
+          alt=""
+          fill
+          sizes="100vw"
+          fetchPriority={isActive ? 'high' : 'auto'}
+          className="object-cover"
+          aria-hidden="true"
+        />
+      )}
+
+      {isActive && videoUrl && (
         <video
           ref={videoRef}
           className="absolute inset-0 h-full w-full object-cover"
-          poster={movie.posterUrl ?? undefined}
           playsInline
           loop
           muted={isMuted}

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import LogoutButton from './LogoutButton';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { Icon } from '@/components/ui/Icon';
+import { PageShell } from '@/components/ui/PageShell';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
 import { Subscription } from '@/types';
@@ -68,7 +69,7 @@ export default async function ProfilePage() {
   if (sessionExpired) redirect('/login');
 
   return (
-    <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
+    <PageShell>
       <AppHeader />
 
       <main className="px-5">
@@ -142,6 +143,6 @@ export default async function ProfilePage() {
 
         <LogoutButton className="mt-6 flex h-12 w-full items-center justify-center rounded-full border border-white/5 bg-ink-1 font-medium text-fail transition-all duration-surface ease-enter hover:bg-ink-2 active:scale-[0.98]" />
       </main>
-    </div>
+    </PageShell>
   );
 }

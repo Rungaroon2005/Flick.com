@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
+import { PageShell } from '@/components/ui/PageShell';
 import type { DownloadRecord } from '@/types';
 
 export default function DownloadsClient({
@@ -13,7 +14,7 @@ export default function DownloadsClient({
   initialDownloads: DownloadRecord[];
 }) {
   return (
-    <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
+    <PageShell>
       <AppHeader activeAction="downloads" />
 
       <main className="px-4">
@@ -65,6 +66,6 @@ export default function DownloadsClient({
           </div>
         )}
       </main>
-    </div>
+    </PageShell>
   );
 }

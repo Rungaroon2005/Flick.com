@@ -1,8 +1,9 @@
+import { PageShell } from '@/components/ui/PageShell';
 import { Skeleton, SkeletonRow } from '@/components/ui/Skeleton';
 
 export default function HomeLoading() {
   return (
-    <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
+    <PageShell>
       <header className="flex items-center justify-between px-5 py-4">
         <div className="text-2xl font-extrabold tracking-tight text-brand-ink">Flick</div>
       </header>
@@ -25,6 +26,6 @@ export default function HomeLoading() {
           ))}
         </div>
       </main>
-    </div>
+    </PageShell>
   );
 }

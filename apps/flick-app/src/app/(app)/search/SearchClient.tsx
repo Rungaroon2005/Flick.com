@@ -5,6 +5,7 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
+import { PageShell } from '@/components/ui/PageShell';
 import { Movie } from '@/types';
 
 const RECENT_SEARCHES_KEY = 'flick:recent-searches';
@@ -90,7 +91,7 @@ export default function SearchClient({ initialMovies }: { initialMovies: Movie[]
   };
 
   return (
-    <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
+    <PageShell>
       <AppHeader activeAction="search" />
 
       <main className="flex flex-col">
@@ -165,6 +166,6 @@ export default function SearchClient({ initialMovies }: { initialMovies: Movie[]
           )}
         </div>
       </main>
-    </div>
+    </PageShell>
   );
 }

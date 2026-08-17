@@ -13,10 +13,14 @@ interface MovieCardProps {
   showBookmark?: boolean;
 }
 
+// Cards grow with the viewport rather than multiplying into a hairline row:
+// a shelf should show ~1.5 cards on a phone and ~6 at desktop, not 12.
+// Every width here is mirrored by the sizes hint below — change both or the
+// browser serves an upscaled small rendition.
 const sizeClasses = {
-  small: 'w-[110px]',
-  medium: 'w-[140px]',
-  large: 'w-[160px]',
+  small: 'w-[110px] md:w-[124px] xl:w-[136px]',
+  medium: 'w-[140px] md:w-[160px] xl:w-[180px]',
+  large: 'w-[160px] md:w-[184px] xl:w-[208px]',
   fill: 'w-full',
 };
 
@@ -48,7 +52,7 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
           src={movie.posterUrl || '/posters/sathu.jpg'}
           alt={movie.title || 'Movie'}
           fill
-          sizes="(max-width: 480px) 160px, 200px"
+          sizes="(min-width: 1280px) 220px, (min-width: 1024px) 200px, (min-width: 768px) 184px, 160px"
           className="object-cover transition-[filter] duration-surface"
         />
         {showBookmark && (

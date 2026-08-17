@@ -20,7 +20,7 @@ export function SkeletonRow({ count = 4 }: { count?: number }) {
   return (
     <div className="flex gap-3 overflow-hidden">
       {Array.from({ length: count }).map((_, i) => (
-        <SkeletonPoster key={i} className="w-[42vw] max-w-40 shrink-0" />
+        <SkeletonPoster key={i} className="w-[42vw] max-w-40 shrink-0 md:w-[160px] md:max-w-none xl:w-[180px]" />
       ))}
     </div>
   );

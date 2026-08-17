@@ -1,7 +1,6 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import HomeClient from './HomeClient';
-import { Icon } from '@/components/ui/Icon';
+import { AppHeader } from '@/components/ui/AppHeader';
 import API_BASE_URL from '@/lib/api';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
@@ -50,36 +49,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
-      {/* Top Bar (Server rendered) */}
-      <header className="sticky top-0 z-[100] flex items-center justify-between bg-gradient-to-b from-black/90 to-transparent px-5 py-4 backdrop-blur-sm">
-        <div className="flex min-w-0 items-baseline gap-2.5">
-          <div className="text-2xl font-extrabold tracking-tight text-brand-ink">Flick</div>
-          <span className="truncate text-[13px] text-fg-mute">สวัสดี, {session.displayName}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/profile"
-            className="flex items-center gap-1.5 rounded-full bg-fg/10 py-1.5 pr-3 pl-2 text-data font-medium text-coin"
-          >
-            <Icon name="coin" size={16} />
-            {session.coinBalance}
-          </Link>
-          <Link
-            href="/downloads"
-            aria-label="ดาวน์โหลด"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-colors active:bg-fg/20"
-          >
-            <Icon name="download" size={18} />
-          </Link>
-          <Link
-            href="/search"
-            aria-label="ค้นหา"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-colors active:bg-fg/20"
-          >
-            <Icon name="search" size={18} />
-          </Link>
-        </div>
-      </header>
+      <AppHeader greeting={session.displayName} coinBalance={session.coinBalance} variant="overlay" />
 
       {error ? (
         <div className="flex h-[calc(100dvh-64px)] items-center justify-center text-fg">

@@ -74,14 +74,14 @@ export default async function ProfilePage() {
           <Link
             href="/downloads"
             aria-label="ดาวน์โหลด"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-300 ease-out hover:bg-fg/15 active:scale-90"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-surface ease-enter hover:bg-fg/15 active:scale-90"
           >
             <Icon name="download" size={18} />
           </Link>
           <Link
             href="/search"
             aria-label="ค้นหา"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-300 ease-out hover:bg-fg/15 active:scale-90"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-surface ease-enter hover:bg-fg/15 active:scale-90"
           >
             <Icon name="search" size={18} />
           </Link>
@@ -121,7 +121,7 @@ export default async function ProfilePage() {
               </div>
               <Link
                 href="/subscribe"
-                className="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white shadow-md shadow-black/20 transition-all duration-300 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
+                className="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white shadow-md shadow-black/20 transition-all duration-surface ease-enter hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
               >
                 จัดการ
               </Link>
@@ -157,7 +157,7 @@ export default async function ProfilePage() {
           <span>1.0.0</span>
         </div>
 
-        <LogoutButton className="mt-6 flex h-12 w-full items-center justify-center rounded-full border border-white/5 bg-ink-1 font-medium text-fail transition-all duration-300 ease-out hover:bg-ink-2 active:scale-[0.98]" />
+        <LogoutButton className="mt-6 flex h-12 w-full items-center justify-center rounded-full border border-white/5 bg-ink-1 font-medium text-fail transition-all duration-surface ease-enter hover:bg-ink-2 active:scale-[0.98]" />
       </main>
     </div>
   );

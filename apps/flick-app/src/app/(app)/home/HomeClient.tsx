@@ -155,7 +155,7 @@ export default function HomeClient({
                     href={`/player/${item.episode.id}`}
                     className="group flex w-[190px] shrink-0 snap-start flex-col gap-1 text-[13px] text-fg"
                   >
-                    <span className="relative aspect-video w-full overflow-hidden rounded-2xl bg-ink-1 shadow-[0_8px_20px_-10px_rgba(0,0,0,0.7)] transition-all duration-300 ease-out [@media(hover:hover)]:group-hover:-translate-y-0.5 [@media(hover:hover)]:group-hover:scale-105 [@media(hover:hover)]:group-hover:shadow-[0_18px_34px_-12px_rgba(0,0,0,0.85)]">
+                    <span className="relative aspect-video w-full overflow-hidden rounded-2xl bg-ink-1 shadow-[0_8px_20px_-10px_rgba(0,0,0,0.7)] transition-all duration-surface ease-enter [@media(hover:hover)]:group-hover:-translate-y-0.5 [@media(hover:hover)]:group-hover:scale-105 [@media(hover:hover)]:group-hover:shadow-[0_18px_34px_-12px_rgba(0,0,0,0.85)]">
                       {artwork && (
                         <ViewTransition name={`episode-${item.episode.id}`}>
                           <Image src={artwork} alt="" fill sizes="190px" className="object-cover" />

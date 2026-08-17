@@ -57,7 +57,7 @@ export function ReactionButton({
         aria-label={active ? (activeLabel ?? label) : label}
         aria-pressed={active}
         style={{ width: size, height: size }}
-        className={`relative flex items-center justify-center rounded-full border backdrop-blur-md transition-[background-color,border-color,box-shadow] duration-150 active:scale-90 disabled:opacity-50
+        className={`relative flex items-center justify-center rounded-full border backdrop-blur-md transition-[background-color,border-color,box-shadow] duration-ui active:scale-90 disabled:opacity-50
           ${
             active
               ? 'border-brand-ink/40 bg-brand text-white shadow-[0_0_18px_-2px_rgba(204,51,0,0.7)]'

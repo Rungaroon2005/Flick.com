@@ -72,7 +72,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
         <button
           onClick={() => router.back()}
           aria-label="ปิด"
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/40 text-fg backdrop-blur-xl transition-all duration-300 ease-out active:scale-90"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/40 text-fg backdrop-blur-xl transition-all duration-surface ease-enter active:scale-90"
         >
           <Icon name="close" size={20} />
         </button>
@@ -94,7 +94,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
           <button
             disabled={!firstEpisode}
             onClick={() => firstEpisode && router.push(`/player/${firstEpisode.id}`)}
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-white font-semibold text-ink shadow-lg shadow-black/25 transition-all duration-300 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-95 disabled:opacity-40 disabled:hover:translate-y-0"
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-white font-semibold text-ink shadow-lg shadow-black/25 transition-all duration-surface ease-enter hover:-translate-y-0.5 active:translate-y-0 active:scale-95 disabled:opacity-40 disabled:hover:translate-y-0"
           >
             <Icon name="play" size={18} />
             เล่น
@@ -112,7 +112,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
             disabled={!firstEpisode}
             aria-label="ดาวน์โหลดตอนแรก"
             onClick={() => firstEpisode && addDownload(firstEpisode.id)}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-300 ease-out hover:bg-fg/15 active:scale-90 disabled:opacity-40"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-surface ease-enter hover:bg-fg/15 active:scale-90 disabled:opacity-40"
           >
             <Icon name="download" size={20} />
           </button>
@@ -127,7 +127,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
         <p className="mt-2 text-base text-fg-dim">{movie.description}</p>
         <button
           onClick={() => setShowInfo(true)}
-          className="mt-3 flex items-center gap-1.5 text-sm font-medium text-fg-dim transition-opacity duration-300 active:opacity-70"
+          className="mt-3 flex items-center gap-1.5 text-sm font-medium text-fg-dim transition-opacity duration-surface active:opacity-70"
         >
           <Icon name="infoCircle" size={16} />
           ข้อมูลเพิ่มเติม
@@ -146,7 +146,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
               className="flex items-center gap-1.5 font-display text-lg font-bold text-fg"
             >
               ซีซั่น {selectedSeason}
-              <Icon name="chevronDown" size={18} className={`transition-transform duration-300 ${seasonDropdownOpen ? 'rotate-180' : ''}`} />
+              <Icon name="chevronDown" size={18} className={`transition-transform duration-surface ${seasonDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {seasonDropdownOpen && (
@@ -165,7 +165,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
                       setSelectedSeason(s.seasonNumber);
                       setSeasonDropdownOpen(false);
                     }}
-                    className={`block w-full px-4 py-2.5 text-left text-sm transition-colors duration-300 ${s.seasonNumber === selectedSeason ? 'bg-brand/15 text-brand-ink' : 'text-fg hover:bg-white/5'}`}
+                    className={`block w-full px-4 py-2.5 text-left text-sm transition-colors duration-surface ${s.seasonNumber === selectedSeason ? 'bg-brand/15 text-brand-ink' : 'text-fg hover:bg-white/5'}`}
                   >
                     ซีซั่น {s.seasonNumber}
                   </button>
@@ -180,12 +180,12 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
           {episodes.map((ep) => (
             <div
               key={ep.id}
-              className={`flex items-center gap-3 rounded-2xl border border-white/5 bg-ink-1 p-3 transition-all duration-300 ease-out [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:bg-ink-2 ${ep.coinCost > 0 ? 'opacity-80' : ''}`}
+              className={`flex items-center gap-3 rounded-2xl border border-white/5 bg-ink-1 p-3 transition-all duration-surface ease-enter [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:bg-ink-2 ${ep.coinCost > 0 ? 'opacity-80' : ''}`}
             >
               <button
                 onClick={() => router.push(`/player/${ep.id}`)}
                 aria-label={`เล่น ${ep.title}`}
-                className="flex min-w-0 flex-1 items-center gap-3 text-left transition-transform duration-300 active:scale-[0.98]"
+                className="flex min-w-0 flex-1 items-center gap-3 text-left transition-transform duration-surface active:scale-[0.98]"
               >
                 <span className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-xl bg-ink-2">
                   {(ep.thumbnailUrl || movie.posterUrl) && (
@@ -212,7 +212,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
               <button
                 onClick={() => addDownload(ep.id)}
                 aria-label={`ดาวน์โหลด ${ep.title}`}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-fg-dim transition-all duration-300 ease-out hover:bg-white/5 active:scale-90"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-fg-dim transition-all duration-surface ease-enter hover:bg-white/5 active:scale-90"
               >
                 <Icon name={downloadedEpisodeIds.has(ep.id) ? 'checkCircle' : 'download'} size={18} />
               </button>

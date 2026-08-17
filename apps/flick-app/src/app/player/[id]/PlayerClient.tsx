@@ -173,7 +173,7 @@ export default function PlayerClient({
 
       {/* Zone A — chrome */}
       <div
-        className={`absolute inset-x-0 top-0 z-20 flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pt-safe pb-6 transition-opacity duration-200 ${
+        className={`absolute inset-x-0 top-0 z-20 flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pt-safe pb-6 transition-opacity duration-surface ${
           chromeVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       >
@@ -239,7 +239,7 @@ export default function PlayerClient({
                   void togglePlayback();
                 }}
                 aria-label="เล่น"
-                className="flex h-16 w-16 items-center justify-center rounded-full border border-white/40 bg-black/50 text-white backdrop-blur-xl transition-all duration-300 ease-out active:scale-90"
+                className="flex h-16 w-16 items-center justify-center rounded-full border border-white/40 bg-black/50 text-white backdrop-blur-xl transition-all duration-surface ease-enter active:scale-90"
               >
                 <Icon name="play" size={26} className="ml-1" />
               </button>
@@ -282,7 +282,7 @@ export default function PlayerClient({
                   void addDownload();
                 }}
                 aria-label="ดาวน์โหลด"
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-xl transition-all duration-300 ease-out active:scale-90 hover:bg-black/60"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-xl transition-all duration-surface ease-enter active:scale-90 hover:bg-black/60"
               >
                 <Icon name="download" size={20} />
               </button>
@@ -295,7 +295,7 @@ export default function PlayerClient({
       {/* Zone B — transport */}
       {videoUrl && (
         <div
-          className={`absolute inset-x-0 bottom-0 z-20 flex items-center gap-3 bg-gradient-to-t from-black/90 to-transparent px-4 pt-10 pb-safe transition-opacity duration-200 ${
+          className={`absolute inset-x-0 bottom-0 z-20 flex items-center gap-3 bg-gradient-to-t from-black/90 to-transparent px-4 pt-10 pb-safe transition-opacity duration-surface ${
             chromeVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
           }`}
         >
@@ -307,7 +307,7 @@ export default function PlayerClient({
             <Icon name={isPlaying ? 'pause' : 'play'} size={22} />
           </button>
           <span
-            className={`shrink-0 text-data text-white transition-transform duration-150 ${isScrubbing ? 'scale-[1.15]' : ''}`}
+            className={`shrink-0 text-data text-white transition-transform duration-ui ${isScrubbing ? 'scale-[1.15]' : ''}`}
           >
             {formatTime(progressSeconds)} / {formatTime(durationSeconds)}
           </span>
@@ -342,7 +342,7 @@ export default function PlayerClient({
                 key={rate}
                 aria-pressed={playbackRate === rate}
                 onClick={() => changePlaybackRate(rate)}
-                className={`rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-300 ease-out active:scale-95
+                className={`rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-surface ease-enter active:scale-95
                   ${playbackRate === rate ? 'bg-brand text-white shadow-[0_0_16px_-3px_rgba(255,77,26,0.6)]' : 'bg-ink-2 text-fg-dim hover:bg-hairline'}`}
               >
                 {rate}x

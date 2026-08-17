@@ -22,7 +22,7 @@ export default function DownloadsClient({
           <Link
             href="/search"
             aria-label="ค้นหา"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-300 ease-out hover:bg-fg/15 active:scale-90"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-surface ease-enter hover:bg-fg/15 active:scale-90"
           >
             <Icon name="search" size={18} />
           </Link>
@@ -47,7 +47,7 @@ export default function DownloadsClient({
             {initialDownloads.map((item) => (
               <Link
                 href={`/player/${item.episode.id}`}
-                className="flex items-center gap-4 rounded-2xl border border-white/5 bg-ink-1 p-3 transition-all duration-300 ease-out [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:bg-ink-2 active:scale-[0.98]"
+                className="flex items-center gap-4 rounded-2xl border border-white/5 bg-ink-1 p-3 transition-all duration-surface ease-enter [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:bg-ink-2 active:scale-[0.98]"
                 key={item.id}
               >
                 <div className="relative aspect-video w-30 shrink-0 overflow-hidden rounded-xl">

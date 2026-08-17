@@ -25,14 +25,14 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
         ('href' in action ? (
           <Link
             href={action.href}
-            className="mt-1 text-sm font-medium text-brand-ink transition-opacity duration-300 active:opacity-70"
+            className="mt-1 text-sm font-medium text-brand-ink transition-opacity duration-surface active:opacity-70"
           >
             {action.label}
           </Link>
         ) : (
           <button
             onClick={action.onClick}
-            className="mt-1 text-sm font-medium text-brand-ink transition-opacity duration-300 active:opacity-70"
+            className="mt-1 text-sm font-medium text-brand-ink transition-opacity duration-surface active:opacity-70"
           >
             {action.label}
           </button>

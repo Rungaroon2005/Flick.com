@@ -28,7 +28,7 @@ export default function SubscribeClient({
         <button
           onClick={() => router.push('/home')}
           aria-label="ปิด"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-300 ease-out hover:bg-fg/15 active:scale-90"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-surface ease-enter hover:bg-fg/15 active:scale-90"
         >
           <Icon name="close" size={18} />
         </button>
@@ -49,7 +49,7 @@ export default function SubscribeClient({
             return (
               <div
                 key={plan.id}
-                className={`relative rounded-3xl border p-6 shadow-lg shadow-black/20 transition-all duration-300 ease-out ${isFree ? 'border-brand-ink' : 'border-white/10 opacity-90'}`}
+                className={`relative rounded-3xl border p-6 shadow-lg shadow-black/20 transition-all duration-surface ease-enter ${isFree ? 'border-brand-ink' : 'border-white/10 opacity-90'}`}
               >
                 {plan.badge && !isFree && (
                   <span className="absolute -top-2.5 right-5 rounded-full bg-coin px-3 py-1 text-xs font-semibold text-ink">
@@ -76,7 +76,7 @@ export default function SubscribeClient({
                 {isFree ? (
                   <button
                     onClick={() => router.push('/home')}
-                    className="mt-5 flex h-11 w-full items-center justify-center rounded-full bg-brand font-semibold text-white shadow-lg shadow-black/25 transition-all duration-300 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
+                    className="mt-5 flex h-11 w-full items-center justify-center rounded-full bg-brand font-semibold text-white shadow-lg shadow-black/25 transition-all duration-surface ease-enter hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
                   >
                     ใช้งานฟรี
                   </button>

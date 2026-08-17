@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState, useSyncExternalStore } from 'react';
-import Link from 'next/link';
 import { MovieCard } from '@/features/catalog';
+import { AppHeader } from '@/components/ui/AppHeader';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
@@ -91,25 +91,11 @@ export default function SearchClient({ initialMovies }: { initialMovies: Movie[]
 
   return (
     <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
-      <header className="sticky top-0 z-[100] flex items-center justify-between bg-ink px-5 py-4">
-        <div className="text-2xl font-extrabold tracking-tight text-brand-ink">Flick</div>
-        <div className="flex gap-4">
-          <Link
-            href="/downloads"
-            aria-label="ดาวน์โหลด"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-300 ease-out hover:bg-fg/15 active:scale-90"
-          >
-            <Icon name="download" size={18} />
-          </Link>
-          <span aria-label="ค้นหา" className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-ink/10 text-brand-ink">
-            <Icon name="search" size={18} />
-          </span>
-        </div>
-      </header>
+      <AppHeader activeAction="search" />
 
       <main className="flex flex-col">
         <div className="sticky top-16 z-[99] bg-ink px-5 pt-2 pb-6">
-          <div className="flex h-12 items-center gap-3 rounded-full border border-white/10 bg-ink-1/80 px-5 backdrop-blur-xl transition-colors duration-300 focus-within:border-brand-ink">
+          <div className="flex h-12 items-center gap-3 rounded-full border border-white/10 bg-ink-1/80 px-5 backdrop-blur-xl transition-colors duration-surface focus-within:border-brand-ink">
             <Icon name="search" size={20} className="shrink-0 text-fg-mute" />
             <input
               type="text"
@@ -124,7 +110,7 @@ export default function SearchClient({ initialMovies }: { initialMovies: Movie[]
             {query && (
               <button
                 aria-label="ล้างคำค้นหา"
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-fg-mute transition-all duration-300 ease-out hover:text-fg active:scale-90"
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-fg-mute transition-all duration-surface ease-enter hover:text-fg active:scale-90"
                 onClick={() => setQuery('')}
               >
                 <Icon name="close" size={16} />

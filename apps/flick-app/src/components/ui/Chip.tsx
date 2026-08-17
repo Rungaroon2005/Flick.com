@@ -10,7 +10,7 @@ export function Chip({ active = false, className = '', children, ...rest }: Chip
       type="button"
       aria-pressed={active}
       className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-medium
-        transition-all duration-300 ease-out active:scale-95
+        transition-all duration-surface ease-enter active:scale-95
         ${
           active
             ? 'bg-brand text-white shadow-[0_0_16px_-3px_rgba(255,77,26,0.6)]'

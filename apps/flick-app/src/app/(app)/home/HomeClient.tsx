@@ -38,27 +38,26 @@ export default function HomeClient({
 
   return (
     <main className="flex flex-col gap-10 pt-2 sm:gap-14">
-      {/* Hero — a portrait showcase, not a VOD banner. A looping preview
-          clip stands in for the lead title's own trailer (there is no
-          per-movie trailer wired up yet — `Movie.trailerUrl` exists for
-          that, but this is a static placeholder asset until the data side
-          catches up). Stacked on mobile; at md+ the 9:16 card sits beside
+      {/* Hero — a portrait showcase, not a VOD banner. The ambient backdrop
+          reuses an optimized low-quality poster rendition, avoiding an
+          autoplay media download that competed with the actual artwork and
+          playback routes. Stacked on mobile; at md+ the 9:16 card sits beside
           its own title/CTA block instead of stretching to fill the
           viewport height — a mobile-proportioned card just floats in a
           sea of empty space otherwise. */}
       {featured && (
         <section className="relative -mt-2 overflow-hidden pb-2 md:py-10">
           <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              poster={featured.posterUrl ?? undefined}
-              className="h-full w-full scale-125 object-cover object-top blur-2xl brightness-[0.5] saturate-125"
-            >
-              <source src="/videos/movie1-preview.m4v" type="video/mp4" />
-            </video>
+            {featured.posterUrl && (
+              <Image
+                src={featured.posterUrl}
+                alt=""
+                fill
+                sizes="100vw"
+                quality={45}
+                className="scale-125 object-cover object-top blur-2xl brightness-[0.5] saturate-125"
+              />
+            )}
             <div
               className="absolute h-72 w-72 rounded-full bg-brand-ink/30 blur-[100px]"
               style={{ top: '-4%', left: '50%', transform: 'translateX(-50%)' }}

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Icon } from './Icon';
+import { HeaderNav } from './HeaderNav';
 
 interface AppHeaderProps {
   greeting?: string;
@@ -15,8 +16,11 @@ const actions = [
 
 export function AppHeader({ greeting, coinBalance, activeAction, variant = 'solid' }: AppHeaderProps) {
   return (
+    // h-16 is fixed at every width and is load-bearing: SearchClient's filter
+    // bar sticks at top-16 against it. Changing this height means changing
+    // that offset in the same commit.
     <header
-      className={`sticky top-0 z-[100] flex items-center justify-between px-5 py-4 backdrop-blur-sm ${
+      className={`sticky top-0 z-[100] flex h-16 items-center justify-between px-5 backdrop-blur-sm md:px-8 lg:px-10 ${
         variant === 'overlay' ? 'bg-gradient-to-b from-black/90 to-transparent' : 'bg-ink/95'
       }`}
     >
@@ -24,6 +28,7 @@ export function AppHeader({ greeting, coinBalance, activeAction, variant = 'soli
         <div className="text-2xl font-extrabold tracking-tight text-brand-ink">Flick</div>
         {greeting && <span className="truncate text-[13px] text-fg-mute">สวัสดี, {greeting}</span>}
       </div>
+      <HeaderNav />
       <div className="flex items-center gap-3">
         {coinBalance !== undefined && (
           <Link

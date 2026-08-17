@@ -331,7 +331,7 @@ function FeedSlide({
       </div>
 
       {/* Caption + rail */}
-      <div className="absolute inset-x-0 bottom-0 z-10 mx-auto flex max-w-3xl items-end justify-between gap-4 px-4 pb-24 lg:pb-8">
+      <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-4 px-4 pb-24 lg:mx-auto lg:max-w-3xl lg:pb-8">
         <button onClick={openDetails} className="min-w-0 flex-1 text-left">
           <h2 className="truncate text-lg font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
             {movie.title}

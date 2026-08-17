@@ -15,7 +15,7 @@ export default function BookmarksClient({ movies }: { movies: Movie[] }) {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-4 lg:grid-cols-5 xl:grid-cols-6">
       {/* Every item in this list is bookmarked by construction, so the badge
           reflects real state rather than "this happens to be the list". */}
       {movies.map((movie) => (

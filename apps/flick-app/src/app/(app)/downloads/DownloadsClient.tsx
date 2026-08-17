@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { AppHeader } from '@/components/ui/AppHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import type { DownloadRecord } from '@/types';
@@ -13,21 +14,7 @@ export default function DownloadsClient({
 }) {
   return (
     <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
-      <header className="sticky top-0 z-10 flex items-center justify-between bg-ink px-4 py-4">
-        <div className="text-2xl font-extrabold tracking-tight text-brand-ink">Flick</div>
-        <div className="flex gap-4">
-          <span aria-label="ดาวน์โหลด" className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-brand-ink">
-            <Icon name="download" size={18} />
-          </span>
-          <Link
-            href="/search"
-            aria-label="ค้นหา"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-surface ease-enter hover:bg-fg/15 active:scale-90"
-          >
-            <Icon name="search" size={18} />
-          </Link>
-        </div>
-      </header>
+      <AppHeader activeAction="downloads" />
 
       <main className="px-4">
         <h1 className="text-title mb-1 font-display">รายการดาวน์โหลด</h1>

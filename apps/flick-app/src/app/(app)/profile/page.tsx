@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import LogoutButton from './LogoutButton';
+import { AppHeader } from '@/components/ui/AppHeader';
 import { Icon } from '@/components/ui/Icon';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
@@ -68,25 +69,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
-      <header className="flex items-center justify-between px-5 py-4">
-        <div className="text-2xl font-extrabold tracking-tight text-brand-ink">Flick</div>
-        <div className="flex gap-4">
-          <Link
-            href="/downloads"
-            aria-label="ดาวน์โหลด"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-surface ease-enter hover:bg-fg/15 active:scale-90"
-          >
-            <Icon name="download" size={18} />
-          </Link>
-          <Link
-            href="/search"
-            aria-label="ค้นหา"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-surface ease-enter hover:bg-fg/15 active:scale-90"
-          >
-            <Icon name="search" size={18} />
-          </Link>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="px-5">
         <div className="flex items-center gap-4">

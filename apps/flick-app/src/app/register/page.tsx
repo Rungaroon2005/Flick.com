@@ -110,7 +110,7 @@ export default function RegisterPage() {
 
       <div className="text-3xl font-extrabold tracking-tight text-brand-ink">Flick</div>
 
-      <div className="mt-7 w-full max-w-sm rounded-2xl border border-hairline bg-ink-1/70 p-6 backdrop-blur-xl">
+      <div className="mt-7 w-full max-w-sm rounded-2xl border border-hairline bg-ink-1/70 p-6 backdrop-blur-xl md:max-w-md">
         <h1 className="text-title font-display">สมัครสมาชิก</h1>
         <p className="mt-1 text-sm text-fg-mute">ดูฟรีตอนที่ 1–10 ทุกเรื่อง ไม่ต้องผูกบัตร</p>
 

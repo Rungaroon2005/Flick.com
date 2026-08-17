@@ -60,7 +60,7 @@ export default function LandingClient({ movies }: { movies: Movie[] }) {
           {left?.posterUrl && (
             <div
               className="absolute z-0 aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-2xl brightness-[0.45]"
-              style={{ transform: 'translateX(-140px) rotateY(24deg) scale(0.82)' }}
+              style={{ transform: 'translateX(-170px) rotateY(24deg) scale(0.82)' }}
             >
               <Image src={left.posterUrl} alt="" fill sizes="96px" className="object-cover blur-[1px]" />
             </div>
@@ -68,7 +68,7 @@ export default function LandingClient({ movies }: { movies: Movie[] }) {
           {right?.posterUrl && (
             <div
               className="absolute z-0 aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-2xl brightness-[0.45]"
-              style={{ transform: 'translateX(140px) rotateY(-24deg) scale(0.82)' }}
+              style={{ transform: 'translateX(170px) rotateY(-24deg) scale(0.82)' }}
             >
               <Image src={right.posterUrl} alt="" fill sizes="96px" className="object-cover blur-[1px]" />
             </div>

@@ -171,32 +171,6 @@ export default function PlayerClient({
         />
       )}
 
-      {/* Zone A — chrome */}
-      <div
-        className={`absolute inset-x-0 top-0 z-20 flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pt-safe pb-6 transition-opacity duration-surface ${
-          chromeVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
-        }`}
-      >
-        <button
-          onClick={() => router.back()}
-          aria-label="กลับ"
-          className="flex h-11 w-11 shrink-0 items-center justify-center text-fg"
-        >
-          <Icon name="chevronLeft" size={26} />
-        </button>
-        <div className="min-w-0 flex-1 text-center">
-          <div className="truncate text-sm font-semibold text-fg">{movie.title}</div>
-          <div className="truncate text-xs text-fg-dim">{episode.title}</div>
-        </div>
-        <button
-          onClick={toggleFullscreen}
-          aria-label="เต็มหน้าจอ"
-          className="flex h-11 w-11 shrink-0 items-center justify-center text-fg"
-        >
-          <Icon name="expand" size={20} />
-        </button>
-      </div>
-
       {/* Stage */}
       <div className="flex h-full items-center justify-center" onClick={recallChrome}>
         <div className="relative h-full max-w-full [aspect-ratio:9/16]">
@@ -248,7 +222,7 @@ export default function PlayerClient({
 
           {/* Zone C — rail, anchored to the stage. Persists while playing;
               like/bookmark/download are expressive, not navigational. */}
-          <div className="absolute top-1/2 right-3 z-10 flex -translate-y-1/2 flex-col gap-5">
+          <div className="absolute top-1/2 right-3 z-10 flex -translate-y-1/2 flex-col gap-5 lg:right-auto lg:left-full lg:ml-6">
             <ReactionButton
               active={liked}
               icon="heart"
@@ -289,48 +263,76 @@ export default function PlayerClient({
               <span className="text-xs text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">ดาวน์โหลด</span>
             </div>
           </div>
+
+          {/* Zone A — chrome */}
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className={`absolute inset-x-0 top-0 z-20 flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pt-safe pb-6 transition-opacity duration-surface ${
+              chromeVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
+            }`}
+          >
+            <button
+              onClick={() => router.back()}
+              aria-label="กลับ"
+              className="flex h-11 w-11 shrink-0 items-center justify-center text-fg"
+            >
+              <Icon name="chevronLeft" size={26} />
+            </button>
+            <div className="min-w-0 flex-1 text-center">
+              <div className="truncate text-sm font-semibold text-fg">{movie.title}</div>
+              <div className="truncate text-xs text-fg-dim">{episode.title}</div>
+            </div>
+            <button
+              onClick={toggleFullscreen}
+              aria-label="เต็มหน้าจอ"
+              className="flex h-11 w-11 shrink-0 items-center justify-center text-fg"
+            >
+              <Icon name="expand" size={20} />
+            </button>
+          </div>
+
+          {/* Zone B — transport */}
+          {videoUrl && (
+            <div
+              onClick={(event) => event.stopPropagation()}
+              className={`absolute inset-x-0 bottom-0 z-20 flex items-center gap-3 bg-gradient-to-t from-black/90 to-transparent px-4 pt-10 pb-safe transition-opacity duration-surface ${
+                chromeVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
+              }`}
+            >
+              <button
+                onClick={() => void togglePlayback()}
+                aria-label={isPlaying ? 'หยุดชั่วคราว' : 'เล่น'}
+                className="flex h-11 w-11 shrink-0 items-center justify-center text-white"
+              >
+                <Icon name={isPlaying ? 'pause' : 'play'} size={22} />
+              </button>
+              <span
+                className={`shrink-0 text-data text-white transition-transform duration-ui ${isScrubbing ? 'scale-[1.15]' : ''}`}
+              >
+                {formatTime(progressSeconds)} / {formatTime(durationSeconds)}
+              </span>
+              <input
+                type="range"
+                min="0"
+                max={durationSeconds}
+                value={progressSeconds}
+                onChange={(event) => seekTo(Number(event.target.value))}
+                onPointerDown={() => setIsScrubbing(true)}
+                onPointerUp={() => setIsScrubbing(false)}
+                className="h-6 flex-1 accent-brand"
+                aria-label="ตำแหน่งการเล่น"
+              />
+              <button
+                onClick={() => setShowSettings(true)}
+                aria-label="การตั้งค่า"
+                className="flex h-11 w-11 shrink-0 items-center justify-center text-white"
+              >
+                <Icon name="settings" size={20} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Zone B — transport */}
-      {videoUrl && (
-        <div
-          className={`absolute inset-x-0 bottom-0 z-20 flex items-center gap-3 bg-gradient-to-t from-black/90 to-transparent px-4 pt-10 pb-safe transition-opacity duration-surface ${
-            chromeVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
-          }`}
-        >
-          <button
-            onClick={() => void togglePlayback()}
-            aria-label={isPlaying ? 'หยุดชั่วคราว' : 'เล่น'}
-            className="flex h-11 w-11 shrink-0 items-center justify-center text-white"
-          >
-            <Icon name={isPlaying ? 'pause' : 'play'} size={22} />
-          </button>
-          <span
-            className={`shrink-0 text-data text-white transition-transform duration-ui ${isScrubbing ? 'scale-[1.15]' : ''}`}
-          >
-            {formatTime(progressSeconds)} / {formatTime(durationSeconds)}
-          </span>
-          <input
-            type="range"
-            min="0"
-            max={durationSeconds}
-            value={progressSeconds}
-            onChange={(event) => seekTo(Number(event.target.value))}
-            onPointerDown={() => setIsScrubbing(true)}
-            onPointerUp={() => setIsScrubbing(false)}
-            className="h-6 flex-1 accent-brand"
-            aria-label="ตำแหน่งการเล่น"
-          />
-          <button
-            onClick={() => setShowSettings(true)}
-            aria-label="การตั้งค่า"
-            className="flex h-11 w-11 shrink-0 items-center justify-center text-white"
-          >
-            <Icon name="settings" size={20} />
-          </button>
-        </div>
-      )}
 
       <Sheet open={showSettings} onClose={closeSettings} title="การตั้งค่า">
         <div>

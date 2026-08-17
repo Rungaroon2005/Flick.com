@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { ReactionButton } from '@/components/ui/ReactionButton';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
+import { AppHeader } from '@/components/ui/AppHeader';
 import {
   useHlsPlayer,
   useMovieActions,
@@ -92,11 +93,23 @@ export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
 
   return (
     <div className="relative h-dvh w-full bg-ink">
+      {/* Desktop nav — /discover's own chrome (the filter trigger below) is
+          deliberately minimal at every width, but that left zero way back to
+          other tabs once BottomNav hides at lg (lg:hidden, added when
+          HeaderNav was introduced — every other tab route renders AppHeader
+          as that replacement, but this one never did). AppHeader's overlay
+          variant already exists for exactly this over-video case (see
+          HomeClient's hero) — reusing it rather than hand-rolling a second
+          header bar. */}
+      <div className="absolute inset-x-0 top-0 z-40 hidden lg:block">
+        <AppHeader variant="overlay" />
+      </div>
+
       {/* One small trigger, not a bar across the video — the whole
           complaint about the old chip row was that it stayed on screen
           permanently and competed with the content. Tapping it opens the
           genre list as a sheet; nothing sits over the video by default. */}
-      <div className="absolute inset-x-0 top-0 z-30 pt-safe">
+      <div className="absolute inset-x-0 top-0 z-30 pt-safe lg:top-16">
         <button
           onClick={() => setFilterOpen(true)}
           className="mt-3 ml-4 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/35 py-2 pr-3.5 pl-3 text-sm font-medium text-white backdrop-blur-xl transition-all duration-surface ease-enter active:scale-95"

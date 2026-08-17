@@ -37,7 +37,7 @@ export function usePlaybackAuthorization(
 
   const authorize = useCallback(async () => {
     try {
-      const authorization = await apiFetch<PlaybackAuthorization>(`/playback/${episodeId}/authorize`);
+      const authorization = await apiFetch(`/playback/${episodeId}/authorize`);
       applyAuthorization(authorization);
       return authorization;
     } catch (err) {
@@ -54,7 +54,7 @@ export function usePlaybackAuthorization(
     if (!enabled || authorizationResolved) return;
     let cancelled = false;
 
-    void apiFetch<PlaybackAuthorization>(`/playback/${episodeId}/authorize`)
+    void apiFetch(`/playback/${episodeId}/authorize`)
       .then((authorization) => {
         if (!cancelled) applyAuthorization(authorization);
       })

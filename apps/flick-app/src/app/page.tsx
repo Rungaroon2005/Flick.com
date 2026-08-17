@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import API_BASE_URL from '@/lib/api';
 import { getSession } from '@/lib/session';
 import { Movie } from '@/types';
+import { decodeMovies } from '@/types/api';
 
 // Public catalogue data only — safe to render for a visitor with no
 // session at all, same ISR pattern as /discover and /home.
@@ -10,7 +11,7 @@ async function getMovies(): Promise<Movie[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/movies`, { next: { revalidate: 60 } });
     if (!res.ok) return [];
-    return res.json();
+    return decodeMovies(await res.json());
   } catch {
     return [];
   }

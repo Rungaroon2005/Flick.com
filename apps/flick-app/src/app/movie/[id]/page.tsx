@@ -3,6 +3,7 @@ import { ErrorPanel } from '@/components/ui/ErrorPanel';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer } from '@/lib/session';
 import { Movie } from '@/types';
+import { decodeMovie, decodeMovies } from '@/types/api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -11,7 +12,7 @@ async function getMovie(id: string): Promise<Movie> {
     next: { revalidate: 60 }
   });
   if (!res.ok) throw new Error('Failed to fetch movie');
-  return res.json();
+  return decodeMovie(await res.json());
 }
 
 async function getSimilarMovies(id: string): Promise<Movie[]> {
@@ -19,7 +20,7 @@ async function getSimilarMovies(id: string): Promise<Movie[]> {
     next: { revalidate: 60 }
   });
   if (!res.ok) throw new Error('Failed to fetch similar movies');
-  return res.json();
+  return decodeMovies(await res.json());
 }
 
 // This page stays public — an anonymous visitor must still see the movie. So
@@ -27,7 +28,7 @@ async function getSimilarMovies(id: string): Promise<Movie[]> {
 // toggle in MovieClient) is gated on a session.
 async function getIsBookmarked(movieId: string): Promise<boolean> {
   try {
-    const bookmarks = await apiFetchServer<Movie[]>('/me/bookmarks');
+    const bookmarks = await apiFetchServer('/me/bookmarks');
     return bookmarks.some((m) => m.id === movieId);
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) return false;

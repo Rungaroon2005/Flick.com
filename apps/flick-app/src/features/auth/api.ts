@@ -31,7 +31,7 @@ export async function login(
   password: string,
 ): Promise<AuthResult> {
   try {
-    const data = await apiFetch<{ success: boolean; user: AuthUser }>(
+    const data = await apiFetch(
       '/auth/login',
       { method: 'POST', body: JSON.stringify({ email, password }) },
     );
@@ -49,7 +49,7 @@ export async function register(data: {
   password: string;
 }): Promise<AuthResult> {
   try {
-    const result = await apiFetch<{ success: boolean; user: AuthUser }>(
+    const result = await apiFetch(
       '/auth/register',
       {
         method: 'POST',
@@ -70,7 +70,7 @@ export async function register(data: {
 
 export async function logout(): Promise<void> {
   try {
-    await apiFetch<{ success: boolean }>('/auth/logout', { method: 'POST' });
+    await apiFetch('/auth/logout', { method: 'POST' });
   } catch (err) {
     // The cookie may already be gone/expired; the user still leaves the app.
     console.error('Logout failed:', err);

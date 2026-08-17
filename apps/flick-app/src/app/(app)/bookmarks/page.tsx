@@ -16,7 +16,7 @@ export default async function BookmarksPage() {
 
   let movies: Movie[];
   try {
-    movies = await apiFetchServer<Movie[]>('/me/bookmarks');
+    movies = await apiFetchServer('/me/bookmarks');
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) redirect('/login');
     console.error('Error fetching bookmarks on server:', error);

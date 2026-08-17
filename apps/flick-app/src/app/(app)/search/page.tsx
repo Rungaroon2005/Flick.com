@@ -2,11 +2,12 @@ import SearchClient from './SearchClient';
 import { ErrorPanel } from '@/components/ui/ErrorPanel';
 import API_BASE_URL from '@/lib/api';
 import type { Movie } from '@/types';
+import { decodeMovies } from '@/types/api';
 
 async function getMovies(): Promise<Movie[]> {
   const response = await fetch(`${API_BASE_URL}/movies`, { next: { revalidate: 60 } });
   if (!response.ok) throw new Error('Failed to fetch movies');
-  return response.json();
+  return decodeMovies(await response.json());
 }
 
 export default async function SearchPage() {

@@ -1,5 +1,6 @@
 import DiscoverClient from './DiscoverClient';
 import { Movie } from '@/types';
+import { decodeMovies } from '@/types/api';
 import API_BASE_URL from '@/lib/api';
 
 // This is a React Server Component (no 'use client' directive).
@@ -19,7 +20,7 @@ export default async function DiscoverPage() {
     });
     
     if (res.ok) {
-      movies = await res.json();
+      movies = decodeMovies(await res.json());
     }
   } catch (error) {
     console.error('Failed to fetch movies on server:', error);

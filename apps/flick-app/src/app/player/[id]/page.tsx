@@ -4,6 +4,7 @@ import API_BASE_URL from '@/lib/api';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
 import type { Episode, Movie, PlaybackAuthorization } from '@/types';
+import { decodeMovies } from '@/types/api';
 import PlayerClient from './PlayerClient';
 
 function findEpisode(movies: Movie[], episodeId: string): { movie: Movie; episode: Episode } | null {
@@ -19,7 +20,7 @@ function findEpisode(movies: Movie[], episodeId: string): { movie: Movie; episod
 async function getMovies(): Promise<Movie[]> {
   const response = await fetch(`${API_BASE_URL}/movies`, { next: { revalidate: 60 } });
   if (!response.ok) throw new Error('Failed to fetch movies');
-  return response.json();
+  return decodeMovies(await response.json());
 }
 
 export default async function PlayerPage({
@@ -37,7 +38,7 @@ export default async function PlayerPage({
   try {
     const [movies, authorizationResult] = await Promise.all([
       getMovies(),
-      apiFetchServer<PlaybackAuthorization>(`/playback/${episodeId}/authorize`),
+      apiFetchServer(`/playback/${episodeId}/authorize`),
     ]);
     playback = findEpisode(movies, episodeId);
     authorization = authorizationResult;

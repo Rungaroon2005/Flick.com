@@ -4,6 +4,7 @@ import { ErrorPanel } from '@/components/ui/ErrorPanel';
 import API_BASE_URL from '@/lib/api';
 import { getSession } from '@/lib/session';
 import type { CoinPack, SubscriptionPlan } from '@/types';
+import { decodePlans } from '@/types/api';
 
 interface PlansResponse {
   subscriptions: SubscriptionPlan[];
@@ -13,7 +14,7 @@ interface PlansResponse {
 async function getPlans(): Promise<PlansResponse> {
   const response = await fetch(`${API_BASE_URL}/plans`, { next: { revalidate: 300 } });
   if (!response.ok) throw new Error('Failed to fetch plans');
-  return response.json();
+  return decodePlans(await response.json());
 }
 
 // Keep plan selection inside the authenticated membership area, even while

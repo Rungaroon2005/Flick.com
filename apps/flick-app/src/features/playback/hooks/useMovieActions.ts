@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import type { useRouter } from 'next/navigation';
 import { ApiError, apiFetch } from '@/lib/apiClient';
 
-type MovieActions = { liked: boolean; bookmarked: boolean };
 export type PendingAction = 'like' | 'favorite' | null;
 
 export function useMovieActions(
@@ -23,7 +22,7 @@ export function useMovieActions(
     if (!movieId || !enabled || actionsForMovieId === movieId) return;
 
     let cancelled = false;
-    void apiFetch<MovieActions>(`/me/movies/${movieId}/actions`)
+    void apiFetch(`/me/movies/${movieId}/actions`)
       .then((actions) => {
         if (cancelled) return;
         setLiked(actions.liked);
@@ -60,7 +59,7 @@ export function useMovieActions(
     setPendingAction('like');
     setNotice(null);
     try {
-      const result = await apiFetch<{ liked: boolean }>(`/me/likes/${movieId}`, {
+      const result = await apiFetch(`/me/likes/${movieId}`, {
         method: shouldLike ? 'PUT' : 'DELETE',
       });
       setLiked(result.liked);
@@ -79,7 +78,7 @@ export function useMovieActions(
     setPendingAction('favorite');
     setNotice(null);
     try {
-      const result = await apiFetch<{ bookmarked: boolean }>(`/me/bookmarks/${movieId}`, {
+      const result = await apiFetch(`/me/bookmarks/${movieId}`, {
         method: shouldBookmark ? 'PUT' : 'DELETE',
       });
       setBookmarked(result.bookmarked);

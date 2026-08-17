@@ -41,7 +41,7 @@ export function useEntitlement(
     let cancelled = false;
     void (async () => {
       try {
-        const movies = await apiFetch<Movie[]>('/movies');
+        const movies = await apiFetch('/movies');
         const result = findEpisode(movies, episodeId);
         if (cancelled) return;
         if (!result) {

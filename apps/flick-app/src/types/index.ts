@@ -8,6 +8,28 @@ export interface AuthenticatedUser {
   coinBalance: number;
 }
 
+export interface AuthMutationResponse {
+  success: boolean;
+  user: Pick<AuthenticatedUser, 'id' | 'email' | 'displayName'>;
+}
+
+export interface MovieActionsResponse {
+  liked: boolean;
+  bookmarked: boolean;
+}
+
+export interface LikeResponse {
+  liked: boolean;
+}
+
+export interface BookmarkResponse {
+  bookmarked: boolean;
+}
+
+export interface WalletResponse {
+  balance: number;
+}
+
 export interface Episode {
   id: string;
   seasonId: string;
@@ -83,7 +105,7 @@ export interface Subscription {
   id: string;
   userId: string;
   planType: string; // 'weekly' | 'monthly' in practice
-  status: 'ACTIVE' | 'CANCELED' | 'EXPIRED';
+  status: 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'EXPIRED';
   autoRenew: boolean;
   startDate: string; // ISO string from backend
   endDate: string;

@@ -5,12 +5,13 @@ import { cookies } from 'next/headers';
 import API_BASE_URL from '@/lib/api';
 import { ApiError, unwrapResponse } from '@/lib/apiClient';
 import type { AuthenticatedUser } from '@/types';
+import { decodeApiResponse, type ApiPath, type ApiResponse } from '@/types/api';
 
 /** Server-side twin of apiFetch. Forwards the caller's cookies; never cached. */
-export async function apiFetchServer<T>(
-  path: string,
+export async function apiFetchServer<Path extends ApiPath>(
+  path: Path,
   init: RequestInit = {},
-): Promise<T> {
+): Promise<ApiResponse<Path>> {
   const cookieHeader = (await cookies()).toString(); // cookies() is async in Next 16
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
@@ -24,7 +25,12 @@ export async function apiFetchServer<T>(
       cookie: cookieHeader,
     },
   });
-  return unwrapResponse<T>(res);
+  const value = await unwrapResponse(res);
+  try {
+    return decodeApiResponse(path, value);
+  } catch {
+    throw new ApiError(502, 'เซิร์ฟเวอร์ส่งข้อมูลที่ไม่ตรงตามสัญญา API');
+  }
 }
 
 /**
@@ -35,7 +41,7 @@ export async function apiFetchServer<T>(
  */
 export async function getSession(): Promise<AuthenticatedUser | null> {
   try {
-    return await apiFetchServer<AuthenticatedUser>('/auth/me');
+    return await apiFetchServer('/auth/me');
   } catch (err) {
     if (err instanceof ApiError) return null;
     throw err;

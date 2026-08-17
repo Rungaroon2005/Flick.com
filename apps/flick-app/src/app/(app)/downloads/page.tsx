@@ -11,7 +11,7 @@ export default async function DownloadsPage() {
   let downloads: DownloadRecord[] = [];
   let sessionExpired = false;
   try {
-    downloads = await apiFetchServer<DownloadRecord[]>('/me/downloads');
+    downloads = await apiFetchServer('/me/downloads');
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) {
       sessionExpired = true;

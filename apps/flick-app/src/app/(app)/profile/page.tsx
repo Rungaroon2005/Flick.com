@@ -45,8 +45,8 @@ export default async function ProfilePage() {
   // be a page that lies about the user's entitlements.
   try {
     const [sub, w] = await Promise.all([
-      apiFetchServer<Subscription | null>('/subscriptions/me'),
-      apiFetchServer<{ balance: number }>('/wallet'),
+      apiFetchServer('/subscriptions/me'),
+      apiFetchServer('/wallet'),
     ]);
     // GET /subscriptions/me answers "no subscription" with an empty 200 body,
     // which unwrapResponse surfaces as undefined.

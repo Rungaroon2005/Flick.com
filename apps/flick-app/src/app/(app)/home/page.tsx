@@ -5,6 +5,7 @@ import API_BASE_URL from '@/lib/api';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
 import { ContinueWatchingItem, Movie } from '@/types';
+import { decodeMovies } from '@/types/api';
 
 async function getMovies(): Promise<Movie[]> {
   // Public catalogue data only — safe to share across users, unlike the session.
@@ -16,7 +17,7 @@ async function getMovies(): Promise<Movie[]> {
     throw new Error('Failed to fetch movies');
   }
 
-  return res.json();
+  return decodeMovies(await res.json());
 }
 
 export default async function HomePage() {
@@ -27,8 +28,8 @@ export default async function HomePage() {
 
   const [moviesResult, bookmarksResult, continueResult] = await Promise.allSettled([
     getMovies(),
-    apiFetchServer<Movie[]>('/me/bookmarks'),
-    apiFetchServer<ContinueWatchingItem[]>('/me/continue-watching'),
+    apiFetchServer('/me/bookmarks'),
+    apiFetchServer('/me/continue-watching'),
   ]);
 
   const privateFailures = [bookmarksResult, continueResult].filter(

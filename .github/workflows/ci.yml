@@ -76,6 +76,9 @@ jobs:
       - name: Run API end-to-end tests
         run: npm run test:e2e --workspace=flick-api
 
+      - name: Run frontend tests
+        run: npm test
+
       - name: Build workspaces with the API available
         run: |
           npm run build --workspace=flick-api
@@ -95,3 +98,4 @@ jobs:
           done
 
           npm run build --workspaces
+          npm run performance:check

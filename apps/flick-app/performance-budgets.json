@@ -1,0 +1,6 @@
+{
+  "maxJavaScriptChunkBytes": 640000,
+  "maxTotalJavaScriptBytes": 1700000,
+  "maxTotalCssBytes": 80000,
+  "maxPosterBytes": 1100000
+}

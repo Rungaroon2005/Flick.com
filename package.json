@@ -11,7 +11,8 @@
     "dev:app": "npm run dev --workspace=flick-app",
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",
-    "test": "npm run test --workspace=flick-app"
+    "test": "npm run test --workspace=flick-app",
+    "performance:check": "npm run performance:check --workspace=flick-app"
   },
   "devDependencies": {
     "concurrently": "^10.0.4"

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import MovieCard from '@/components/MovieCard';
 import { Chip } from '@/components/ui/Chip';
@@ -11,38 +11,68 @@ import { ApiError, apiFetch } from '@/lib/apiClient';
 import { Movie } from '@/types';
 
 const RECENT_SEARCHES_KEY = 'flick:recent-searches';
+const RECENT_SEARCHES_EVENT = 'flick:recent-searches-changed';
 const RECENT_SEARCHES_MAX = 5;
+const EMPTY_RECENT_SEARCHES = '[]';
 const GENRE_SHORTCUTS = ['ดราม่า', 'สยองขวัญ', 'แอ็คชั่น'];
 
-function loadRecentSearches(): string[] {
+function getRecentSearchesSnapshot(): string {
   try {
-    const raw = window.localStorage.getItem(RECENT_SEARCHES_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
+    return window.localStorage.getItem(RECENT_SEARCHES_KEY) ?? EMPTY_RECENT_SEARCHES;
+  } catch {
+    return EMPTY_RECENT_SEARCHES;
+  }
+}
+
+function getRecentSearchesServerSnapshot(): string {
+  return EMPTY_RECENT_SEARCHES;
+}
+
+function subscribeToRecentSearches(onStoreChange: () => void): () => void {
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === RECENT_SEARCHES_KEY) onStoreChange();
+  };
+
+  window.addEventListener('storage', handleStorage);
+  window.addEventListener(RECENT_SEARCHES_EVENT, onStoreChange);
+  return () => {
+    window.removeEventListener('storage', handleStorage);
+    window.removeEventListener(RECENT_SEARCHES_EVENT, onStoreChange);
+  };
+}
+
+function parseRecentSearches(snapshot: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(snapshot);
+    return Array.isArray(parsed)
+      ? parsed.filter((term): term is string => typeof term === 'string').slice(0, RECENT_SEARCHES_MAX)
+      : [];
   } catch {
     return [];
   }
 }
 
-function saveRecentSearch(term: string, current: string[]): string[] {
+function saveRecentSearch(term: string, current: string[]): void {
   const next = [term, ...current.filter((t) => t !== term)].slice(0, RECENT_SEARCHES_MAX);
   try {
     window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event(RECENT_SEARCHES_EVENT));
   } catch {
     // Non-authoritative UI convenience only — a full storage quota or a
     // privacy mode blocking localStorage should never break search itself.
   }
-  return next;
 }
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [movies, setMovies] = useState<Movie[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Lazy initializer, not an effect: this reads a synchronous external
-  // source (localStorage) during the mount render itself, which is what
-  // hydration re-runs on the client — an effect here would only cause an
-  // avoidable extra render (see react-hooks/set-state-in-effect).
-  const [recentSearches, setRecentSearches] = useState<string[]>(loadRecentSearches);
+  const recentSearchesSnapshot = useSyncExternalStore(
+    subscribeToRecentSearches,
+    getRecentSearchesSnapshot,
+    getRecentSearchesServerSnapshot,
+  );
+  const recentSearches = useMemo(() => parseRecentSearches(recentSearchesSnapshot), [recentSearchesSnapshot]);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,7 +107,7 @@ export default function SearchPage() {
 
   const commitSearch = (term: string) => {
     if (!term.trim()) return;
-    setRecentSearches((prev) => saveRecentSearch(term, prev));
+    saveRecentSearch(term, recentSearches);
   };
 
   return (

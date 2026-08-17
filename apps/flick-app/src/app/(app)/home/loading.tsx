@@ -13,7 +13,7 @@ export default function HomeLoading() {
           <Skeleton className="h-6 w-40" />
           <Skeleton className="h-3 w-24" />
         </div>
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 sm:gap-14">
+        <div className="mx-auto flex w-full max-w-page flex-col gap-10 sm:gap-14">
           {Array.from({ length: 3 }).map((_, i) => (
             <section key={i} className="flex flex-col gap-3">
               <div className="px-5">

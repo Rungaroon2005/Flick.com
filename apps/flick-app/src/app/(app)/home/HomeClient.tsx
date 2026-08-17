@@ -66,15 +66,15 @@ export default function HomeClient({
             <div className="absolute inset-0 bg-gradient-to-b from-ink/10 via-ink/60 to-ink" />
           </div>
 
-          <div className="relative mx-auto flex max-w-4xl flex-col items-center gap-5 px-5 pt-6 text-center md:flex-row md:justify-center md:gap-10 md:px-8 md:text-left">
+          <div className="relative mx-auto flex max-w-page flex-col items-center gap-5 px-5 pt-6 text-center md:flex-row md:justify-center md:gap-10 md:px-8 md:text-left lg:px-10">
             {featured.posterUrl && (
-              <div className="relative aspect-[9/16] w-48 shrink-0 overflow-hidden rounded-[28px] ring-1 ring-white/15 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.85)] sm:w-60 md:h-[380px] md:w-auto lg:h-[420px]">
+              <div className="relative aspect-[9/16] w-48 shrink-0 overflow-hidden rounded-[28px] ring-1 ring-white/15 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.85)] sm:w-60 md:h-[380px] md:w-auto lg:h-[420px] xl:h-[460px]">
                 <Image
                   src={featured.posterUrl}
                   alt={featured.title}
                   fill
                   priority
-                  sizes="(max-width: 640px) 192px, (max-width: 768px) 240px, 340px"
+                  sizes="(min-width: 1280px) 259px, (min-width: 1024px) 237px, (min-width: 768px) 214px, (min-width: 640px) 240px, 192px"
                   className="object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -114,16 +114,16 @@ export default function HomeClient({
         </section>
       )}
 
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 sm:gap-14">
+      <div className="mx-auto flex w-full max-w-page flex-col gap-10 sm:gap-14">
         {/* Recommended Section */}
         <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between px-5">
+          <div className="flex items-center justify-between px-5 md:px-8 lg:px-10">
             <h2 className="font-display text-2xl font-extrabold tracking-tight text-fg">แนะนำ</h2>
             <Link href="/discover" className="text-sm font-medium text-fg-mute active:text-fg">
               ทั้งหมด &gt;
             </Link>
           </div>
-          <div className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [-webkit-overflow-scrolling:touch]">
+          <div className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 md:px-8 lg:px-10 pb-2 [-webkit-overflow-scrolling:touch]">
             {recommendedMovies.map((movie) => (
               <div key={movie.id} className="snap-start">
                 <MovieCard movie={movie} size="medium" />
@@ -137,11 +137,11 @@ export default function HomeClient({
             resume: an empty "continue" shelf is not a real section. */}
         {initialContinueWatching.length > 0 && (
           <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between px-5">
+            <div className="flex items-center justify-between px-5 md:px-8 lg:px-10">
               <h2 className="font-display text-2xl font-extrabold tracking-tight text-fg">ดูต่อ</h2>
               <span className="text-sm font-medium text-fg-mute">ล่าสุด</span>
             </div>
-            <div className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [-webkit-overflow-scrolling:touch]">
+            <div className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 md:px-8 lg:px-10 pb-2 [-webkit-overflow-scrolling:touch]">
               {initialContinueWatching.map((item) => {
                 const totalSeconds = item.episode.durationMinutes * 60;
                 const percentage =
@@ -153,12 +153,18 @@ export default function HomeClient({
                   <Link
                     key={item.id}
                     href={`/player/${item.episode.id}`}
-                    className="group flex w-[190px] shrink-0 snap-start flex-col gap-1 text-[13px] text-fg"
+                    className="group flex w-[190px] shrink-0 snap-start flex-col gap-1 text-[13px] text-fg md:w-[240px] xl:w-[280px]"
                   >
                     <span className="relative aspect-video w-full overflow-hidden rounded-2xl bg-ink-1 shadow-[0_8px_20px_-10px_rgba(0,0,0,0.7)] transition-all duration-surface ease-enter [@media(hover:hover)]:group-hover:-translate-y-0.5 [@media(hover:hover)]:group-hover:scale-105 [@media(hover:hover)]:group-hover:shadow-[0_18px_34px_-12px_rgba(0,0,0,0.85)]">
                       {artwork && (
                         <ViewTransition name={`episode-${item.episode.id}`}>
-                          <Image src={artwork} alt="" fill sizes="190px" className="object-cover" />
+                          <Image
+                            src={artwork}
+                            alt=""
+                            fill
+                            sizes="(min-width: 1280px) 280px, (min-width: 768px) 240px, 190px"
+                            className="object-cover"
+                          />
                         </ViewTransition>
                       )}
                       <span className="absolute inset-x-1.5 bottom-1.5 block h-[3px] overflow-hidden rounded-full bg-white/35">
@@ -176,14 +182,14 @@ export default function HomeClient({
 
         {/* My List Section — real bookmarks from GET /me/bookmarks. */}
         <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between px-5">
+          <div className="flex items-center justify-between px-5 md:px-8 lg:px-10">
             <h2 className="font-display text-2xl font-extrabold tracking-tight text-fg">รายการของฉัน</h2>
             <Link href="/bookmarks" className="text-sm font-medium text-fg-mute active:text-fg">
               ทั้งหมด &gt;
             </Link>
           </div>
           {initialBookmarks.length > 0 ? (
-            <div className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [-webkit-overflow-scrolling:touch]">
+            <div className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 md:px-8 lg:px-10 pb-2 [-webkit-overflow-scrolling:touch]">
               {/* Every movie in this row is bookmarked by construction, so the
                   badge reflects real state. */}
               {initialBookmarks.map((m) => (
@@ -193,7 +199,7 @@ export default function HomeClient({
               ))}
             </div>
           ) : (
-            <p className="px-5 py-4 text-sm text-fg-mute">ยังไม่มีเรื่องที่บันทึกไว้</p>
+            <p className="px-5 md:px-8 lg:px-10 py-4 text-sm text-fg-mute">ยังไม่มีเรื่องที่บันทึกไว้</p>
           )}
         </section>
       </div>

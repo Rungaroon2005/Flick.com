@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { useRouter } from 'next/navigation';
 import { ApiError, apiFetch } from '@/lib/apiClient';
 import { usePlaybackAuthorization } from '@/hooks/playback/usePlaybackAuthorization';
-import type { Episode, Movie } from '@/types';
+import type { Episode, Movie, PlaybackAuthorization } from '@/types';
 
 function findEpisode(movies: Movie[], episodeId: string) {
   for (const movie of movies) {
@@ -21,16 +21,23 @@ function findEpisode(movies: Movie[], episodeId: string) {
  * PlayerClient (Phase 4 Step 1: no behavior change, verified against
  * test/entitlement.e2e-spec.ts before any markup in this route was touched).
  */
-export function useEntitlement(episodeId: string, router: ReturnType<typeof useRouter>) {
-  const [movie, setMovie] = useState<Movie | null>(null);
-  const [episode, setEpisode] = useState<Episode | null>(null);
+export function useEntitlement(
+  episodeId: string,
+  router: ReturnType<typeof useRouter>,
+  initialMovie?: Movie,
+  initialEpisode?: Episode,
+  initialAuthorization?: PlaybackAuthorization,
+) {
+  const [movie, setMovie] = useState<Movie | null>(initialMovie ?? null);
+  const [episode, setEpisode] = useState<Episode | null>(initialEpisode ?? null);
   const [metadataError, setMetadataError] = useState<string | null>(null);
-  const authorization = usePlaybackAuthorization(episodeId, router);
+  const authorization = usePlaybackAuthorization(episodeId, router, true, initialAuthorization);
 
   // Public catalogue metadata deliberately remains a separate request from
   // entitlement. It never contains videoUrl, and a metadata fault cannot turn
   // into an authorization grant.
   useEffect(() => {
+    if (movie && episode) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -55,7 +62,7 @@ export function useEntitlement(episodeId: string, router: ReturnType<typeof useR
     return () => {
       cancelled = true;
     };
-  }, [episodeId, router]);
+  }, [episode, episodeId, movie, router]);
 
   return { movie, episode, ...authorization, error: metadataError ?? authorization.error };
 }

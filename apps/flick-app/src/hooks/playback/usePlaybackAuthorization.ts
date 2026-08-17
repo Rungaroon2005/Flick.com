@@ -9,14 +9,21 @@ export function usePlaybackAuthorization(
   episodeId: string,
   router: ReturnType<typeof useRouter>,
   enabled = true,
+  initialAuthorization?: PlaybackAuthorization,
 ) {
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [gate, setGate] = useState<DeniedAuthorization | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(
+    initialAuthorization?.allowed ? initialAuthorization.videoUrl : null,
+  );
+  const [gate, setGate] = useState<DeniedAuthorization | null>(
+    initialAuthorization && !initialAuthorization.allowed ? initialAuthorization : null,
+  );
+  const [authorizationResolved, setAuthorizationResolved] = useState(initialAuthorization !== undefined);
   const [error, setError] = useState<string | null>(null);
   const [gateError, setGateError] = useState<string | null>(null);
   const [unlocking, setUnlocking] = useState(false);
 
   const applyAuthorization = useCallback((authorization: PlaybackAuthorization) => {
+    setAuthorizationResolved(true);
     if (authorization.allowed) {
       setVideoUrl(authorization.videoUrl);
       setGate(null);
@@ -44,7 +51,7 @@ export function usePlaybackAuthorization(
   }, [applyAuthorization, episodeId, router]);
 
   useEffect(() => {
-    if (!enabled || videoUrl || gate) return;
+    if (!enabled || authorizationResolved) return;
     let cancelled = false;
 
     void apiFetch<PlaybackAuthorization>(`/playback/${episodeId}/authorize`)
@@ -63,7 +70,7 @@ export function usePlaybackAuthorization(
     return () => {
       cancelled = true;
     };
-  }, [applyAuthorization, enabled, episodeId, gate, router, videoUrl]);
+  }, [applyAuthorization, authorizationResolved, enabled, episodeId, router]);
 
   const unlockWithCoins = useCallback(async () => {
     setUnlocking(true);

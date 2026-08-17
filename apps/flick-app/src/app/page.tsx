@@ -1,5 +1,7 @@
 import LandingClient from './LandingClient';
+import { redirect } from 'next/navigation';
 import API_BASE_URL from '@/lib/api';
+import { getSession } from '@/lib/session';
 import { Movie } from '@/types';
 
 // Public catalogue data only — safe to render for a visitor with no
@@ -15,6 +17,7 @@ async function getMovies(): Promise<Movie[]> {
 }
 
 export default async function LandingPage() {
-  const movies = await getMovies();
+  const [movies, session] = await Promise.all([getMovies(), getSession()]);
+  if (session) redirect('/home');
   return <LandingClient movies={movies} />;
 }

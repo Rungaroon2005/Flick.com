@@ -7,11 +7,11 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { ReactionButton } from '@/components/ui/ReactionButton';
-import { apiFetch } from '@/lib/apiClient';
 import { useEntitlement } from './hooks/useEntitlement';
 import { useHlsPlayer } from '@/hooks/playback/useHlsPlayer';
 import { useWatchProgress } from '@/hooks/playback/useWatchProgress';
 import { useMovieActions } from '@/hooks/playback/useMovieActions';
+import type { Episode, Movie, PlaybackAuthorization } from '@/types';
 
 const CHROME_IDLE_MS = 2500;
 
@@ -37,13 +37,25 @@ function formatTime(totalSeconds: number): string {
  * chrome-visibility state below (both pure presentation, no entitlement
  * logic moved).
  */
-export default function PlayerClient({ episodeId }: { episodeId: string }) {
+export default function PlayerClient({
+  episodeId,
+  initialMovie,
+  initialEpisode,
+  initialAuthorization,
+  initialBalance,
+}: {
+  episodeId: string;
+  initialMovie: Movie;
+  initialEpisode: Episode;
+  initialAuthorization: PlaybackAuthorization;
+  initialBalance: number;
+}) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [chromeVisible, setChromeVisible] = useState(true);
   const [isScrubbing, setIsScrubbing] = useState(false);
-  const [balance, setBalance] = useState<number | null>(null);
+  const [balance] = useState(initialBalance);
   const hideTimerRef = useRef<number | undefined>(undefined);
 
   const {
@@ -55,7 +67,7 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
     gateError,
     unlocking,
     unlockWithCoins,
-  } = useEntitlement(episodeId, router);
+  } = useEntitlement(episodeId, router, initialMovie, initialEpisode, initialAuthorization);
 
   const {
     isPlaying,
@@ -88,24 +100,6 @@ export default function PlayerClient({ episodeId }: { episodeId: string }) {
 
   const closeSettings = useCallback(() => setShowSettings(false), []);
   const closeGate = useCallback(() => router.back(), [router]);
-
-  // Only fetch a balance when there's actually a coin gate to branch on —
-  // not on every episode load.
-  useEffect(() => {
-    if (gate?.reason !== 'coins_required') return;
-    let cancelled = false;
-    apiFetch<{ balance: number }>('/wallet')
-      .then((wallet) => {
-        if (!cancelled) setBalance(wallet.balance);
-      })
-      .catch(() => {
-        // The gate still works without a balance figure — it just can't
-        // branch the copy, and falls back to the spend button.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [gate]);
 
   // Chrome (Zones A + B) hides after idle playback, stays locked visible
   // while paused, scrubbing, or the settings sheet is open. The "force

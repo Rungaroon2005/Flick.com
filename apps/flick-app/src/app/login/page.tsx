@@ -4,13 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { login } from '@/lib/auth';
-import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { refresh } = useAuth();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -25,8 +23,8 @@ export default function LoginPage() {
     try {
       const result = await login(email, password);
       if (result.success) {
-        await refresh();
-        router.push('/home');
+        router.replace('/home');
+        router.refresh();
       } else {
         setError(result.error || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
       }

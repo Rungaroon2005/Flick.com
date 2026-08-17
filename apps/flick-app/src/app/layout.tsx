@@ -1,6 +1,5 @@
 import { Metadata, Viewport } from 'next';
 import { Anuphan, IBM_Plex_Sans_Thai, IBM_Plex_Mono } from 'next/font/google';
-import AuthProvider from '@/components/AuthProvider';
 import { ToastProvider } from '@/components/ui/Toast';
 import './globals.css';
 
@@ -53,9 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${anuphan.variable} ${plexThai.variable} ${plexMono.variable}`}
     >
       <body>
-        <AuthProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </AuthProvider>
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

@@ -1,6 +1,20 @@
 import { redirect } from 'next/navigation';
 import SubscribeClient from './SubscribeClient';
+import { ErrorPanel } from '@/components/ui/ErrorPanel';
+import API_BASE_URL from '@/lib/api';
 import { getSession } from '@/lib/session';
+import type { CoinPack, SubscriptionPlan } from '@/types';
+
+interface PlansResponse {
+  subscriptions: SubscriptionPlan[];
+  coins: CoinPack[];
+}
+
+async function getPlans(): Promise<PlansResponse> {
+  const response = await fetch(`${API_BASE_URL}/plans`, { next: { revalidate: 300 } });
+  if (!response.ok) throw new Error('Failed to fetch plans');
+  return response.json();
+}
 
 // Keep plan selection inside the authenticated membership area, even while
 // paid actions are disabled pending a payment-gateway integration.
@@ -12,5 +26,20 @@ export default async function SubscribePage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  return <SubscribeClient />;
+  let data: PlansResponse | null = null;
+  try {
+    data = await getPlans();
+  } catch (error) {
+    console.error('Error fetching plans on server:', error);
+  }
+
+  if (!data) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-ink px-6">
+        <ErrorPanel message="ไม่สามารถโหลดแพ็กเกจได้" />
+      </div>
+    );
+  }
+
+  return <SubscribeClient plans={data.subscriptions} coinPacks={data.coins} />;
 }

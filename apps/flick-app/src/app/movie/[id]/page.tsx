@@ -31,7 +31,8 @@ async function getIsBookmarked(movieId: string): Promise<boolean> {
     return bookmarks.some((m) => m.id === movieId);
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) return false;
-    throw err; // a real API/network failure is an error, not "not bookmarked"
+    console.error('Error fetching bookmark status:', err);
+    return false;
   }
 }
 
@@ -40,17 +41,18 @@ export default async function MovieDetail({ params }: { params: Promise<{ id: st
   const { id } = await params;
   let movie: Movie | null = null;
   let similarMovies: Movie[] = [];
-  let isBookmarked = false;
   let error: string | null = null;
+  let isBookmarked = false;
 
   try {
-    // Fetch both simultaneously for faster load times
-    const [movieData, similarData] = await Promise.all([
+    const [movieData, similarData, bookmarkData] = await Promise.all([
       getMovie(id),
-      getSimilarMovies(id)
+      getSimilarMovies(id),
+      getIsBookmarked(id),
     ]);
     movie = movieData;
     similarMovies = similarData;
+    isBookmarked = bookmarkData;
   } catch (err) {
     console.error('Error fetching movie data:', err);
     error = 'ไม่สามารถโหลดข้อมูลภาพยนตร์ได้';
@@ -62,16 +64,6 @@ export default async function MovieDetail({ params }: { params: Promise<{ id: st
         <ErrorPanel message={error ?? 'กำลังโหลด…'} />
       </div>
     );
-  }
-
-  // Bookmark status is fetched separately from the movie itself. This route is
-  // public and its content does not depend on the check, so an engagement-side
-  // fault must degrade to "not bookmarked" rather than hide the movie. (401 is
-  // already converted to false inside getIsBookmarked; only real faults land here.)
-  try {
-    isBookmarked = await getIsBookmarked(id);
-  } catch (err) {
-    console.error('Error fetching bookmark status:', err);
   }
 
   return <MovieClient movie={movie} similarMovies={similarMovies} initialBookmarked={isBookmarked} />;

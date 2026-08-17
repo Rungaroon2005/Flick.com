@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { register } from '@/lib/auth';
-import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/Button';
 import { Icon, type IconName } from '@/components/ui/Icon';
 
@@ -26,7 +25,6 @@ function FieldIcon({ name }: { name: IconName }) {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { refresh } = useAuth();
   const [formData, setFormData] = useState<RegisterFormData>({
     name: '',
     email: '',
@@ -79,9 +77,8 @@ export default function RegisterPage() {
       });
 
       if (result.success) {
-        // Registration sets the session cookie server-side; re-read it.
-        await refresh();
-        router.push('/subscribe');
+        router.replace('/subscribe');
+        router.refresh();
       } else {
         setError(result.error || 'การสมัครสมาชิกผิดพลาด');
       }

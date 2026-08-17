@@ -1,6 +1,26 @@
 import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/session';
+import { ErrorPanel } from '@/components/ui/ErrorPanel';
+import API_BASE_URL from '@/lib/api';
+import { ApiError } from '@/lib/apiClient';
+import { apiFetchServer, getSession } from '@/lib/session';
+import type { Episode, Movie, PlaybackAuthorization } from '@/types';
 import PlayerClient from './PlayerClient';
+
+function findEpisode(movies: Movie[], episodeId: string): { movie: Movie; episode: Episode } | null {
+  for (const movie of movies) {
+    for (const season of movie.seasons ?? []) {
+      const episode = season.episodes.find((item) => item.id === episodeId);
+      if (episode) return { movie, episode };
+    }
+  }
+  return null;
+}
+
+async function getMovies(): Promise<Movie[]> {
+  const response = await fetch(`${API_BASE_URL}/movies`, { next: { revalidate: 60 } });
+  if (!response.ok) throw new Error('Failed to fetch movies');
+  return response.json();
+}
 
 export default async function PlayerPage({
   params,
@@ -11,5 +31,38 @@ export default async function PlayerPage({
   if (!session) redirect('/login');
 
   const { id: episodeId } = await params;
-  return <PlayerClient key={episodeId} episodeId={episodeId} />;
+  let playback: { movie: Movie; episode: Episode } | null = null;
+  let authorization: PlaybackAuthorization | null = null;
+  let sessionExpired = false;
+  try {
+    const [movies, authorizationResult] = await Promise.all([
+      getMovies(),
+      apiFetchServer<PlaybackAuthorization>(`/playback/${episodeId}/authorize`),
+    ]);
+    playback = findEpisode(movies, episodeId);
+    authorization = authorizationResult;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) sessionExpired = true;
+    console.error('Error loading player on server:', error);
+  }
+
+  if (sessionExpired) redirect('/login');
+  if (!playback || !authorization) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-ink px-6">
+        <ErrorPanel message="ไม่สามารถโหลดตอนนี้ได้" />
+      </div>
+    );
+  }
+
+  return (
+    <PlayerClient
+      key={episodeId}
+      episodeId={episodeId}
+      initialMovie={playback.movie}
+      initialEpisode={playback.episode}
+      initialAuthorization={authorization}
+      initialBalance={session.coinBalance}
+    />
+  );
 }

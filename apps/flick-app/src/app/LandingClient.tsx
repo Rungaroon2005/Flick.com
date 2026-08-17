@@ -1,9 +1,5 @@
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useAuth } from '@/components/AuthProvider';
+import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
 import type { Movie } from '@/types';
 
@@ -16,23 +12,6 @@ import type { Movie } from '@/types';
  * An already-authenticated visitor still skips straight to /home.
  */
 export default function LandingClient({ movies }: { movies: Movie[] }) {
-  const router = useRouter();
-  const { user, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading && user) router.replace('/home');
-  }, [loading, user, router]);
-
-  if (loading || user) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-ink">
-        <div className="animate-pulse text-4xl font-extrabold tracking-tight text-brand-ink">
-          Flick
-        </div>
-      </div>
-    );
-  }
-
   const [hero, left, right] = movies;
 
   return (
@@ -126,23 +105,21 @@ export default function LandingClient({ movies }: { movies: Movie[] }) {
             style={{ animationDelay: '1.1s' }}
             aria-hidden="true"
           />
-          <button
-            type="button"
-            onClick={() => router.push('/register')}
+          <Link
+            href="/register"
             className="relative flex h-14 items-center gap-2 rounded-full border border-white/25 bg-brand/90 px-7 text-base font-semibold text-white shadow-[0_0_40px_-6px_rgba(255,77,26,0.7)] backdrop-blur-xl transition-transform active:scale-95"
           >
             เข้าสู่โลกหนังสั้น
             <Icon name="chevronDown" size={16} className="animate-bounce" />
-          </button>
+          </Link>
         </div>
 
-        <button
-          type="button"
-          onClick={() => router.push('/login')}
+        <Link
+          href="/login"
           className="text-sm text-fg-dim underline-offset-4 active:underline"
         >
           มีบัญชีแล้ว? เข้าสู่ระบบ
-        </button>
+        </Link>
 
         <div className="mb-1 flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-fg-dim backdrop-blur-xl">
           <Icon name="checkCircle" size={13} className="text-ok" />

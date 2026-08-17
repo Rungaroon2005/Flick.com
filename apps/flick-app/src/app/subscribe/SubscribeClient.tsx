@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiFetch } from '@/lib/apiClient';
 import { Icon } from '@/components/ui/Icon';
 import { CoinPack, SubscriptionPlan } from '@/types';
 
@@ -15,31 +13,14 @@ const FREE_PLAN_ID = 'free';
 
 /** Plan and pricing copy remains server-owned. Paid actions stay disabled until
  *  the API has a verified payment-gateway activation path. */
-export default function SubscribeClient() {
+export default function SubscribeClient({
+  plans,
+  coinPacks,
+}: {
+  plans: SubscriptionPlan[];
+  coinPacks: CoinPack[];
+}) {
   const router = useRouter();
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [coinPacks, setCoinPacks] = useState<CoinPack[]>([]);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    // GET /plans is public, but apiFetch is still the only way out of the
-    // browser so the error shape stays consistent with the rest of the app.
-    apiFetch<{ subscriptions: SubscriptionPlan[]; coins: CoinPack[] }>('/plans')
-      .then((data) => {
-        if (cancelled) return;
-        setPlans(data.subscriptions);
-        setCoinPacks(data.coins);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error(err);
-        setLoadError('ไม่สามารถโหลดแพ็กเกจได้');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   return (
     <div className="min-h-dvh bg-ink pb-10">
@@ -55,12 +36,6 @@ export default function SubscribeClient() {
       </header>
 
       <section className="px-5">
-        {loadError && (
-          <p className="mb-3 flex items-center gap-2 text-sm text-fail">
-            <Icon name="alertCircle" size={16} />
-            {loadError}
-          </p>
-        )}
         <p className="mb-5 flex items-start gap-2 rounded-2xl border border-white/5 bg-ink-1 p-4 text-sm text-fg-dim">
           <Icon name="infoCircle" size={16} className="mt-0.5 shrink-0 text-fg-mute" />
           {UNAVAILABLE_MSG}

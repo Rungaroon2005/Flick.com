@@ -26,55 +26,27 @@ export default async function HomePage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  let movies: Movie[] = [];
-  let bookmarks: Movie[] = [];
-  let continueWatching: ContinueWatchingItem[] = [];
-  let error: string | null = null;
+  const [moviesResult, bookmarksResult, continueResult] = await Promise.allSettled([
+    getMovies(),
+    apiFetchServer<Movie[]>('/me/bookmarks'),
+    apiFetchServer<ContinueWatchingItem[]>('/me/continue-watching'),
+  ]);
 
-  try {
-    movies = await getMovies();
-  } catch (err) {
-    console.error('Error fetching movies on server:', err);
-    error = 'ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง';
+  const privateFailures = [bookmarksResult, continueResult].filter(
+    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  );
+  if (privateFailures.some(({ reason }) => reason instanceof ApiError && reason.status === 401)) {
+    redirect('/login');
   }
 
-  // Bookmarks are fetched separately, and deliberately not in the same try as
-  // the catalogue: a bookmarks-only fault must cost the user one empty row, not
-  // the whole home page.
-  let sessionExpired = false;
-  try {
-    bookmarks = await apiFetchServer<Movie[]>('/me/bookmarks');
-  } catch (err) {
-    // 401 means the session died between getSession() above and this call.
-    // Per the engagement contract that is a login redirect, never a generic
-    // error screen.
-    if (err instanceof ApiError && err.status === 401) {
-      sessionExpired = true;
-    } else {
-      console.error('Error fetching bookmarks on server:', err);
-      bookmarks = [];
-    }
-  }
-  // redirect() throws, so it must be called outside the try/catch above or the
-  // catch would swallow its control-flow signal.
-  if (sessionExpired) redirect('/login');
+  const movies = moviesResult.status === 'fulfilled' ? moviesResult.value : [];
+  const bookmarks = bookmarksResult.status === 'fulfilled' ? bookmarksResult.value : [];
+  const continueWatching = continueResult.status === 'fulfilled' ? continueResult.value : [];
+  const error = moviesResult.status === 'rejected' ? 'ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง' : null;
 
-  // Watch history is a third, isolated failure domain. A fault here must not
-  // discard either the healthy catalogue or bookmarks data above.
-  sessionExpired = false;
-  try {
-    continueWatching = await apiFetchServer<ContinueWatchingItem[]>(
-      '/me/continue-watching',
-    );
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 401) {
-      sessionExpired = true;
-    } else {
-      console.error('Error fetching continue-watching on server:', err);
-      continueWatching = [];
-    }
-  }
-  if (sessionExpired) redirect('/login');
+  if (moviesResult.status === 'rejected') console.error('Error fetching movies on server:', moviesResult.reason);
+  if (bookmarksResult.status === 'rejected') console.error('Error fetching bookmarks on server:', bookmarksResult.reason);
+  if (continueResult.status === 'rejected') console.error('Error fetching continue-watching on server:', continueResult.reason);
 
   return (
     <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">

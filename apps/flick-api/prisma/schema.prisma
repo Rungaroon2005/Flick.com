@@ -41,6 +41,16 @@ enum InteractionType {
   DISLIKE
 }
 
+enum OtpChannel {
+  SMS
+  EMAIL
+}
+
+enum OtpPurpose {
+  LOGIN // covers both login and lazy-register; a passwordless user is created on first successful verify
+  VERIFY_EMAIL
+}
+
 // -----------------------------------------------------------------------------
 // 1. USER & ACCESS MODULE
 // -----------------------------------------------------------------------------
@@ -49,7 +59,7 @@ model User {
   id           String  @id @default(uuid())
   email        String? @unique
   phone        String? @unique
-  passwordHash String
+  passwordHash String? // null for passwordless (OTP) users; the default after Phase 2
   displayName  String
   avatarUrl    String?
   role         Role    @default(USER)
@@ -98,6 +108,28 @@ model Device {
   @@index([userId, isActive])
   @@index([pushToken])
   @@map("devices")
+}
+
+model OtpChallenge {
+  id          String     @id @default(uuid())
+  channel     OtpChannel
+  destination String // normalized: E.164 (+66...) for SMS, lowercased for EMAIL
+  codeHash    String // bcrypt hash of the 6-digit code; the plaintext is never persisted
+  ref         String // 4-char display hint, shown to the client and included in the message
+  purpose     OtpPurpose
+  attempts    Int        @default(0)
+  userId      String? // set once the associated User is known or created
+  ipAddress   String
+  expiresAt   DateTime
+  consumedAt  DateTime? // non-null means burned: verified, superseded, or attempt-capped
+  createdAt   DateTime   @default(now())
+
+  // Serves the verify lookup (destination + purpose + unconsumed) and every
+  // rate-limit count, which all filter on destination + createdAt.
+  @@index([destination, purpose, consumedAt])
+  @@index([destination, createdAt])
+  @@index([expiresAt])
+  @@map("otp_challenges")
 }
 
 // -----------------------------------------------------------------------------

@@ -18,6 +18,12 @@ async function main() {
   // its seasons/episodes/movie_genres rows (see schema.prisma onDelete:
   // Cascade); genres themselves are shared and left alone via
   // connectOrCreate below.
+  //
+  // The User row is handled differently, below (upsert, not delete-then-
+  // create): PaymentEvent.user and UserCoin.user are onDelete: Restrict, so
+  // deleting 'e2e-free-user' would fail with a foreign-key violation (P2003)
+  // the moment a later e2e suite has credited that user a coin pack or
+  // recorded a payment event against it.
   const seedMovieIds = [
     'sathu',
     'dao-sindome',
@@ -28,7 +34,6 @@ async function main() {
     'e2e-draft',
   ];
   await prisma.movie.deleteMany({ where: { id: { in: seedMovieIds } } });
-  await prisma.user.deleteMany({ where: { id: 'e2e-free-user' } });
 
   // Create Movies
   const sathu = await prisma.movie.create({
@@ -268,8 +273,24 @@ async function main() {
     },
   });
 
-  await prisma.user.create({
-    data: {
+  // upsert, not delete-then-create: PaymentEvent/UserCoin rows accumulated
+  // against this user by other e2e suites would make a delete fail with a
+  // foreign-key violation (see the comment above). update explicitly nulls
+  // passwordHash so re-seeding over a row left behind by an older
+  // password-based seed actually clears it, rather than leaving a stale
+  // hash on a supposedly passwordless account.
+  await prisma.user.upsert({
+    where: { id: 'e2e-free-user' },
+    update: {
+      email: 'e2e-free@flick.test',
+      // The phone IS the login identity now — stored normalized, exactly as
+      // OtpService writes it.
+      phone: '+66800000001',
+      displayName: 'E2E Free User',
+      isVerified: true,
+      passwordHash: null,
+    },
+    create: {
       id: 'e2e-free-user',
       email: 'e2e-free@flick.test',
       // The phone IS the login identity now — stored normalized, exactly as

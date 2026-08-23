@@ -53,6 +53,11 @@ export class AuthService {
       );
     }
 
+    if (!user.passwordHash) {
+      throw new UnauthorizedException(
+        'อีเมลหรือรหัสผ่านไม่ถูกต้อง (Invalid credentials)',
+      );
+    }
     const isMatch = await bcrypt.compare(loginDto.password, user.passwordHash);
     if (!isMatch) {
       throw new UnauthorizedException(

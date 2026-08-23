@@ -361,7 +361,7 @@ git commit -m "feat(auth): normalize OTP destinations to E.164 and lowercased em
 
 There is no test for this file — it is data. It is a separate file so the tuning knobs are in one greppable place rather than scattered as literals through the service.
 
-- [ ] **Step 1: Write the file**
+- [x] **Step 1: Write the file**
 
 Create `apps/flick-api/src/auth/otp/otp.config.ts`:
 
@@ -400,7 +400,7 @@ export const OTP_REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const OTP_REF_LENGTH = 4;
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/flick-api/src/auth/otp/otp.config.ts

@@ -67,4 +67,14 @@ export default tseslint.config(
       '@typescript-eslint/no-unnecessary-type-assertion': 'off',
     },
   },
+  {
+    files: ['src/payments/payments.service.spec.ts'],
+    rules: {
+      // Same rationale as otp.service.spec.ts above: `jest.fn().mock.calls`
+      // is untyped by design in the shared PrismaMock and the local fake
+      // gateway mock, so indexing into a call's arguments to inspect a
+      // persisted/dispatched value is inherently `any`.
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
 );

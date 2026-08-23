@@ -424,7 +424,7 @@ git commit -m "feat(auth): add OTP tuning constants"
   - `compareOtpCode(code: string, hash: string): Promise<boolean>`
   - `timingSafeEqualString(a: string, b: string): boolean`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/flick-api/src/auth/otp/otp-code.spec.ts`:
 
@@ -491,12 +491,12 @@ describe('timingSafeEqualString', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `cd apps/flick-api && npm test -- otp-code`
 Expected: FAIL — `Cannot find module './otp-code'`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/flick-api/src/auth/otp/otp-code.ts`:
 
@@ -555,12 +555,12 @@ export function timingSafeEqualString(a: string, b: string): boolean {
 }
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `cd apps/flick-api && npm test -- otp-code`
 Expected: PASS (7 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src/auth/otp/otp-code.ts apps/flick-api/src/auth/otp/otp-code.spec.ts

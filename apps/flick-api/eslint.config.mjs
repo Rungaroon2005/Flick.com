@@ -57,4 +57,14 @@ export default tseslint.config(
       '@typescript-eslint/no-unnecessary-type-assertion': 'off',
     },
   },
+  {
+    files: ['src/auth/otp/adapters/sms-delivery.adapter.spec.ts'],
+    rules: {
+      // Same rationale as otp.service.spec.ts above: the `as unknown as
+      // string` cast on an asymmetric matcher keeps the surrounding object
+      // literal's inferred type as `string`, even though the assertion
+      // looks redundant to the linter in isolation.
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+    },
+  },
 );

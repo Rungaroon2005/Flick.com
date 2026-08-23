@@ -1,22 +1,42 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { Logger, Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { OtpService } from './otp.service';
-import { OTP_DELIVERY_PORT } from './otp-delivery.port';
+import { OTP_DELIVERY_PORT, type OtpDeliveryPort } from './otp-delivery.port';
 import { ConsoleOtpDeliveryAdapter } from './adapters/console-delivery.adapter';
+import { HttpOtpDeliveryAdapter } from './adapters/sms-delivery.adapter';
+import { EmailOtpDeliveryAdapter } from './adapters/email-delivery.adapter';
+import { RoutingOtpDeliveryAdapter } from './adapters/routing-delivery.adapter';
 
-/**
- * Delivery adapter selection lives here, mirroring the Redis-vs-in-memory
- * branch in movies.module.ts. Phase 3 extends the factory with real SMS and
- * email adapters; until then every environment logs the code.
- */
+const logger = new Logger('OtpDelivery');
+
 @Module({
   imports: [ConfigModule],
   providers: [
     OtpService,
-    { provide: OTP_DELIVERY_PORT, useClass: ConsoleOtpDeliveryAdapter },
+    {
+      provide: OTP_DELIVERY_PORT,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService): OtpDeliveryPort => {
+        // Same shape as the Redis-vs-in-memory branch in movies.module.ts:
+        // one config read decides which implementation the app runs with.
+        const mode = config.get<string>('OTP_DELIVERY', 'console');
+
+        if (mode === 'console') {
+          // validateEnv refuses this combination in production, so reaching
+          // here means dev or CI.
+          logger.warn(
+            'OTP delivery is CONSOLE — codes are logged, not sent. Development only.',
+          );
+          return new ConsoleOtpDeliveryAdapter();
+        }
+
+        return new RoutingOtpDeliveryAdapter(
+          new HttpOtpDeliveryAdapter(config),
+          new EmailOtpDeliveryAdapter(config),
+        );
+      },
+    },
   ],
-  // OTP_DELIVERY_PORT is exported so the e2e harness can resolve the console
-  // adapter and read back the code it "delivered".
   exports: [OtpService, OTP_DELIVERY_PORT],
 })
 export class OtpModule {}

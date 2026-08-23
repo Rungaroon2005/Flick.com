@@ -21,5 +21,25 @@ export function validateEnv(config: Record<string, unknown>) {
     );
   }
 
+  const isProduction = config.NODE_ENV === 'production';
+  const otpDelivery = config.OTP_DELIVERY;
+
+  if (isProduction && otpDelivery !== 'live') {
+    throw new Error(
+      'OTP_DELIVERY must be "live" in production — the console adapter logs codes instead of sending them, which silently locks every user out',
+    );
+  }
+
+  if (otpDelivery === 'live') {
+    const missingVendor = ['OTP_SMS_ENDPOINT', 'OTP_SMS_API_KEY'].filter(
+      (key) => !config[key],
+    );
+    if (missingVendor.length > 0) {
+      throw new Error(
+        `OTP_DELIVERY=live requires: ${missingVendor.join(', ')}`,
+      );
+    }
+  }
+
   return config;
 }

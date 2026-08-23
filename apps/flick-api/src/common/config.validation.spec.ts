@@ -37,6 +37,21 @@ describe('validateEnv', () => {
     ).toThrow(/OTP_SMS_ENDPOINT/);
   });
 
+  it('requires EMAIL vendor settings when live delivery is selected', () => {
+    // otp.module.ts always wires the email adapter into the routing
+    // composite when OTP_DELIVERY=live, so a boot with SMS vars but no
+    // EMAIL vars must still fail at boot, not at the first EMAIL request.
+    expect(() =>
+      validateEnv({
+        ...base,
+        NODE_ENV: 'production',
+        OTP_DELIVERY: 'live',
+        OTP_SMS_ENDPOINT: 'https://sms.example/send',
+        OTP_SMS_API_KEY: 'k',
+      }),
+    ).toThrow(/OTP_EMAIL_ENDPOINT/);
+  });
+
   it('accepts a fully configured production environment', () => {
     expect(() =>
       validateEnv({
@@ -45,6 +60,8 @@ describe('validateEnv', () => {
         OTP_DELIVERY: 'live',
         OTP_SMS_ENDPOINT: 'https://sms.example/send',
         OTP_SMS_API_KEY: 'k',
+        OTP_EMAIL_ENDPOINT: 'https://email.example/send',
+        OTP_EMAIL_API_KEY: 'k',
       }),
     ).not.toThrow();
   });

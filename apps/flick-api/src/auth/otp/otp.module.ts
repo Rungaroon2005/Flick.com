@@ -9,6 +9,29 @@ import { RoutingOtpDeliveryAdapter } from './adapters/routing-delivery.adapter';
 
 const logger = new Logger('OtpDelivery');
 
+// Exported (rather than inlined in the @Module decorator) so it can be
+// unit-tested directly with a stubbed ConfigService, without standing up a
+// full Nest TestingModule.
+export function createOtpDeliveryPort(config: ConfigService): OtpDeliveryPort {
+  // Same shape as the Redis-vs-in-memory branch in movies.module.ts: one
+  // config read decides which implementation the app runs with.
+  const mode = config.get<string>('OTP_DELIVERY', 'console');
+
+  if (mode === 'console') {
+    // validateEnv refuses this combination in production, so reaching here
+    // means dev or CI.
+    logger.warn(
+      'OTP delivery is CONSOLE — codes are logged, not sent. Development only.',
+    );
+    return new ConsoleOtpDeliveryAdapter();
+  }
+
+  return new RoutingOtpDeliveryAdapter(
+    new HttpOtpDeliveryAdapter(config),
+    new EmailOtpDeliveryAdapter(config),
+  );
+}
+
 @Module({
   imports: [ConfigModule],
   providers: [
@@ -16,25 +39,7 @@ const logger = new Logger('OtpDelivery');
     {
       provide: OTP_DELIVERY_PORT,
       inject: [ConfigService],
-      useFactory: (config: ConfigService): OtpDeliveryPort => {
-        // Same shape as the Redis-vs-in-memory branch in movies.module.ts:
-        // one config read decides which implementation the app runs with.
-        const mode = config.get<string>('OTP_DELIVERY', 'console');
-
-        if (mode === 'console') {
-          // validateEnv refuses this combination in production, so reaching
-          // here means dev or CI.
-          logger.warn(
-            'OTP delivery is CONSOLE — codes are logged, not sent. Development only.',
-          );
-          return new ConsoleOtpDeliveryAdapter();
-        }
-
-        return new RoutingOtpDeliveryAdapter(
-          new HttpOtpDeliveryAdapter(config),
-          new EmailOtpDeliveryAdapter(config),
-        );
-      },
+      useFactory: createOtpDeliveryPort,
     },
   ],
   exports: [OtpService, OTP_DELIVERY_PORT],

@@ -31,9 +31,12 @@ export function validateEnv(config: Record<string, unknown>) {
   }
 
   if (otpDelivery === 'live') {
-    const missingVendor = ['OTP_SMS_ENDPOINT', 'OTP_SMS_API_KEY'].filter(
-      (key) => !config[key],
-    );
+    const missingVendor = [
+      'OTP_SMS_ENDPOINT',
+      'OTP_SMS_API_KEY',
+      'OTP_EMAIL_ENDPOINT',
+      'OTP_EMAIL_API_KEY',
+    ].filter((key) => !config[key]);
     if (missingVendor.length > 0) {
       throw new Error(
         `OTP_DELIVERY=live requires: ${missingVendor.join(', ')}`,

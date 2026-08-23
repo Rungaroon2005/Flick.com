@@ -1,11 +1,19 @@
 import { randomUUID } from 'node:crypto';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma, SubscriptionStatus, TransactionType } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { WalletService } from '../wallet/wallet.service';
-import { resolveCatalogItem } from './catalog';
+import type { Tx } from '../wallet/wallet.service';
+import { resolveCatalogItem, type CatalogItemType } from './catalog';
 import {
   PAYMENT_GATEWAY_PORT,
+  type GatewayEvent,
   type PaymentGatewayPort,
 } from './payment-gateway.port';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
@@ -79,5 +87,196 @@ export class PaymentsService {
       `Checkout created: intent=${intent.id} item=${item.itemType}:${item.itemId} amount=${item.amountSatangs}`,
     );
     return { checkoutUrl: result.checkoutUrl, intentId: intent.id };
+  }
+
+  /**
+   * The ONLY path that grants paid access. A browser returning from the
+   * gateway proves nothing — anyone can request that URL — so entitlement
+   * hangs entirely off a signature-verified server-to-server callback.
+   */
+  async handleWebhook(
+    gatewayName: string,
+    rawBody: Buffer,
+    headers: Record<string, string | string[] | undefined>,
+  ): Promise<{ received: true }> {
+    if (gatewayName !== this.gateway.name) {
+      throw new BadRequestException('Unknown gateway');
+    }
+
+    // Verify BEFORE parsing: until this returns true, rawBody is nothing but
+    // attacker-controlled bytes.
+    const verified = await this.gateway.verifyWebhook(rawBody, headers);
+    if (!verified) {
+      this.logger.warn(
+        `Rejected ${gatewayName} webhook with an invalid signature`,
+      );
+      throw new BadRequestException('Invalid signature');
+    }
+
+    let event: GatewayEvent;
+    try {
+      event = this.gateway.parseWebhookEvent(rawBody);
+    } catch {
+      throw new BadRequestException('Malformed webhook payload');
+    }
+
+    await this.fulfill(event);
+
+    // Always 200 once the event is durably handled — including the "nothing to
+    // do" cases. A non-200 makes the gateway retry a state that will never
+    // change.
+    return { received: true };
+  }
+
+  private async fulfill(event: GatewayEvent): Promise<void> {
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        const intent = await tx.paymentIntent.findUnique({
+          where: { id: event.intentId },
+        });
+        if (!intent) {
+          // Nothing to attribute the event to — PaymentEvent.userId is
+          // required, so there is no row we could even write.
+          this.logger.warn(
+            `Webhook ${event.gatewayEventId} references unknown intent ${event.intentId}`,
+          );
+          return;
+        }
+
+        // THE idempotency gate. gatewayEventId is @unique, so a replayed
+        // delivery throws P2002 here and aborts the whole transaction before
+        // touching any state. No read-then-write check — that would race.
+        const paymentEvent = await tx.paymentEvent.create({
+          data: {
+            userId: intent.userId,
+            eventType: event.eventType,
+            gateway: this.gateway.name,
+            gatewayEventId: event.gatewayEventId,
+            // Derived from the event's own natural key so that a SECOND,
+            // different event for the same intent (pending → succeeded, or a
+            // later refund) does not collide on this unique column.
+            idempotencyKey: `${this.gateway.name}:${event.gatewayEventId}`,
+            status: event.status,
+            amountSatangs: event.amountSatangs,
+            currency: event.currency,
+            // Allowlisted fields only. Never the raw provider payload — it can
+            // carry cardholder details we have no business storing.
+            metadata: {
+              intentId: event.intentId,
+              gatewayChargeId: event.gatewayChargeId,
+            },
+          },
+        });
+
+        if (event.status === 'PENDING') return; // recorded; nothing to grant
+
+        if (intent.status !== 'PENDING') {
+          this.logger.log(
+            `Intent ${intent.id} is already ${intent.status}; ignoring ${event.eventType}`,
+          );
+          return;
+        }
+
+        if (intent.expiresAt.getTime() < Date.now()) {
+          await tx.paymentIntent.updateMany({
+            where: { id: intent.id, status: 'PENDING' },
+            data: { status: 'EXPIRED' },
+          });
+          this.logger.warn(
+            `Intent ${intent.id} expired before its webhook landed`,
+          );
+          return;
+        }
+
+        if (
+          event.amountSatangs !== intent.amountSatangs ||
+          event.currency !== intent.currency
+        ) {
+          this.logger.error(
+            `Amount mismatch on intent ${intent.id}: gateway said ${event.amountSatangs} ${event.currency}, we recorded ${intent.amountSatangs} ${intent.currency}`,
+          );
+          return;
+        }
+
+        if (event.status === 'FAILED') {
+          await tx.paymentIntent.updateMany({
+            where: { id: intent.id, status: 'PENDING' },
+            data: { status: 'FAILED', gatewayChargeId: event.gatewayChargeId },
+          });
+          return;
+        }
+
+        // Guarded transition. If a concurrent delivery already claimed this
+        // intent, count is 0 and we grant nothing — this is what stops a
+        // double subscription or a double coin credit.
+        const claimed = await tx.paymentIntent.updateMany({
+          where: { id: intent.id, status: 'PENDING' },
+          data: { status: 'SUCCEEDED', gatewayChargeId: event.gatewayChargeId },
+        });
+        if (claimed.count === 0) return;
+
+        await this.grantEntitlement(tx, intent, paymentEvent.id);
+      });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        // Replay. The transaction rolled back, so nothing partial survives.
+        this.logger.log(
+          `Duplicate webhook ${event.gatewayEventId} ignored (already recorded)`,
+        );
+        return;
+      }
+      throw err;
+    }
+  }
+
+  /** Runs inside the caller's transaction — never opens one of its own. */
+  private async grantEntitlement(
+    tx: Tx,
+    intent: {
+      id: string;
+      userId: string;
+      itemType: string;
+      itemId: string;
+    },
+    paymentEventId: string,
+  ): Promise<void> {
+    // Re-resolved server-side rather than trusted from the stored row, so the
+    // price/duration source of truth stays plans.config.ts.
+    const item = resolveCatalogItem(
+      intent.itemType as CatalogItemType,
+      intent.itemId,
+    );
+
+    if (item.itemType === 'SUBSCRIPTION') {
+      const startDate = new Date();
+      await tx.subscription.create({
+        data: {
+          userId: intent.userId,
+          planType: intent.itemId,
+          status: SubscriptionStatus.ACTIVE,
+          // One-time purchases only: no stored card, nothing to auto-charge.
+          autoRenew: false,
+          startDate,
+          endDate: new Date(startDate.getTime() + (item.durationMs ?? 0)),
+          paymentMethod: this.gateway.name,
+        },
+      });
+      this.logger.log(`Subscription granted for intent ${intent.id}`);
+      return;
+    }
+
+    // `tx` passed through so the coin ledger commits with the payment records.
+    await this.wallet.credit(
+      intent.userId,
+      item.coins ?? 0,
+      TransactionType.PURCHASED,
+      `purchase:coinpack:${intent.itemId}`,
+      paymentEventId,
+      tx,
+    );
+    this.logger.log(`Coins credited for intent ${intent.id}`);
   }
 }

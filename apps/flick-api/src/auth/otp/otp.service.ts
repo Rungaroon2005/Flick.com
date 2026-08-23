@@ -229,21 +229,40 @@ export class OtpService {
       const codeMatches = await compareOtpCode(code, challenge.codeHash);
 
       if (!refMatches || !codeMatches) {
-        const attempts = challenge.attempts + 1;
-        const exhausted = attempts >= OTP_MAX_ATTEMPTS;
-        await tx.otpChallenge.updateMany({
-          // Guarding on the observed `attempts` makes this an optimistic
-          // update: a concurrent wrong guess that already incremented the
-          // counter causes this one to match zero rows rather than
-          // overwriting it with a stale value and granting a free attempt.
-          where: {
-            id: challenge.id,
-            consumedAt: null,
-            attempts: challenge.attempts,
-          },
-          data: { attempts, ...(exhausted ? { consumedAt: now } : {}) },
+        // Atomic DB-level increment (`SET attempts = attempts + 1`) is the
+        // form Postgres's READ COMMITTED first-updater-wins re-check
+        // actually protects. A precomputed literal (`attempts:
+        // challenge.attempts + 1`) does NOT have this property: N concurrent
+        // wrong guesses would all read the same starting value, one would
+        // win the row lock, and the other N-1 would silently lose their
+        // increment instead of each counting once — see wallet.service.ts's
+        // `lockUserRow` doc for the same bug class. The `consumedAt: null`
+        // guard still stops an already-consumed challenge from being
+        // incremented at all.
+        const incremented = await tx.otpChallenge.updateMany({
+          where: { id: challenge.id, consumedAt: null },
+          data: { attempts: { increment: 1 } },
         });
+        if (incremented.count === 0) {
+          // A concurrent correct submission already consumed the challenge;
+          // this guess never had anything to increment against.
+          throw new UnauthorizedException(INVALID_CODE);
+        }
+
+        // Read back the post-increment value — the increment above tells us
+        // only that a row was matched, not what the counter now holds.
+        const updated = await tx.otpChallenge.findFirst({
+          where: { id: challenge.id },
+          select: { attempts: true, consumedAt: true },
+        });
+        const attempts = updated?.attempts ?? challenge.attempts + 1;
+        const exhausted = attempts >= OTP_MAX_ATTEMPTS;
+
         if (exhausted) {
+          await tx.otpChallenge.updateMany({
+            where: { id: challenge.id, consumedAt: null },
+            data: { consumedAt: now },
+          });
           throw new HttpException(
             ATTEMPTS_EXHAUSTED,
             HttpStatus.TOO_MANY_REQUESTS,

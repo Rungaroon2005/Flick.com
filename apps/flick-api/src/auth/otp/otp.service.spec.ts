@@ -11,6 +11,7 @@ import { OtpService } from './otp.service';
 import { PrismaService } from '../../prisma.service';
 import { OTP_DELIVERY_PORT } from './otp-delivery.port';
 import { createPrismaMock } from '../../testing/prisma.mock';
+import * as otpCode from './otp-code';
 import {
   OTP_MAX_ATTEMPTS,
   OTP_SHORT_WINDOW_MAX,
@@ -294,7 +295,11 @@ describe('OtpService.verify', () => {
   });
 
   it('increments attempts on a wrong code without consuming the challenge', async () => {
-    prisma.otpChallenge.findFirst.mockResolvedValue(await liveChallenge());
+    // First findFirst call is the initial challenge lookup; the second is
+    // the read-back of the post-increment row.
+    prisma.otpChallenge.findFirst
+      .mockResolvedValueOnce(await liveChallenge())
+      .mockResolvedValueOnce({ attempts: 1, consumedAt: null });
 
     await expect(verify('000000')).rejects.toThrow(UnauthorizedException);
 
@@ -302,26 +307,70 @@ describe('OtpService.verify', () => {
       where: Record<string, unknown>;
       data: Record<string, unknown>;
     };
-    expect(call.data.attempts).toBe(1);
-    expect(call.data.consumedAt).toBeUndefined();
-    // Optimistic guard — a racing writer must not be able to walk past the cap.
-    expect(call.where.attempts).toBe(0);
+    // Atomic DB-level increment — the form Postgres's READ COMMITTED
+    // first-updater-wins re-check actually protects, unlike a precomputed
+    // literal. Every concurrent wrong guess counts exactly once.
+    expect(call.data).toEqual({ attempts: { increment: 1 } });
+    // The single-use guard: an already-consumed challenge is never
+    // incremented.
+    expect(call.where).toEqual({ id: 'c1', consumedAt: null });
+  });
+
+  it('rejects a wrong-guess race loser whose increment matches zero rows', async () => {
+    // Exactly what a concurrent wrong guess sees once a correct submission
+    // has already consumed the challenge: nothing left to increment against.
+    prisma.otpChallenge.findFirst.mockResolvedValue(await liveChallenge());
+    prisma.otpChallenge.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(verify('000000')).rejects.toThrow(UnauthorizedException);
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it('still runs the bcrypt comparison when the ref is already known wrong', async () => {
+    // Pins the timing-safety property: both comparisons must run before
+    // either is branched on. A future edit that short-circuits on
+    // `!refMatches` before comparing the code would reintroduce the
+    // ref-vs-code timing oracle, and this test would catch it.
+    const compareSpy = jest.spyOn(otpCode, 'compareOtpCode');
+    prisma.otpChallenge.findFirst.mockResolvedValue(await liveChallenge());
+
+    await expect(verify('123456', 'ZZZZ')).rejects.toThrow(
+      UnauthorizedException,
+    );
+
+    expect(compareSpy).toHaveBeenCalledWith(
+      '123456',
+      expect.any(String) as unknown as string,
+    );
+    compareSpy.mockRestore();
   });
 
   it('burns the challenge and returns 429 on the final wrong attempt', async () => {
-    prisma.otpChallenge.findFirst.mockResolvedValue(
-      await liveChallenge({ attempts: OTP_MAX_ATTEMPTS - 1 }),
-    );
+    prisma.otpChallenge.findFirst
+      .mockResolvedValueOnce(
+        await liveChallenge({ attempts: OTP_MAX_ATTEMPTS - 1 }),
+      )
+      .mockResolvedValueOnce({
+        attempts: OTP_MAX_ATTEMPTS,
+        consumedAt: null,
+      });
 
     await expect(verify('000000')).rejects.toMatchObject({
       status: HttpStatus.TOO_MANY_REQUESTS,
     });
 
-    const call = prisma.otpChallenge.updateMany.mock.calls[0][0] as {
+    // First updateMany call is the atomic increment; second is the burn.
+    const incrementCall = prisma.otpChallenge.updateMany.mock.calls[0][0] as {
       data: Record<string, unknown>;
     };
-    expect(call.data.attempts).toBe(OTP_MAX_ATTEMPTS);
-    expect(call.data.consumedAt).toEqual(expect.any(Date));
+    expect(incrementCall.data).toEqual({ attempts: { increment: 1 } });
+
+    const burnCall = prisma.otpChallenge.updateMany.mock.calls[1][0] as {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    };
+    expect(burnCall.where).toEqual({ id: 'c1', consumedAt: null });
+    expect(burnCall.data.consumedAt).toEqual(expect.any(Date));
   });
 
   it('refuses a burned challenge even with the correct code', async () => {

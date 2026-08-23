@@ -6,9 +6,14 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { PrismaService } from './../src/prisma.service';
+import { OTP_DELIVERY_PORT } from './../src/auth/otp/otp-delivery.port';
+import type { ConsoleOtpDeliveryAdapter } from './../src/auth/otp/adapters/console-delivery.adapter';
 
 const PREMIUM_EPISODE_ID = 'sathu-premium';
 const DRAFT_MOVIE_ID = 'e2e-draft';
+// Matches the seeded user (prisma/seed.ts). E.164 already normalized.
+const SEEDED_PHONE = '+66800000001';
 
 describe('Content entitlement (e2e)', () => {
   let app: INestApplication<App>;
@@ -25,12 +30,32 @@ describe('Content entitlement (e2e)', () => {
     await app.init();
 
     cache = app.get<Cache>(CACHE_MANAGER);
+
+    const prisma = app.get(PrismaService);
+    const delivery = app.get<ConsoleOtpDeliveryAdapter>(OTP_DELIVERY_PORT, {
+      strict: false,
+    });
+
+    // OTP_COOLDOWN_MS is per-destination and otp_challenges rows persist
+    // across e2e specs in the shared database — auth.e2e-spec.ts logs in
+    // with this same seeded number moments before this suite runs. Clear
+    // its rows first or this request lands inside the cooldown and gets a
+    // 429 instead of the 200 login() expects.
+    await prisma.otpChallenge.deleteMany({
+      where: { destination: SEEDED_PHONE },
+    });
+
+    const requested = await request(app.getHttpServer())
+      .post('/auth/otp/request')
+      .send({ destination: SEEDED_PHONE })
+      .expect(200);
+    const { ref } = requested.body as { ref: string };
+    const code = delivery.lastCodeFor(SEEDED_PHONE);
+    expect(code).toBeDefined();
+
     const login = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({
-        email: 'e2e-free@flick.test',
-        password: 'flick-e2e-password',
-      })
+      .post('/auth/otp/verify')
+      .send({ destination: SEEDED_PHONE, ref, code })
       .expect(200);
 
     freeUserCookie = login.headers['set-cookie'];

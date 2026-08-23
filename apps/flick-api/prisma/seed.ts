@@ -1,7 +1,6 @@
 import { PrismaClient, ContentStatus } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import * as bcrypt from 'bcrypt';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://macintosh@localhost:5432/flickdb?schema=public';
 const pool = new Pool({ connectionString });
@@ -10,6 +9,26 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('Seeding database...');
+
+  // Idempotency: this script always used bare `.create()`, so re-running it
+  // against a database that already has these fixture rows (e.g. after
+  // switching the seeded user from password to OTP auth) fails on the
+  // primary-key unique constraint. Clear only the known fixture rows this
+  // script owns — by id — before recreating them. Movie deletion cascades to
+  // its seasons/episodes/movie_genres rows (see schema.prisma onDelete:
+  // Cascade); genres themselves are shared and left alone via
+  // connectOrCreate below.
+  const seedMovieIds = [
+    'sathu',
+    'dao-sindome',
+    'neephee',
+    'ngao',
+    'rak',
+    'sena',
+    'e2e-draft',
+  ];
+  await prisma.movie.deleteMany({ where: { id: { in: seedMovieIds } } });
+  await prisma.user.deleteMany({ where: { id: 'e2e-free-user' } });
 
   // Create Movies
   const sathu = await prisma.movie.create({
@@ -253,8 +272,12 @@ async function main() {
     data: {
       id: 'e2e-free-user',
       email: 'e2e-free@flick.test',
+      // The phone IS the login identity now — stored normalized, exactly as
+      // OtpService writes it.
+      phone: '+66800000001',
       displayName: 'E2E Free User',
-      passwordHash: await bcrypt.hash('flick-e2e-password', 12),
+      isVerified: true,
+      // passwordHash intentionally absent — passwordless.
     },
   });
 

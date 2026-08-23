@@ -77,3 +77,49 @@ describe('resolveCatalogItem', () => {
     }
   });
 });
+
+describe('resolveCatalogItem — prototype-pollution guard', () => {
+  it('rejects an item id that only exists as an inherited Object.prototype property', () => {
+    jest.isolateModules(() => {
+      jest.doMock('../plans/plans.config', () => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const actual = jest.requireActual('../plans/plans.config');
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return {
+          ...actual,
+          // A plan whose id collides with an Object.prototype method name.
+          // PLAN_DURATIONS_MS deliberately has NO 'toString' key — only
+          // weekly/monthly — so a naive `itemId in PLAN_DURATIONS_MS` check
+          // would still see 'toString' as present (inherited from
+          // Object.prototype), fall through, find this plan below, and
+          // incorrectly resolve it.
+          SUBSCRIPTION_PLANS: [
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+            ...actual.SUBSCRIPTION_PLANS,
+            {
+              id: 'toString',
+              name: 'Fake',
+              nameEn: 'Fake',
+              price: 99,
+              period: '',
+              features: [],
+              featuresEn: [],
+              badge: null,
+              color: '#000',
+            },
+          ],
+        };
+      });
+
+      // Re-require AFTER mocking, inside isolateModules, so this fresh
+      // module instance sees the mocked config while the file's top-level
+      // resolveCatalogItem (used by every other test in this file) is
+      // completely unaffected.
+      const { resolveCatalogItem: isolatedResolve } =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require('./catalog') as typeof import('./catalog');
+
+      expect(() => isolatedResolve('SUBSCRIPTION', 'toString')).toThrow();
+    });
+  });
+});

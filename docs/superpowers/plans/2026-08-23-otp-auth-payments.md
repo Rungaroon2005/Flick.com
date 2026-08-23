@@ -100,7 +100,7 @@ No user-facing change. Everything in this phase is covered by unit tests.
 
 **Context:** `User.phone` is **already** `String? @unique` (`schema.prisma:51`) — no change needed there. Only `passwordHash` must become nullable, because passwordless users never have one.
 
-- [ ] **Step 1: Add the two enums**
+- [x] **Step 1: Add the two enums**
 
 In `apps/flick-api/prisma/schema.prisma`, after the `InteractionType` enum (line 42), add:
 
@@ -116,7 +116,7 @@ enum OtpPurpose {
 }
 ```
 
-- [ ] **Step 2: Make `passwordHash` nullable**
+- [x] **Step 2: Make `passwordHash` nullable**
 
 In the `User` model, change line 52 from:
 
@@ -130,7 +130,7 @@ to:
   passwordHash String? // null for passwordless (OTP) users — the default after Phase 2
 ```
 
-- [ ] **Step 3: Add the `OtpChallenge` model**
+- [x] **Step 3: Add the `OtpChallenge` model**
 
 Add after the `Device` model (after line 101):
 
@@ -158,14 +158,14 @@ model OtpChallenge {
 }
 ```
 
-- [ ] **Step 4: Generate the migration and client**
+- [x] **Step 4: Generate the migration and client**
 
 Run: `cd apps/flick-api && npm run migrate:dev -- --name otp_challenges`
 Expected: a new folder under `prisma/migrations/`, and the Prisma client regenerated.
 
 If no database is reachable, run `npx prisma migrate dev --create-only --name otp_challenges` and then `npx prisma generate`.
 
-- [ ] **Step 5: Verify the client picked up the new types**
+- [x] **Step 5: Verify the client picked up the new types**
 
 Run: `cd apps/flick-api && npx tsc --noEmit -p tsconfig.json`
 Expected: PASS. (`OtpChannel`, `OtpPurpose` are now importable from `@prisma/client`.)
@@ -181,12 +181,12 @@ Note: `apps/flick-api/src/auth/auth.service.ts:56` calls `bcrypt.compare(loginDt
     const isMatch = await bcrypt.compare(loginDto.password, user.passwordHash);
 ```
 
-- [ ] **Step 6: Re-run type-check and the suite**
+- [x] **Step 6: Re-run type-check and the suite**
 
 Run: `cd apps/flick-api && npx tsc --noEmit -p tsconfig.json && npm test`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/flick-api/prisma/schema.prisma apps/flick-api/prisma/migrations apps/flick-api/src/auth/auth.service.ts

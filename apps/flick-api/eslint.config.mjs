@@ -43,4 +43,18 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-member-access': 'off',
     },
   },
+  {
+    files: ['src/auth/otp/otp.service.spec.ts'],
+    rules: {
+      // Same rationale as engagement.service.spec.ts above: `jest.fn().mock.calls`
+      // is untyped by design in the shared PrismaMock, so indexing into a call's
+      // arguments to inspect a persisted/delivered value is inherently `any`.
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      // The `as unknown as string` cast on an asymmetric matcher keeps the
+      // surrounding object literal's inferred type as `string`, even though
+      // the assertion looks redundant to the linter in isolation.
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+    },
+  },
 );

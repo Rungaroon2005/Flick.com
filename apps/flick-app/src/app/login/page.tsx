@@ -3,38 +3,60 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { login } from '@/features/auth';
+import { requestOtp, verifyOtp } from '@/features/auth';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 
+type Step = 'phone' | 'code';
+
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [step, setStep] = useState<Step>('phone');
+  const [phone, setPhone] = useState<string>('');
+  const [code, setCode] = useState<string>('');
+  const [ref, setRef] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [busy, setBusy] = useState<boolean>(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRequest = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('กรุณากรอกข้อมูลให้ครบถ้วน');
+    if (!phone) {
+      setError('กรุณากรอกเบอร์โทรศัพท์');
       return;
     }
-    try {
-      const result = await login(email, password);
-      if (result.success) {
-        router.replace('/home');
-        router.refresh();
-      } else {
-        setError(result.error || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
-      } else {
-        setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
-      }
+    setBusy(true);
+    setError('');
+    const result = await requestOtp(phone);
+    setBusy(false);
+
+    if (!result.success) {
+      setError(result.error);
+      return;
     }
+    // The API answers identically for known and unknown numbers, so there is
+    // nothing here to branch on — always advance to the code step.
+    setRef(result.ref);
+    setStep('code');
+  };
+
+  const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (code.length !== 6) {
+      setError('กรุณากรอกรหัส 6 หลัก');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    const result = await verifyOtp(phone, ref, code);
+    setBusy(false);
+
+    if (!result.success) {
+      setError(result.error);
+      return;
+    }
+    // A brand-new account goes to plan selection; a returning user goes home.
+    router.replace(result.isNewUser ? '/subscribe' : '/home');
+    router.refresh();
   };
 
   return (
@@ -57,8 +79,14 @@ export default function LoginPage() {
       <div className="text-3xl font-extrabold tracking-tight text-brand-ink">Flick</div>
 
       <div className="mt-7 w-full max-w-sm rounded-2xl border border-hairline bg-ink-1/70 p-6 backdrop-blur-xl">
-        <h1 className="text-title font-display">เข้าสู่ระบบ</h1>
-        <p className="mt-1 text-sm text-fg-mute">ดูหนังสั้นที่ค้างไว้ต่อได้เลย</p>
+        <h1 className="text-title font-display">
+          {step === 'phone' ? 'เข้าสู่ระบบ' : 'ใส่รหัสยืนยัน'}
+        </h1>
+        <p className="mt-1 text-sm text-fg-mute">
+          {step === 'phone'
+            ? 'กรอกเบอร์โทรศัพท์เพื่อรับรหัสยืนยัน'
+            : `ส่งรหัส 6 หลักไปที่ ${phone} แล้ว (รหัสอ้างอิง ${ref})`}
+        </p>
 
         {error && (
           <div role="alert" className="mt-4 flex items-center gap-2 rounded-lg bg-fail/15 px-3 py-2.5 text-sm text-fail">
@@ -67,58 +95,54 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3">
-          <div className="relative flex items-center">
-            <Icon name="mail" size={18} className="pointer-events-none absolute left-3.5 text-fg-mute" />
+        {step === 'phone' ? (
+          <form onSubmit={handleRequest} className="mt-5 flex flex-col gap-3">
+            <div className="relative flex items-center">
+              <Icon name="phone" size={18} className="pointer-events-none absolute left-3.5 text-fg-mute" />
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                className="h-12 w-full rounded-xl border border-hairline bg-ink-2 pl-11 pr-4 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink"
+                placeholder="เบอร์โทรศัพท์"
+                aria-label="เบอร์โทรศัพท์"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+            <Button type="submit" variant="primary" size="lg" className="mt-2 w-full" disabled={busy}>
+              {busy ? 'กำลังส่ง...' : 'ขอรหัสยืนยัน'}
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerify} className="mt-5 flex flex-col gap-3">
             <input
-              type="email"
-              className="h-12 w-full rounded-xl border border-hairline bg-ink-2 pl-11 pr-4 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink"
-              placeholder="อีเมล"
-              aria-label="อีเมล"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              className="h-12 w-full rounded-xl border border-hairline bg-ink-2 px-4 text-center text-xl tracking-[0.5em] text-fg outline-none placeholder:tracking-normal placeholder:text-fg-mute focus:border-brand-ink"
+              placeholder="000000"
+              aria-label="รหัสยืนยัน 6 หลัก"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             />
-          </div>
-
-          <div className="relative flex items-center">
-            <Icon name="lock" size={18} className="pointer-events-none absolute left-3.5 text-fg-mute" />
-            <input
-              type={showPassword ? 'text' : 'password'}
-              className="h-12 w-full rounded-xl border border-hairline bg-ink-2 pl-11 pr-11 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink"
-              placeholder="รหัสผ่าน"
-              aria-label="รหัสผ่าน"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <Button type="submit" variant="primary" size="lg" className="mt-2 w-full" disabled={busy}>
+              {busy ? 'กำลังตรวจสอบ...' : 'ยืนยัน'}
+            </Button>
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
-              className="absolute right-3.5 text-fg-mute transition-colors hover:text-fg"
+              onClick={() => {
+                setStep('phone');
+                setCode('');
+                setError('');
+              }}
+              className="mt-1 text-sm text-fg-dim transition-colors hover:text-fg"
             >
-              <Icon name={showPassword ? 'eyeOff' : 'eye'} size={18} />
+              เปลี่ยนเบอร์โทรศัพท์
             </button>
-          </div>
-
-          <div className="mt-1 flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 text-fg-dim">
-              <input type="checkbox" className="accent-brand" />
-              จดจำฉันไว้
-            </label>
-            <span className="text-fg-mute">ลืมรหัสผ่าน?</span>
-          </div>
-
-          <Button type="submit" variant="primary" size="lg" className="mt-2 w-full">
-            เข้าสู่ระบบ
-          </Button>
-        </form>
-
-        <div className="mt-5 text-center text-sm text-fg-dim">
-          ยังไม่มีบัญชี?{' '}
-          <Link href="/register" className="font-medium text-brand-ink">
-            สมัครสมาชิก
-          </Link>
-        </div>
+          </form>
+        )}
       </div>
 
       <div className="mt-6 flex justify-center gap-4 text-xs text-fg-mute">

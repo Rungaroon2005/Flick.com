@@ -106,7 +106,7 @@ export default function LandingClient({ movies }: { movies: Movie[] }) {
             aria-hidden="true"
           />
           <Link
-            href="/register"
+            href="/login"
             className="relative flex h-14 items-center gap-2 rounded-full border border-white/25 bg-brand/90 px-7 text-base font-semibold text-white shadow-[0_0_40px_-6px_rgba(255,77,26,0.7)] backdrop-blur-xl transition-transform active:scale-95"
           >
             เข้าสู่โลกหนังสั้น

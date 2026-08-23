@@ -209,7 +209,7 @@ git commit -m "feat(auth): add OtpChallenge model and make passwordHash nullable
 
 **Why this exists:** `0812345678` and `+66812345678` are the same human. Without normalization *before* every DB lookup, they become two accounts, and the rate limiter counts them separately.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/flick-api/src/auth/otp/destination.spec.ts`:
 
@@ -267,12 +267,12 @@ describe('maskDestination', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `cd apps/flick-api && npm test -- destination`
 Expected: FAIL — `Cannot find module './destination'`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/flick-api/src/auth/otp/destination.ts`:
 
@@ -336,12 +336,12 @@ export function maskDestination(destination: string): string {
 }
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `cd apps/flick-api && npm test -- destination`
 Expected: PASS (all 6 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/flick-api/src/auth/otp/destination.ts apps/flick-api/src/auth/otp/destination.spec.ts

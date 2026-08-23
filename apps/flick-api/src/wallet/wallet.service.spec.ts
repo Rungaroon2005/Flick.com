@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
+import { Prisma, TransactionType } from '@prisma/client';
 import { WalletService } from './wallet.service';
 import { PrismaService } from '../prisma.service';
 import { createPrismaMock } from '../testing/prisma.mock';
@@ -113,5 +114,71 @@ describe('WalletService', () => {
     );
     expect(tx.userCoin.create).not.toHaveBeenCalled();
     expect(tx.user.update).not.toHaveBeenCalled();
+  });
+
+  it('joins a caller-supplied transaction instead of opening its own', async () => {
+    // The webhook drives one transaction across PaymentEvent, PaymentIntent
+    // and the coin ledger. If credit() opened its own, a crash could leave
+    // coins credited for a payment we never recorded.
+    const outerTx = createPrismaMock();
+    outerTx.$queryRaw.mockResolvedValue([{ coinBalance: 10 }]);
+
+    const balance = await service.credit(
+      'u1',
+      100,
+      TransactionType.PURCHASED,
+      'purchase:coinpack:starter',
+      'pe1',
+      outerTx as unknown as Prisma.TransactionClient,
+    );
+
+    expect(balance).toBe(110);
+    expect(outerTx.userCoin.create).toHaveBeenCalled();
+    // The service must NOT have started a transaction of its own.
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('still opens its own transaction when none is supplied', async () => {
+    tx.$queryRaw.mockResolvedValue([{ coinBalance: 10 }]);
+
+    await service.credit(
+      'u1',
+      100,
+      TransactionType.PURCHASED,
+      'purchase:coinpack:starter',
+    );
+
+    expect(prisma.$transaction).toHaveBeenCalled();
+  });
+
+  it('links the ledger row to its payment event', async () => {
+    tx.$queryRaw.mockResolvedValue([{ coinBalance: 0 }]);
+
+    await service.credit(
+      'u1',
+      320,
+      TransactionType.PURCHASED,
+      'purchase:coinpack:popular',
+      'pe1',
+    );
+
+    // `expect.objectContaining` is typed to return `any` in @types/jest, so
+    // it needs a cast here to avoid tripping `no-unsafe-assignment` — see
+    // the identical note above on the `ledgerRowMatch` cast.
+    const ledgerRowMatch = expect.objectContaining({
+      amount: 320,
+      balanceAfter: 320,
+      paymentEventId: 'pe1',
+    }) as { amount: number; balanceAfter: number; paymentEventId: string };
+    expect(tx.userCoin.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: ledgerRowMatch }),
+    );
+  });
+
+  it('rejects a non-positive credit before touching the ledger', async () => {
+    await expect(
+      service.credit('u1', 0, TransactionType.PURCHASED, 'bad'),
+    ).rejects.toThrow(BadRequestException);
+    expect(tx.userCoin.create).not.toHaveBeenCalled();
   });
 });

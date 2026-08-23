@@ -74,9 +74,10 @@ model User {
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
 
-  subscriptions Subscription[]
-  paymentEvents PaymentEvent[]
-  userCoins     UserCoin[]
+  subscriptions  Subscription[]
+  paymentEvents  PaymentEvent[]
+  paymentIntents PaymentIntent[]
+  userCoins      UserCoin[]
   watchHistory  WatchHistory[]
   bookmarks     Bookmark[]
   downloads     Download[]
@@ -247,6 +248,36 @@ model Subscription {
   @@index([userId, status])
   @@index([endDate])
   @@map("subscriptions")
+}
+
+model PaymentIntent {
+  id     String @id @default(uuid())
+  userId String
+
+  // Both resolved server-side from plans.config.ts at checkout. The client
+  // sends only itemType + itemId; it can never propose an amount.
+  itemType      String // "SUBSCRIPTION" | "COIN_PACK"
+  itemId        String // key into plans.config.ts — 'weekly' | 'starter' | ...
+  amountSatangs Int
+  currency      String @default("THB")
+
+  // PENDING | SUCCEEDED | FAILED | EXPIRED. Transitions are enforced in code
+  // by guarded updateMany (…where status: 'PENDING'), which is what stops a
+  // late FAILED webhook from overwriting a SUCCEEDED intent.
+  status String @default("PENDING")
+
+  gateway         String
+  gatewayChargeId String? @unique
+  idempotencyKey  String  @unique
+  expiresAt       DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, status])
+  @@map("payment_intents")
 }
 
 model PaymentEvent {

@@ -5,18 +5,26 @@ import {
   Injectable,
   Logger,
   ServiceUnavailableException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OtpChannel, OtpPurpose } from '@prisma/client';
 import { PrismaService } from '../../prisma.service';
 import { maskDestination, normalizeDestination } from './destination';
-import { generateOtpCode, generateOtpRef, hashOtpCode } from './otp-code';
+import {
+  compareOtpCode,
+  generateOtpCode,
+  generateOtpRef,
+  hashOtpCode,
+  timingSafeEqualString,
+} from './otp-code';
 import { OTP_DELIVERY_PORT, type OtpDeliveryPort } from './otp-delivery.port';
 import {
   DEFAULT_OTP_GLOBAL_DAILY_CAP,
   OTP_COOLDOWN_MS,
   OTP_LONG_WINDOW_MAX,
   OTP_LONG_WINDOW_MS,
+  OTP_MAX_ATTEMPTS,
   OTP_SHORT_WINDOW_MAX,
   OTP_SHORT_WINDOW_MS,
   OTP_TTL_MS,
@@ -33,6 +41,18 @@ export interface OtpRequestInput {
   ipAddress: string;
 }
 
+export interface OtpVerifyResult {
+  userId: string;
+  isNewUser: boolean;
+}
+
+export interface OtpVerifyInput {
+  destination: string;
+  channel: OtpChannel;
+  ref: string;
+  code: string;
+}
+
 /**
  * Deliberately identical for every rate-limit trip. Distinguishing "you are in
  * cooldown" from "this destination is capped" would tell an attacker whether
@@ -40,6 +60,12 @@ export interface OtpRequestInput {
  */
 const RATE_LIMITED =
   'ขอรหัสบ่อยเกินไป กรุณารอสักครู่ (Too many requests, please wait)';
+
+/** One message for every failure mode: unknown, expired, wrong ref, wrong code,
+ *  already consumed. Anything more specific is an oracle. */
+const INVALID_CODE = 'รหัสไม่ถูกต้องหรือหมดอายุ (Invalid or expired code)';
+const ATTEMPTS_EXHAUSTED =
+  'ใส่รหัสผิดหลายครั้งเกินไป กรุณาขอรหัสใหม่ (Too many attempts, request a new code)';
 
 @Injectable()
 export class OtpService {
@@ -170,4 +196,109 @@ export class OtpService {
       throw new HttpException(RATE_LIMITED, HttpStatus.TOO_MANY_REQUESTS);
     }
   }
+
+  /**
+   * Verifies a code and resolves the caller to a user, creating one on first
+   * success (lazy registration). Runs in one transaction so consumption and
+   * user creation cannot come apart.
+   */
+  async verify({
+    destination,
+    channel,
+    ref,
+    code,
+  }: OtpVerifyInput): Promise<OtpVerifyResult> {
+    const normalized = normalizeDestination(destination, channel);
+    const now = new Date();
+
+    return this.prisma.$transaction(async (tx) => {
+      const challenge = await tx.otpChallenge.findFirst({
+        where: {
+          destination: normalized,
+          purpose: OtpPurpose.LOGIN,
+          consumedAt: null,
+          expiresAt: { gt: now },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (!challenge) throw new UnauthorizedException(INVALID_CODE);
+
+      // Both comparisons run before either is branched on, so "wrong ref" and
+      // "wrong code" cost the same time and are indistinguishable to a caller.
+      const refMatches = timingSafeEqualString(challenge.ref, ref);
+      const codeMatches = await compareOtpCode(code, challenge.codeHash);
+
+      if (!refMatches || !codeMatches) {
+        const attempts = challenge.attempts + 1;
+        const exhausted = attempts >= OTP_MAX_ATTEMPTS;
+        await tx.otpChallenge.updateMany({
+          // Guarding on the observed `attempts` makes this an optimistic
+          // update: a concurrent wrong guess that already incremented the
+          // counter causes this one to match zero rows rather than
+          // overwriting it with a stale value and granting a free attempt.
+          where: {
+            id: challenge.id,
+            consumedAt: null,
+            attempts: challenge.attempts,
+          },
+          data: { attempts, ...(exhausted ? { consumedAt: now } : {}) },
+        });
+        if (exhausted) {
+          throw new HttpException(
+            ATTEMPTS_EXHAUSTED,
+            HttpStatus.TOO_MANY_REQUESTS,
+          );
+        }
+        throw new UnauthorizedException(INVALID_CODE);
+      }
+
+      // The `consumedAt: null` guard is the single-use mechanism. Two
+      // simultaneous correct submissions both reach here; the second matches
+      // zero rows once the first commits.
+      const consumed = await tx.otpChallenge.updateMany({
+        where: { id: challenge.id, consumedAt: null },
+        data: { consumedAt: now },
+      });
+      if (consumed.count === 0) throw new UnauthorizedException(INVALID_CODE);
+
+      const identity =
+        channel === OtpChannel.SMS
+          ? { phone: normalized }
+          : { email: normalized };
+
+      const existing = await tx.user.findFirst({
+        where: { ...identity, deletedAt: null },
+        select: { id: true },
+      });
+
+      const user =
+        existing ??
+        (await tx.user.create({
+          data: {
+            ...identity,
+            displayName: placeholderDisplayName(normalized, channel),
+            // They just proved control of the destination.
+            isVerified: true,
+            // passwordHash intentionally omitted — passwordless.
+          },
+          select: { id: true },
+        }));
+
+      await tx.otpChallenge.updateMany({
+        where: { id: challenge.id },
+        data: { userId: user.id },
+      });
+
+      return { userId: user.id, isNewUser: existing === null };
+    });
+  }
+}
+
+/** A non-empty display name for a lazily-created user. Editable later. */
+function placeholderDisplayName(
+  destination: string,
+  channel: OtpChannel,
+): string {
+  if (channel === OtpChannel.EMAIL) return destination.split('@')[0];
+  return `ผู้ใช้${destination.slice(-4)}`;
 }

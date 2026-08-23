@@ -8,63 +8,57 @@ import { clearLegacyLocalState } from './legacyStorage';
 interface AuthUser {
   id: string;
   email: string | null;
+  phone: string | null;
   displayName: string;
-}
-
-interface AuthResult {
-  success: boolean;
-  user?: AuthUser;
-  error?: string;
 }
 
 const NETWORK_ERROR = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้';
 
-function toResult(err: unknown, fallback: string): AuthResult {
+function toResult(err: unknown, fallback: string): { success: false; error: string } {
   if (err instanceof ApiError) {
     return { success: false, error: err.message || fallback };
   }
   return { success: false, error: NETWORK_ERROR };
 }
 
-export async function login(
-  email: string,
-  password: string,
-): Promise<AuthResult> {
+export type OtpRequestResult =
+  | { success: true; ref: string; expiresIn: number }
+  | { success: false; error: string };
+
+export type OtpVerifyResult =
+  | { success: true; user: AuthUser; isNewUser: boolean }
+  | { success: false; error: string };
+
+/**
+ * Asks the API to send a code. The response is deliberately the same whether
+ * or not an account exists, so the UI must never branch on "user found".
+ */
+export async function requestOtp(destination: string): Promise<OtpRequestResult> {
   try {
-    const data = await apiFetch(
-      '/auth/login',
-      { method: 'POST', body: JSON.stringify({ email, password }) },
-    );
-    clearLegacyLocalState();
-    return { success: true, user: data.user };
+    const data = await apiFetch('/auth/otp/request', {
+      method: 'POST',
+      body: JSON.stringify({ destination }),
+    });
+    return { success: true, ref: data.ref, expiresIn: data.expiresIn };
   } catch (err) {
-    return toResult(err, 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+    return toResult(err, 'ไม่สามารถส่งรหัสได้ กรุณาลองใหม่');
   }
 }
 
-export async function register(data: {
-  displayName: string;
-  email: string;
-  phone?: string;
-  password: string;
-}): Promise<AuthResult> {
+export async function verifyOtp(
+  destination: string,
+  ref: string,
+  code: string,
+): Promise<OtpVerifyResult> {
   try {
-    const result = await apiFetch(
-      '/auth/register',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          displayName: data.displayName,
-          email: data.email,
-          phone: data.phone || undefined,
-          password: data.password,
-        }),
-      },
-    );
+    const data = await apiFetch('/auth/otp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ destination, ref, code }),
+    });
     clearLegacyLocalState();
-    return { success: true, user: result.user };
+    return { success: true, user: data.user, isNewUser: data.isNewUser };
   } catch (err) {
-    return toResult(err, 'การสมัครสมาชิกผิดพลาด');
+    return toResult(err, 'รหัสไม่ถูกต้องหรือหมดอายุ');
   }
 }
 

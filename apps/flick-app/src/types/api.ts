@@ -1,6 +1,5 @@
 import type {
   AuthenticatedUser,
-  AuthMutationResponse,
   BookmarkResponse,
   CoinPack,
   ContinueWatchingItem,
@@ -8,6 +7,8 @@ import type {
   LikeResponse,
   Movie,
   MovieActionsResponse,
+  OtpRequestResponse,
+  OtpVerifyResponse,
   PlaybackAuthorization,
   Subscription,
   SubscriptionPlan,
@@ -20,8 +21,8 @@ export interface PlansResponse {
 }
 
 export type ApiPath =
-  | '/auth/login'
-  | '/auth/register'
+  | '/auth/otp/request'
+  | '/auth/otp/verify'
   | '/auth/logout'
   | '/auth/me'
   | '/movies'
@@ -39,7 +40,8 @@ export type ApiPath =
   | `/me/watch-history/${string}`;
 
 export type ApiResponse<Path extends ApiPath> =
-  Path extends '/auth/login' | '/auth/register' ? AuthMutationResponse
+  Path extends '/auth/otp/request' ? OtpRequestResponse
+  : Path extends '/auth/otp/verify' ? OtpVerifyResponse
   : Path extends '/auth/logout' ? { success: boolean }
   : Path extends '/auth/me' ? AuthenticatedUser
   : Path extends '/movies' | '/me/bookmarks' ? Movie[]
@@ -155,9 +157,16 @@ export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unkno
     requireNumber(wallet, 'balance');
     return wallet as ApiResponse<Path>;
   }
-  if (path === '/auth/me' || path === '/auth/login' || path === '/auth/register') {
+  if (path === '/auth/otp/request') {
+    const otp = requireRecord(value, 'otp request');
+    if (typeof otp.ref !== 'string') throw new TypeError('Invalid otp ref');
+    requireNumber(otp, 'expiresIn');
+    return otp as ApiResponse<Path>;
+  }
+  if (path === '/auth/me' || path === '/auth/otp/verify') {
     const envelope = requireRecord(value, 'authentication');
-    const user = path === '/auth/me' ? envelope : requireRecord(envelope.user, 'authentication user');
+    const user =
+      path === '/auth/me' ? envelope : requireRecord(envelope.user, 'authentication user');
     if (typeof user.id !== 'string' || typeof user.displayName !== 'string') {
       throw new TypeError('Invalid authentication user');
     }

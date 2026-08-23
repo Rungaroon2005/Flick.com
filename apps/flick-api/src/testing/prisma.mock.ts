@@ -6,7 +6,12 @@ export interface PrismaMock {
     create: jest.Mock;
     update: jest.Mock;
   };
-  user: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
+  user: {
+    findUnique: jest.Mock;
+    findFirst: jest.Mock;
+    create: jest.Mock;
+    update: jest.Mock;
+  };
   userCoin: { create: jest.Mock; findMany: jest.Mock; findFirst: jest.Mock };
   subscription: {
     findFirst: jest.Mock;
@@ -40,6 +45,21 @@ export interface PrismaMock {
     upsert: jest.Mock;
     deleteMany: jest.Mock;
   };
+  otpChallenge: {
+    findFirst: jest.Mock;
+    create: jest.Mock;
+    updateMany: jest.Mock;
+    count: jest.Mock;
+  };
+  paymentIntent: {
+    create: jest.Mock;
+    update: jest.Mock;
+    updateMany: jest.Mock;
+    findUnique: jest.Mock;
+  };
+  paymentEvent: {
+    create: jest.Mock;
+  };
   $transaction: jest.Mock;
   $queryRaw: jest.Mock;
 }
@@ -53,7 +73,12 @@ export const createPrismaMock = (): PrismaMock => {
       create: jest.fn(),
       update: jest.fn(),
     },
-    user: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+    user: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
     userCoin: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -90,6 +115,21 @@ export const createPrismaMock = (): PrismaMock => {
       findMany: jest.fn(),
       upsert: jest.fn(),
       deleteMany: jest.fn(),
+    },
+    otpChallenge: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      updateMany: jest.fn(),
+      count: jest.fn(),
+    },
+    paymentIntent: {
+      create: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+      findUnique: jest.fn(),
+    },
+    paymentEvent: {
+      create: jest.fn(),
     },
     // Pass the SAME mock instance into the callback so that stubs set up
     // on `prisma.*` in a test (e.g. `prisma.user.findUnique.mockResolvedValue`)

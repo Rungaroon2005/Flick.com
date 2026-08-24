@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Container } from '@/components/ui/Container';
 import { Icon } from '@/components/ui/Icon';
@@ -15,7 +15,7 @@ const FREE_PLAN_ID = 'free';
  *  client. What this component sends to POST /payments/checkout is only the
  *  chosen id — never a price — so the server-resolved catalog amount is the
  *  only amount that can ever be charged. */
-export default function SubscribeClient({
+function SubscribeForm({
   plans,
   coinPacks,
 }: {
@@ -23,6 +23,7 @@ export default function SubscribeClient({
   coinPacks: CoinPack[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [busyItem, setBusyItem] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
 
@@ -40,7 +41,7 @@ export default function SubscribeClient({
     }
     // Remembered so /subscribe/processing knows what to poll for — the
     // gateway's return URL only carries the intent id, not the item type.
-    await rememberPendingCheckout(itemType, result.intentId);
+    await rememberPendingCheckout(itemType, result.intentId, searchParams.get('next'));
     // Full navigation, not router.push — the checkout page is the gateway's
     // origin, not ours. location.assign(), not `location.href =`: this
     // version's react-hooks/react-compiler lint rule flags a direct property
@@ -164,5 +165,23 @@ export default function SubscribeClient({
         </section>
       </Container>
     </div>
+  );
+}
+
+// useSearchParams bails a static build's Client Component tree out to client
+// rendering up to the nearest Suspense boundary; without one, `next build`
+// fails with "Missing Suspense boundary with useSearchParams" (same fix as
+// /login and /subscribe/processing).
+export default function SubscribeClient({
+  plans,
+  coinPacks,
+}: {
+  plans: SubscriptionPlan[];
+  coinPacks: CoinPack[];
+}) {
+  return (
+    <Suspense fallback={null}>
+      <SubscribeForm plans={plans} coinPacks={coinPacks} />
+    </Suspense>
   );
 }

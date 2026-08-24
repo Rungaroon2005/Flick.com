@@ -7,6 +7,7 @@
 // actually seen a NEW grant land, not just a pre-existing entitlement.
 'use client';
 import { ApiError, apiFetch } from '@/lib/apiClient';
+import { safeNext } from '@/lib/nextParam';
 
 export type CheckoutItemType = 'SUBSCRIPTION' | 'COIN_PACK';
 
@@ -59,6 +60,10 @@ interface PendingCheckout {
    *  then falls back to treating any subscription as a grant, same as it
    *  would for a genuine first-time purchase. */
   baselineSubscriptionEndDate?: string | null;
+  /** Where to land once the grant is confirmed. Validated on the way in and
+   *  again on the way out: sessionStorage is writable by any script on the
+   *  origin, so a stored value is no more trusted than a URL param. */
+  next?: string;
 }
 
 /**
@@ -74,8 +79,11 @@ interface PendingCheckout {
 export async function rememberPendingCheckout(
   itemType: CheckoutItemType,
   intentId: string,
+  next?: string | null,
 ): Promise<void> {
   const pending: PendingCheckout = { itemType, intentId };
+  const safe = safeNext(next);
+  if (safe) pending.next = safe;
   if (itemType === 'COIN_PACK') {
     try {
       const wallet = await apiFetch('/wallet');
@@ -116,7 +124,7 @@ export function recallPendingCheckout(intentId: string | null): PendingCheckout 
       return null;
     }
     if (parsed.intentId !== intentId) return null;
-    return parsed as PendingCheckout;
+    return { ...parsed, next: safeNext(parsed.next) ?? undefined } as PendingCheckout;
   } catch {
     return null;
   }

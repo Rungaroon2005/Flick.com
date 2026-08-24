@@ -28,6 +28,7 @@ function ProcessingScreen() {
 
     const pending = recallPendingCheckout(intentId);
     const itemType = pending?.itemType ?? null;
+    const destination = pending?.next ?? '/home';
     // NB: `??` is deliberately NOT used for subscriptionEndDate below — it
     // would conflate "captured as null (no prior subscription)" with
     // "never captured (undefined)", and those two states must stay distinct
@@ -49,7 +50,9 @@ function ProcessingScreen() {
         baseline = result.baseline;
         if (!cancelled && result.granted) {
           clearPendingCheckout();
-          router.replace('/home');
+          // push, not replace: back should return to the episode, not to the
+          // gateway we just came from.
+          router.push(destination);
           router.refresh();
           return;
         }

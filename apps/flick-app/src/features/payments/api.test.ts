@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { apiFetch } from '@/lib/apiClient';
-import { checkGranted, INITIAL_CHECKOUT_BASELINE, type CheckoutBaseline } from './api';
+import {
+  checkGranted,
+  recallPendingCheckout,
+  rememberPendingCheckout,
+  INITIAL_CHECKOUT_BASELINE,
+  type CheckoutBaseline,
+} from './api';
 
 vi.mock('@/lib/apiClient', () => ({
   ApiError: class ApiError extends Error {
@@ -144,5 +150,23 @@ describe('checkGranted — item type unknown (sessionStorage fallback)', () => {
       .mockResolvedValueOnce({ balance: 100 });
     const second = await checkGranted(null, first.baseline);
     expect(second.granted).toBe(true);
+  });
+});
+
+describe('pending checkout next', () => {
+  it('round-trips a safe next through sessionStorage', async () => {
+    await rememberPendingCheckout('SUBSCRIPTION', 'pi_1', '/player/ep-1');
+    expect(recallPendingCheckout('pi_1')?.next).toBe('/player/ep-1');
+  });
+
+  // A poisoned sessionStorage entry must not become a redirect either.
+  it('drops an off-origin next at read time', async () => {
+    await rememberPendingCheckout('SUBSCRIPTION', 'pi_2', '//evil.com');
+    expect(recallPendingCheckout('pi_2')?.next ?? null).toBeNull();
+  });
+
+  it('leaves next null when none was given', async () => {
+    await rememberPendingCheckout('COIN_PACK', 'pi_3');
+    expect(recallPendingCheckout('pi_3')?.next ?? null).toBeNull();
   });
 });

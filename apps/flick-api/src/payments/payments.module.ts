@@ -7,6 +7,7 @@ import {
   type PaymentGatewayPort,
 } from './payment-gateway.port';
 import { FakeGatewayAdapter } from './adapters/fake-gateway.adapter';
+import { OmiseGatewayAdapter } from './adapters/omise-gateway.adapter';
 import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
@@ -17,9 +18,11 @@ import { WalletModule } from '../wallet/wallet.module';
     {
       provide: PAYMENT_GATEWAY_PORT,
       inject: [ConfigService],
-      // Phase 6 adds the Omise branch here.
-      useFactory: (config: ConfigService): PaymentGatewayPort =>
-        new FakeGatewayAdapter(config),
+      useFactory: (config: ConfigService): PaymentGatewayPort => {
+        const selected = config.get<string>('PAYMENT_GATEWAY', 'fake');
+        if (selected === 'omise') return new OmiseGatewayAdapter(config);
+        return new FakeGatewayAdapter(config);
+      },
     },
   ],
 })

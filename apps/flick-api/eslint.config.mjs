@@ -68,6 +68,16 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/payments/adapters/omise-gateway.adapter.spec.ts'],
+    rules: {
+      // Same rationale as sms-delivery.adapter.spec.ts above: the `as
+      // unknown as string` cast on an asymmetric matcher keeps the
+      // surrounding object literal's inferred type as `string`, even though
+      // the assertion looks redundant to the linter in isolation.
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+    },
+  },
+  {
     files: ['src/payments/payments.service.spec.ts'],
     rules: {
       // Same rationale as otp.service.spec.ts above: `jest.fn().mock.calls`

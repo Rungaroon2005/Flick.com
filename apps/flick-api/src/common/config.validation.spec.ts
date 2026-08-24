@@ -62,8 +62,76 @@ describe('validateEnv', () => {
         OTP_SMS_API_KEY: 'k',
         OTP_EMAIL_ENDPOINT: 'https://email.example/send',
         OTP_EMAIL_API_KEY: 'k',
+        PAYMENT_GATEWAY: 'omise',
+        OMISE_SECRET_KEY: 'skey_live_x',
+        OMISE_WEBHOOK_SECRET: 'd2ViaG9vay1zZWNyZXQ=',
       }),
     ).not.toThrow();
+  });
+
+  const liveOtp = {
+    OTP_DELIVERY: 'live',
+    OTP_SMS_ENDPOINT: 'https://sms.example/send',
+    OTP_SMS_API_KEY: 'k',
+    OTP_EMAIL_ENDPOINT: 'https://email.example/send',
+    OTP_EMAIL_API_KEY: 'k',
+  };
+
+  it('refuses to boot production with the fake payment gateway', () => {
+    // The fake gateway accepts webhooks it signed itself — a free-access
+    // mint in production.
+    expect(() =>
+      validateEnv({
+        ...base,
+        ...liveOtp,
+        NODE_ENV: 'production',
+        PAYMENT_GATEWAY: 'fake',
+      }),
+    ).toThrow(/PAYMENT_GATEWAY/);
+  });
+
+  it('refuses to boot production with the payment gateway unset', () => {
+    expect(() =>
+      validateEnv({ ...base, ...liveOtp, NODE_ENV: 'production' }),
+    ).toThrow(/PAYMENT_GATEWAY/);
+  });
+
+  it('requires OMISE_SECRET_KEY when PAYMENT_GATEWAY=omise', () => {
+    expect(() =>
+      validateEnv({
+        ...base,
+        ...liveOtp,
+        NODE_ENV: 'production',
+        PAYMENT_GATEWAY: 'omise',
+        OMISE_WEBHOOK_SECRET: 'd2ViaG9vay1zZWNyZXQ=',
+      }),
+    ).toThrow(/OMISE_SECRET_KEY/);
+  });
+
+  it('requires OMISE_WEBHOOK_SECRET when PAYMENT_GATEWAY=omise', () => {
+    // Without this, OmiseGatewayAdapter#verifyWebhook can never positively
+    // confirm a signature and — being fail-closed — would reject every
+    // webhook forever.
+    expect(() =>
+      validateEnv({
+        ...base,
+        ...liveOtp,
+        NODE_ENV: 'production',
+        PAYMENT_GATEWAY: 'omise',
+        OMISE_SECRET_KEY: 'skey_live_x',
+      }),
+    ).toThrow(/OMISE_WEBHOOK_SECRET/);
+  });
+
+  it('enforces the omise guards outside production too, once selected', () => {
+    expect(() =>
+      validateEnv({
+        ...base,
+        NODE_ENV: 'development',
+        OTP_DELIVERY: 'console',
+        PAYMENT_GATEWAY: 'omise',
+      }),
+    ).toThrow(/OMISE_SECRET_KEY/);
   });
 
   it('still enforces the existing rules', () => {

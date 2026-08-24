@@ -100,21 +100,28 @@ The existing e2e entitlement suite must stay green and unmodified.
 Sourced from the `ui-ux-pro-max` UX guideline set, then confirmed in this tree.
 Listed by severity.
 
-### 2.1 Focus rings exist on almost nothing (High)
+### 2.1 Focus rings depend on an unguarded global rule (Medium)
 
-Three `focus-visible` occurrences in the entire `src/` tree, in three files:
-`globals.css`, `BottomNav.tsx`, and `Button.tsx`. `Button` is correct —
-`focus-visible:outline-2 focus-visible:outline-offset-2 outline-brand-ink`.
+`globals.css` already carries a base-layer `:focus-visible { outline: 2px
+solid var(--color-brand-ink); outline-offset: 2px; }` rule that predates this
+work, so most interactive elements already show a focus ring — `AppHeader`'s
+two action links and the coin-balance link, `Chip`, `ReactionButton`,
+`MovieCard`, every player control, the free-plan button in `SubscribeClient`,
+and the login back-link included. `Button` additionally encodes the same
+treatment inline via `focus-visible:outline-2 focus-visible:outline-offset-2
+outline-brand-ink`, which is redundant with the base rule but not wrong.
 
-Everything that is not a `Button` has no keyboard focus indicator at all:
-`AppHeader`'s two action links and the coin-balance link, `Chip`,
-`ReactionButton`, `MovieCard`, every player control, the free-plan button in
-`SubscribeClient`, and the login back-link.
+The real gap is narrower: the two auth inputs (`login/page.tsx:106` and
+`:124`) suppress the base rule with Tailwind's `outline-none` utility, which
+shares the base rule's cascade layer and wins there, leaving those two fields
+with no focus indicator at all. That narrower defect is tracked in 2.2.
 
-**Fix:** lift `Button`'s focus treatment into a `.focus-ring` utility in
-`globals.css` and apply it to every interactive element. One utility, not a
-per-component judgement call — the same reasoning that put the contrast rule
-inside `Button` in the first place.
+**Fix:** lift the treatment into a `.focus-ring` utility in `globals.css` and
+apply it explicitly across interactive elements anyway — not because the ring
+is currently missing on most of them, but to decouple components from a
+global reset that could change later, and so tests can assert the ring
+directly rather than relying on inheritance. The base-layer rule stays in
+place as the floor for anything that doesn't opt in.
 
 ### 2.2 Both auth inputs fail focus appearance (High)
 

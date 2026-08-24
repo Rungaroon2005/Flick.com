@@ -73,7 +73,7 @@ function LoginForm() {
       <Link
         href="/"
         aria-label="กลับหน้าแรก"
-        className="absolute left-4 flex h-10 w-10 items-center justify-center rounded-full text-fg-dim transition-colors hover:text-fg"
+        className="focus-ring absolute left-4 flex h-10 w-10 items-center justify-center rounded-full text-fg-dim transition-colors hover:text-fg"
         style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
       >
         <Icon name="chevronLeft" size={22} />
@@ -106,7 +106,7 @@ function LoginForm() {
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
-                className="h-12 w-full rounded-xl border border-hairline bg-ink-2 pl-11 pr-4 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink"
+                className="focus-ring h-12 w-full rounded-xl border border-hairline bg-ink-2 pl-11 pr-4 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink"
                 placeholder="เบอร์โทรศัพท์"
                 aria-label="เบอร์โทรศัพท์"
                 value={phone}
@@ -124,7 +124,7 @@ function LoginForm() {
               inputMode="numeric"
               autoComplete="one-time-code"
               maxLength={6}
-              className="h-12 w-full rounded-xl border border-hairline bg-ink-2 px-4 text-center text-xl tracking-[0.5em] text-fg outline-none placeholder:tracking-normal placeholder:text-fg-mute focus:border-brand-ink"
+              className="focus-ring h-12 w-full rounded-xl border border-hairline bg-ink-2 px-4 text-center text-xl tracking-[0.5em] text-fg outline-none placeholder:tracking-normal placeholder:text-fg-mute focus:border-brand-ink"
               placeholder="000000"
               aria-label="รหัสยืนยัน 6 หลัก"
               value={code}

@@ -107,7 +107,7 @@ function SubscribeForm({
                   {isFree ? (
                     <button
                       onClick={() => router.push('/home')}
-                      className="mt-5 flex h-11 w-full items-center justify-center rounded-full bg-brand font-semibold text-ink shadow-lg shadow-black/25 transition-all duration-surface ease-enter hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
+                      className="focus-ring mt-5 flex h-11 w-full items-center justify-center rounded-full bg-brand font-semibold text-ink shadow-lg shadow-black/25 transition-all duration-surface ease-enter hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
                     >
                       ใช้งานฟรี
                     </button>

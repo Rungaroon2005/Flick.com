@@ -33,7 +33,7 @@ export function AppHeader({ greeting, coinBalance, activeAction, variant = 'soli
         {coinBalance !== undefined && (
           <Link
             href="/profile"
-            className="flex items-center gap-1.5 rounded-full bg-fg/10 py-1.5 pr-3 pl-2 text-data font-medium text-coin transition-colors duration-ui hover:bg-fg/15"
+            className="focus-ring flex items-center gap-1.5 rounded-full bg-fg/10 py-1.5 pr-3 pl-2 text-data font-medium text-coin transition-colors duration-ui hover:bg-fg/15"
           >
             <Icon name="coin" size={16} />
             {coinBalance}
@@ -48,7 +48,12 @@ export function AppHeader({ greeting, coinBalance, activeAction, variant = 'soli
               <Icon name={action.icon} size={18} />
             </span>
           ) : (
-            <Link key={action.name} href={action.href} aria-label={action.label} className={className}>
+            <Link
+              key={action.name}
+              href={action.href}
+              aria-label={action.label}
+              className={`focus-ring ${className}`}
+            >
               <Icon name={action.icon} size={18} />
             </Link>
           );

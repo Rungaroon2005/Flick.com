@@ -30,7 +30,7 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
   return (
     <Link
       href={`/movie/${movie.id}`}
-      className={`group relative block aspect-[2/3] shrink-0 overflow-hidden rounded-2xl bg-ink-1
+      className={`focus-ring group relative block aspect-[2/3] shrink-0 overflow-hidden rounded-2xl bg-ink-1
         shadow-[0_8px_20px_-10px_rgba(0,0,0,0.7)]
         [-webkit-tap-highlight-color:transparent]
         transition-all duration-surface ease-enter

@@ -110,6 +110,17 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* One focus treatment for the whole app. Button encoded this inline and
+   nothing else did, which is how three focus-visible occurrences ended up
+   covering twelve screens. 2px at 2px offset clears WCAG 2.2's focus-
+   appearance floor; brand-ink is 7.85:1 on the ink ground. */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--color-brand-ink);
+    outline-offset: 2px;
+  }
+}
+
 /* Landing page hero — a slow, small bob on the front card of the poster
    fan, inviting a swipe without spelling out a tutorial. Covered by the
    blanket prefers-reduced-motion floor below; no separate override needed. */

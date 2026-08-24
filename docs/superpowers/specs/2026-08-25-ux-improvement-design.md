@@ -188,7 +188,7 @@ already right.
 
 ---
 
-## Part 5 — Downloads: stop promising offline
+## Part 5 — Downloads: make the promise real, in two steps
 
 `/downloads` has already left the tab bar — `navItems.ts` carries four tabs
 (หน้าหลัก, แนะนำ, บันทึก, โปรไฟล์) — but survives as an `AppHeader` action
@@ -199,11 +199,35 @@ It is a saved-for-later list wearing a download icon. A download affordance
 that cannot produce an offline file is the clearest broken promise left in the
 app now that `/subscribe` works.
 
-**Decision required (see Open Questions).** The design assumes the honest
-rename: `/downloads` becomes "รายการของฉัน", the icon changes from `download`
-to `bookmark`-adjacent, and the PUT stays as-is. Building real offline playback
-is a different project — it needs encrypted segment storage and a licence
-story, and it is out of scope here.
+**Both, in sequence.** The rename lands here; real offline playback is
+committed as its own spec.
+
+**5a — Rename now (this spec, Phase 4).** `/downloads` becomes "รายการของฉัน",
+the `AppHeader` icon moves off `download`, and the PUT stays as-is. This costs
+an afternoon and stops the app promising something it cannot do *today*. It is
+not throwaway work: the saved-list surface is what offline downloads will
+attach to.
+
+**5b — Offline playback (separate spec).** This is a new subsystem, not a
+presentation change, and it collides with an invariant this codebase enforces
+deliberately:
+
+> `PlaybackService` is the **only** server-side path that ever returns a real
+> `videoUrl` (`playback.service.ts:25-26`), and `MoviesService.toDto` strips it
+> from every other response. Entitlement is checked on the way through.
+
+Caching an episode for offline playback puts that file on the device *outside*
+that gate. Unencrypted, offline downloads are a redistribution channel for
+premium content — the entitlement check becomes advisory the moment the bytes
+land. `Download.expiresAt` already exists in the schema
+(`schema.prisma:383`), which shows the model anticipated a licence window, but
+an expiry a client enforces on itself is a courtesy, not a control.
+
+What 5b needs, none of which exists today: a service worker and PWA manifest
+(`public/` holds only `posters` and `videos`), segment storage with quota
+management and resumable partial downloads, client-side licence expiry, and a
+content-protection decision (see Open Questions). Sequenced after this spec's
+Phase 6, with its own design doc.
 
 ---
 
@@ -279,9 +303,10 @@ Part 1 first, and alone, because every later part assumes it.
 | **1** | Part 1 (return-to-intent) | The spine. Unblocks 6. |
 | **2** | Part 2 (accessibility) | Independent, mechanical, High severity. Parallelisable. |
 | **3** | Part 3 (toasts) | Needed before 4 and 6 have anywhere to report outcomes. |
-| **4** | Part 4 (search) + Part 5 (downloads) | Independent of each other and of the funnel. Both blocked on decisions/API. |
+| **4** | Part 4 (search) + Part 5a (downloads rename) | Independent of each other and of the funnel. Part 4 blocked on the API ask. |
 | **5** | Part 6 (inline plans) | Wants Part 1 and Part 3 in place. |
 | **6** | Part 7 (identity) | Last, deliberately. Polish applied to a maze is wasted. |
+| **—** | Part 5b (offline playback) | **Own spec, after Phase 6.** Blocked on the content-protection decision. |
 
 **Rules of engagement**, unchanged from the two prior specs: one concern per
 commit; `npm run lint && npm run build` green before every commit; API suites
@@ -298,12 +323,18 @@ green and untouched; visual check at 390 / 834 / 1440 for anything that moves.
 
 ## Open questions
 
-1. **Downloads (Part 5)** — honest rename, or build real offline playback? The
-   design assumes the rename. Offline is a separate project.
-2. **New-user routing** — after a first OTP verify with a `next` present, does
-   plan selection still interrupt, or does `next` win outright and the paywall
-   appear only when actually met? The design assumes plan selection stays, with
-   `next` forwarded.
+1. **Content protection for offline (blocks 5b, not this spec)** — may premium
+   episodes be cached unencrypted on-device, accepting that a determined user
+   can extract the file? The alternatives are HLS AES-128 with a
+   short-lived key served per playback (cheap, defeats casual copying, not a
+   real DRM) or a full DRM stack (Widevine/FairPlay — a vendor, a licence
+   server, and a different budget). This is a licensing and business call, not
+   a technical one, and 5b cannot be designed until it is made.
+2. ~~**Downloads**~~ — resolved: both. Rename in Phase 4, offline as its own
+   spec (Part 5).
+3. ~~**New-user routing**~~ — resolved: both. Plan selection still interrupts a
+   first-time verify, and `next` is forwarded through it, so the episode is
+   still the destination once a plan is chosen or skipped.
 
 ## Assumptions
 

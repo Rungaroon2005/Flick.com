@@ -100,18 +100,23 @@ function LoginForm() {
 
         {step === 'phone' ? (
           <form onSubmit={handleRequest} className="mt-5 flex flex-col gap-3">
-            <div className="relative flex items-center">
-              <Icon name="phone" size={18} className="pointer-events-none absolute left-3.5 text-fg-mute" />
-              <input
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                className="focus-ring h-12 w-full rounded-xl border border-hairline bg-ink-2 pl-11 pr-4 text-base text-fg outline-none placeholder:text-fg-mute focus:border-brand-ink"
-                placeholder="เบอร์โทรศัพท์"
-                aria-label="เบอร์โทรศัพท์"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="login-phone" className="text-sm text-fg-dim">
+                เบอร์โทรศัพท์
+              </label>
+              <div className="relative flex items-center">
+                <Icon name="phone" size={18} className="pointer-events-none absolute left-3.5 text-fg-mute" />
+                <input
+                  id="login-phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  className="focus-ring h-12 w-full rounded-xl border border-hairline bg-ink-2 pl-11 pr-4 text-base text-fg placeholder:text-fg-mute focus:border-brand-ink"
+                  placeholder="08X-XXX-XXXX"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
             </div>
             <Button type="submit" variant="primary" size="lg" className="mt-2 w-full" disabled={busy}>
               {busy ? 'กำลังส่ง...' : 'ขอรหัสยืนยัน'}
@@ -119,17 +124,22 @@ function LoginForm() {
           </form>
         ) : (
           <form onSubmit={handleVerify} className="mt-5 flex flex-col gap-3">
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              className="focus-ring h-12 w-full rounded-xl border border-hairline bg-ink-2 px-4 text-center text-xl tracking-[0.5em] text-fg outline-none placeholder:tracking-normal placeholder:text-fg-mute focus:border-brand-ink"
-              placeholder="000000"
-              aria-label="รหัสยืนยัน 6 หลัก"
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-            />
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="login-code" className="text-sm text-fg-dim">
+                รหัสยืนยัน 6 หลัก
+              </label>
+              <input
+                id="login-code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                className="focus-ring h-12 w-full rounded-xl border border-hairline bg-ink-2 px-4 text-center text-xl tracking-[0.5em] text-fg placeholder:tracking-normal placeholder:text-fg-mute focus:border-brand-ink"
+                placeholder="000000"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+              />
+            </div>
             <Button type="submit" variant="primary" size="lg" className="mt-2 w-full" disabled={busy}>
               {busy ? 'กำลังตรวจสอบ...' : 'ยืนยัน'}
             </Button>

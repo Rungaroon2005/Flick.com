@@ -48,7 +48,7 @@ export default function LandingClient({ movies }: { movies: Movie[] }) {
             deliberately overlaps its lower half (negative margin, z-10 vs
             z-0), so word and image read as one composition. */}
         <div className="relative z-0 -mb-2 text-center">
-          <h1 className="bg-gradient-to-b from-white to-brand-ink bg-clip-text font-display text-[4rem] leading-[0.82] font-extrabold tracking-tight text-transparent">
+          <h1 className="bg-gradient-to-b from-white to-brand-ink bg-clip-text font-display text-[4rem] leading-[0.82] font-extrabold tracking-tight text-transparent md:text-[5rem] lg:text-[6rem]">
             หนังสั้น
           </h1>
           <p className="mt-1 font-display text-xl font-semibold text-fg [text-wrap:balance]">
@@ -60,7 +60,7 @@ export default function LandingClient({ movies }: { movies: Movie[] }) {
           {left?.posterUrl && (
             <div
               className="absolute z-0 aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-2xl brightness-[0.45]"
-              style={{ transform: 'translateX(-112px) rotateY(24deg) scale(0.82)' }}
+              style={{ transform: 'translateX(-170px) rotateY(24deg) scale(0.82)' }}
             >
               <Image src={left.posterUrl} alt="" fill sizes="96px" className="object-cover blur-[1px]" />
             </div>
@@ -68,14 +68,21 @@ export default function LandingClient({ movies }: { movies: Movie[] }) {
           {right?.posterUrl && (
             <div
               className="absolute z-0 aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-2xl brightness-[0.45]"
-              style={{ transform: 'translateX(112px) rotateY(-24deg) scale(0.82)' }}
+              style={{ transform: 'translateX(170px) rotateY(-24deg) scale(0.82)' }}
             >
               <Image src={right.posterUrl} alt="" fill sizes="96px" className="object-cover blur-[1px]" />
             </div>
           )}
           {hero?.posterUrl && (
-            <div className="animate-card-peek relative z-10 aspect-[9/16] w-48 shrink-0 overflow-hidden rounded-[28px] ring-1 ring-white/15 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.85)]">
-              <Image src={hero.posterUrl} alt={hero.title} fill priority sizes="192px" className="object-cover" />
+            <div className="animate-card-peek relative z-10 aspect-[9/16] w-48 shrink-0 overflow-hidden rounded-[28px] ring-1 ring-white/15 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.85)] md:w-56 lg:w-64">
+              <Image
+                src={hero.posterUrl}
+                alt={hero.title}
+                fill
+                priority
+                sizes="(min-width: 1024px) 256px, (min-width: 768px) 224px, 192px"
+                className="object-cover"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/5 to-transparent" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-white/10 backdrop-blur-xl">
@@ -89,7 +96,7 @@ export default function LandingClient({ movies }: { movies: Movie[] }) {
           )}
         </div>
 
-        <p className="max-w-[240px] text-center text-sm text-fg-dim">
+        <p className="max-w-[240px] text-center text-sm text-fg-dim md:max-w-sm md:text-base">
           ปัดดูตอนใหม่ได้ทุกวัน ไม่ต้องเลือกนาน
         </p>
       </div>

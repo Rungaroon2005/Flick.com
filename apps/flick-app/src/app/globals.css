@@ -37,6 +37,15 @@
   --color-warn: #E8B84B;
   --color-fail: #FF8A7A;
 
+  /* Page width. --container-* is Tailwind v4's namespace for max-w-/w-/min-w-
+     utilities (node_modules/tailwindcss/theme.css:333), so these generate
+     max-w-page and max-w-reading. Two values on purpose: a poster wall wants
+     1400px, but a 13-row settings list stretched that wide is a worse
+     settings list — the eye loses the row it is on.
+     See docs/superpowers/specs/2026-08-17-responsive-layout-design.md Part 2. */
+  --container-page: 87.5rem;
+  --container-reading: 45rem;
+
   /* Type scale — docs/FRONTEND_PLAN.md Part 1. Thai needs more vertical
      room than Tailwind's defaults, hence the taller line-heights below. */
   --text-display: 2rem;

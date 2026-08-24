@@ -2,21 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Icon, type IconName } from './ui/Icon';
-
-interface NavItem {
-  name: string;
-  path: string;
-  icon: IconName;
-  activeIcon: IconName;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { name: 'หน้าหลัก', path: '/home', icon: 'home', activeIcon: 'homeFilled' },
-  { name: 'แนะนำ', path: '/discover', icon: 'discover', activeIcon: 'discoverFilled' },
-  { name: 'บันทึก', path: '/bookmarks', icon: 'bookmark', activeIcon: 'bookmarkFilled' },
-  { name: 'โปรไฟล์', path: '/profile', icon: 'profile', activeIcon: 'profileFilled' },
-];
+import { Icon } from './ui/Icon';
+import { NAV_ITEMS } from './navItems';
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -24,7 +11,7 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="เมนูหลัก"
-      className="fixed inset-x-4 z-[1000] flex justify-center"
+      className="fixed inset-x-4 z-[1000] flex justify-center lg:hidden"
       style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
     >
       <ul className="m-0 flex w-full max-w-sm list-none items-center justify-around rounded-full border border-white/10 bg-ink-1/85 p-2 shadow-lg shadow-black/20 backdrop-blur-xl">

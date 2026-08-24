@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import HomeClient from './HomeClient';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { PageShell } from '@/components/ui/PageShell';
 import API_BASE_URL from '@/lib/api';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
@@ -49,7 +50,7 @@ export default async function HomePage() {
   if (continueResult.status === 'rejected') console.error('Error fetching continue-watching on server:', continueResult.reason);
 
   return (
-    <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
+    <PageShell>
       <AppHeader greeting={session.displayName} coinBalance={session.coinBalance} variant="overlay" />
 
       {error ? (
@@ -63,6 +64,6 @@ export default async function HomePage() {
           initialContinueWatching={continueWatching}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

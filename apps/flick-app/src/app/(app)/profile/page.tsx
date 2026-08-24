@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import LogoutButton from './LogoutButton';
+import { AppHeader } from '@/components/ui/AppHeader';
+import { Container } from '@/components/ui/Container';
 import { Icon } from '@/components/ui/Icon';
+import { PageShell } from '@/components/ui/PageShell';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
 import { Subscription } from '@/types';
@@ -67,98 +70,82 @@ export default async function ProfilePage() {
   if (sessionExpired) redirect('/login');
 
   return (
-    <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
-      <header className="flex items-center justify-between px-5 py-4">
-        <div className="text-2xl font-extrabold tracking-tight text-brand-ink">Flick</div>
-        <div className="flex gap-4">
-          <Link
-            href="/downloads"
-            aria-label="ดาวน์โหลด"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-surface ease-enter hover:bg-fg/15 active:scale-90"
-          >
-            <Icon name="download" size={18} />
-          </Link>
-          <Link
-            href="/search"
-            aria-label="ค้นหา"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-surface ease-enter hover:bg-fg/15 active:scale-90"
-          >
-            <Icon name="search" size={18} />
-          </Link>
-        </div>
-      </header>
+    <PageShell>
+      <AppHeader />
 
-      <main className="px-5">
-        <div className="flex items-center gap-4">
-          <div className="h-16 w-16 shrink-0 rounded-full bg-ink-2 ring-2 ring-white/10" />
-          <div className="min-w-0">
-            <h2 className="truncate text-lg font-bold text-fg">{session.displayName}</h2>
-            {session.email && <p className="truncate text-sm text-fg-dim">{session.email}</p>}
-            <button
-              aria-disabled="true"
-              disabled
-              title="ยังไม่เปิดให้ใช้งาน"
-              className="mt-1 text-sm text-fg-mute"
-            >
-              แก้ไขโปรไฟล์ &gt;
-            </button>
-          </div>
-        </div>
-
-        {error ? (
-          <p className="mt-6 text-sm text-fail">{error}</p>
-        ) : (
-          <div className="mt-8 flex flex-col gap-4">
-            <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-ink-1 p-5">
-              <div>
-                <h3 className="text-xs font-medium text-fg-dim">สถานะสมาชิก</h3>
-                <p className="mt-1 font-semibold text-fg">{planLabel(subscription)}</p>
-                {subscription && (
-                  <p className="mt-0.5 text-xs text-fg-mute">
-                    ใช้ได้ถึง {new Date(subscription.endDate).toLocaleDateString('th-TH')}
-                  </p>
-                )}
-              </div>
-              <Link
-                href="/subscribe"
-                className="rounded-full bg-brand px-4 py-2 text-sm font-medium text-ink shadow-md shadow-black/20 transition-all duration-surface ease-enter hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
+      <main>
+        <Container width="reading">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 shrink-0 rounded-full bg-ink-2 ring-2 ring-white/10" />
+            <div className="min-w-0">
+              <h2 className="truncate text-lg font-bold text-fg">{session.displayName}</h2>
+              {session.email && <p className="truncate text-sm text-fg-dim">{session.email}</p>}
+              <button
+                aria-disabled="true"
+                disabled
+                title="ยังไม่เปิดให้ใช้งาน"
+                className="mt-1 text-sm text-fg-mute"
               >
-                จัดการ
-              </Link>
-            </div>
-
-            <div className="rounded-2xl border border-white/5 bg-ink-1 p-5">
-              <h3 className="text-xs font-medium text-fg-dim">เหรียญคงเหลือ</h3>
-              <p className="mt-1 flex items-center gap-1.5 text-data font-medium text-coin">
-                <Icon name="coin" size={18} />
-                {wallet?.balance ?? 0}
-              </p>
+                แก้ไขโปรไฟล์ &gt;
+              </button>
             </div>
           </div>
-        )}
 
-        <div className="mt-8 overflow-hidden rounded-2xl border border-white/5 bg-ink-1">
-          {settingsRows.map((label, i) => (
-            <div
-              key={label}
-              aria-disabled="true"
-              className={`flex items-center justify-between px-5 py-4 text-sm text-fg-dim ${
-                i > 0 ? 'border-t border-white/5' : ''
-              }`}
-            >
-              <span>{label}</span>
-              <span className="rounded-full bg-ink-2 px-2.5 py-1 text-xs text-fg-mute">เร็ว ๆ นี้</span>
+          {error ? (
+            <p className="mt-6 text-sm text-fail">{error}</p>
+          ) : (
+            <div className="mt-8 flex flex-col gap-4">
+              <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-ink-1 p-5">
+                <div>
+                  <h3 className="text-xs font-medium text-fg-dim">สถานะสมาชิก</h3>
+                  <p className="mt-1 font-semibold text-fg">{planLabel(subscription)}</p>
+                  {subscription && (
+                    <p className="mt-0.5 text-xs text-fg-mute">
+                      ใช้ได้ถึง {new Date(subscription.endDate).toLocaleDateString('th-TH')}
+                    </p>
+                  )}
+                </div>
+                <Link
+                  href="/subscribe"
+                  className="rounded-full bg-brand px-4 py-2 text-sm font-medium text-ink shadow-md shadow-black/20 transition-all duration-surface ease-enter hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
+                >
+                  จัดการ
+                </Link>
+              </div>
+
+              <div className="rounded-2xl border border-white/5 bg-ink-1 p-5">
+                <h3 className="text-xs font-medium text-fg-dim">เหรียญคงเหลือ</h3>
+                <p className="mt-1 flex items-center gap-1.5 text-data font-medium text-coin">
+                  <Icon name="coin" size={18} />
+                  {wallet?.balance ?? 0}
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
+          )}
 
-        <div className="mt-8 flex items-center justify-between px-1 text-sm text-fg-mute">
-          <span>เวอร์ชัน</span>
-          <span>1.0.0</span>
-        </div>
+          <div className="mt-8 overflow-hidden rounded-2xl border border-white/5 bg-ink-1">
+            {settingsRows.map((label, i) => (
+              <div
+                key={label}
+                aria-disabled="true"
+                className={`flex items-center justify-between py-4 text-sm text-fg-dim ${
+                  i > 0 ? 'border-t border-white/5' : ''
+                }`}
+              >
+                <span>{label}</span>
+                <span className="rounded-full bg-ink-2 px-2.5 py-1 text-xs text-fg-mute">เร็ว ๆ นี้</span>
+              </div>
+            ))}
+          </div>
 
-        <LogoutButton className="mt-6 flex h-12 w-full items-center justify-center rounded-full border border-white/5 bg-ink-1 font-medium text-fail transition-all duration-surface ease-enter hover:bg-ink-2 active:scale-[0.98]" />
+          <div className="mt-8 flex items-center justify-between px-1 text-sm text-fg-mute">
+            <span>เวอร์ชัน</span>
+            <span>1.0.0</span>
+          </div>
+
+          <LogoutButton className="mt-6 flex h-12 w-full items-center justify-center rounded-full border border-white/5 bg-ink-1 font-medium text-fail transition-all duration-surface ease-enter hover:bg-ink-2 active:scale-[0.98]" />
+        </Container>
       </main>
-    </div>
+    </PageShell>
   );
 }

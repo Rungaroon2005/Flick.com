@@ -5,6 +5,7 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
+import { PageShell } from '@/components/ui/PageShell';
 import { Movie } from '@/types';
 
 const RECENT_SEARCHES_KEY = 'flick:recent-searches';
@@ -90,11 +91,11 @@ export default function SearchClient({ initialMovies }: { initialMovies: Movie[]
   };
 
   return (
-    <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
+    <PageShell>
       <AppHeader activeAction="search" />
 
       <main className="flex flex-col">
-        <div className="sticky top-16 z-[99] bg-ink px-5 pt-2 pb-6">
+        <div className="sticky top-16 z-[99] mx-auto w-full max-w-page bg-ink px-5 pt-2 pb-6 md:px-8 lg:px-10">
           <div className="flex h-12 items-center gap-3 rounded-full border border-white/10 bg-ink-1/80 px-5 backdrop-blur-xl transition-colors duration-surface focus-within:border-brand-ink">
             <Icon name="search" size={20} className="shrink-0 text-fg-mute" />
             <input
@@ -119,7 +120,7 @@ export default function SearchClient({ initialMovies }: { initialMovies: Movie[]
           </div>
         </div>
 
-        <div className="animate-fade-in px-5">
+        <div className="animate-fade-in mx-auto w-full max-w-page px-5 md:px-8 lg:px-10">
           {!query.trim() ? (
             <div className="flex flex-col gap-6">
               {recentSearches.length > 0 && (
@@ -146,7 +147,7 @@ export default function SearchClient({ initialMovies }: { initialMovies: Movie[]
               </section>
             </div>
           ) : searchResults && searchResults.length > 0 ? (
-            <div className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-4">
+            <div className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-4 lg:grid-cols-5 xl:grid-cols-6">
               {searchResults.map((movie) => (
                 <MovieCard key={movie.id} movie={movie} size="fill" />
               ))}
@@ -165,6 +166,6 @@ export default function SearchClient({ initialMovies }: { initialMovies: Movie[]
           )}
         </div>
       </main>
-    </div>
+    </PageShell>
   );
 }

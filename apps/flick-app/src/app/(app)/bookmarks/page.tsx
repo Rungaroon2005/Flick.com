@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation';
 import BookmarksClient from './BookmarksClient';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { Container } from '@/components/ui/Container';
 import { ErrorPanel } from '@/components/ui/ErrorPanel';
+import { PageShell } from '@/components/ui/PageShell';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
 import type { Movie } from '@/types';
@@ -28,13 +30,15 @@ export default async function BookmarksPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
+    <PageShell>
       <AppHeader />
 
-      <main className="px-4">
-        <h1 className="text-title mb-6 font-display">บันทึก</h1>
-        <BookmarksClient movies={movies} />
+      <main>
+        <Container>
+          <h1 className="text-title mb-6 font-display">บันทึก</h1>
+          <BookmarksClient movies={movies} />
+        </Container>
       </main>
-    </div>
+    </PageShell>
   );
 }

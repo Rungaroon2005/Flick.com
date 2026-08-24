@@ -215,7 +215,22 @@ export class PaymentsService {
         });
         if (claimed.count === 0) return;
 
-        await this.grantEntitlement(tx, intent, paymentEvent.id);
+        // A retired or repriced catalog item makes resolveCatalogItem throw
+        // here. Letting that escape would roll the whole transaction back —
+        // destroying the PaymentEvent audit row — and return non-200, so the
+        // gateway would retry forever against a catalog that will never
+        // un-retire the item. The payment genuinely arrived; record that fact,
+        // keep the intent SUCCEEDED, and leave the entitlement for a human.
+        try {
+          await this.grantEntitlement(tx, intent, paymentEvent.id);
+        } catch (grantErr) {
+          this.logger.error(
+            `MANUAL RECONCILIATION REQUIRED: payment succeeded but entitlement could not be granted. ` +
+              `intent=${intent.id} user=${intent.userId} item=${intent.itemType}:${intent.itemId} ` +
+              `gatewayEventId=${event.gatewayEventId} paymentEvent=${paymentEvent.id}`,
+            grantErr instanceof Error ? grantErr.stack : String(grantErr),
+          );
+        }
       });
     } catch (err) {
       if (

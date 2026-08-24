@@ -357,4 +357,47 @@ describe('PaymentsService.handleWebhook', () => {
       'intentId',
     ]);
   });
+
+  it('records the gateway event id verbatim — it IS the idempotency key', async () => {
+    prisma.paymentIntent.findUnique.mockResolvedValue(pendingIntent());
+    await run();
+
+    const created = prisma.paymentEvent.create.mock.calls[0][0] as {
+      data: { gatewayEventId: string };
+    };
+    // A regression substituting a random UUID, a constant, or event.eventType
+    // here would silently defeat the @unique replay gate.
+    expect(created.data.gatewayEventId).toBe('evt_1');
+  });
+
+  it('leaves an already-SUCCEEDED intent untouched when a late FAILED event lands', async () => {
+    // The direction that costs a paying user their access: the FAILED branch
+    // must never run ahead of the "intent is no longer PENDING" guard.
+    prisma.paymentIntent.findUnique.mockResolvedValue(
+      pendingIntent({ status: 'SUCCEEDED' }),
+    );
+    gateway.parseWebhookEvent.mockReturnValue(
+      succeededEvent({ status: 'FAILED' }),
+    );
+
+    await expect(run()).resolves.toEqual({ received: true });
+    expect(prisma.paymentIntent.updateMany).not.toHaveBeenCalled();
+    expect(prisma.subscription.create).not.toHaveBeenCalled();
+    expect(wallet.credit).not.toHaveBeenCalled();
+  });
+
+  it('still commits the payment record when the catalog item has been retired', async () => {
+    // The plan was purchasable at checkout and has since left the catalog, so
+    // resolveCatalogItem (real, not mocked) throws inside grantEntitlement.
+    prisma.paymentIntent.findUnique.mockResolvedValue(
+      pendingIntent({ itemId: 'retired-weekly' }),
+    );
+
+    // No throw: the gateway must not be told to retry a state that will
+    // never change.
+    await expect(run()).resolves.toEqual({ received: true });
+    expect(prisma.paymentEvent.create).toHaveBeenCalled();
+    expect(prisma.subscription.create).not.toHaveBeenCalled();
+    expect(wallet.credit).not.toHaveBeenCalled();
+  });
 });

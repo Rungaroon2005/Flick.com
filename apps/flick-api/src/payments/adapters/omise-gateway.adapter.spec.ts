@@ -287,5 +287,25 @@ describe('OmiseGatewayAdapter', () => {
         ),
       ).toThrow();
     });
+
+    it('normalizes a lowercase currency from an older-API-pinned account', () => {
+      // Omise's currency casing depends on the account's pinned API
+      // version: accounts pinned before 2019-05-29 report lowercase and are
+      // not auto-upgraded, so a real production account can send this
+      // forever. PaymentsService.fulfill compares this field against our
+      // uppercase-stored PaymentIntent.currency with strict equality, so an
+      // un-normalized lowercase value here would fail every such account's
+      // webhooks and permanently strand the intent.
+      expect(
+        gateway.parseWebhookEvent(eventBody({ data: { currency: 'thb' } }))
+          .currency,
+      ).toBe('THB');
+    });
+
+    it('throws when currency is absent', () => {
+      expect(() =>
+        gateway.parseWebhookEvent(eventBody({ data: { currency: undefined } })),
+      ).toThrow(/currency/);
+    });
   });
 });

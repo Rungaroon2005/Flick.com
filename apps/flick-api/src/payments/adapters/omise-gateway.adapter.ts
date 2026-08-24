@@ -154,6 +154,9 @@ export class OmiseGatewayAdapter implements PaymentGatewayPort {
 
     const params = new URLSearchParams();
     params.set('amount', String(request.amountSatangs));
+    // Lowercased to match the docs' own request examples; Omise's current
+    // API accepts either case here (this is an outbound-only convention —
+    // unrelated to the inbound casing handled in parseWebhookEvent below).
     params.set('currency', request.currency.toLowerCase());
     params.set('description', request.description);
     params.set('return_uri', request.returnUrl);
@@ -303,6 +306,9 @@ export class OmiseGatewayAdapter implements PaymentGatewayPort {
         `Malformed Omise event: unrecognized status "${String(rawStatus)}"`,
       );
     }
+    if (typeof currency !== 'string' || currency.length === 0) {
+      throw new Error('Malformed Omise event: data.currency is missing');
+    }
 
     return {
       gatewayEventId,
@@ -311,7 +317,15 @@ export class OmiseGatewayAdapter implements PaymentGatewayPort {
       intentId,
       gatewayChargeId,
       amountSatangs,
-      currency: (currency ?? '').toUpperCase(),
+      // Omise's currency casing depends on which API version the account is
+      // pinned to: accounts pinned before 2019-05-29 report lowercase
+      // ("thb") and are NOT auto-upgraded (docs.omise.co/upgrade-guide-2017-
+      // to-2019), so a real, older-pinned production account can send
+      // lowercase here forever. PaymentsService.fulfill (Task 24) compares
+      // this against our uppercase-stored PaymentIntent.currency with strict
+      // equality — normalize here or every webhook from such an account
+      // fails the mismatch check and permanently strands the intent.
+      currency: currency.toUpperCase(),
     };
   }
 }

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { resolveLoginDestination } from './loginRedirect';
 import Link from 'next/link';
 import { requestOtp, verifyOtp } from '@/features/auth';
 import { Button } from '@/components/ui/Button';
@@ -9,8 +10,9 @@ import { Icon } from '@/components/ui/Icon';
 
 type Step = 'phone' | 'code';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState<string>('');
   const [code, setCode] = useState<string>('');
@@ -54,8 +56,9 @@ export default function LoginPage() {
       setError(result.error);
       return;
     }
-    // A brand-new account goes to plan selection; a returning user goes home.
-    router.replace(result.isNewUser ? '/subscribe' : '/home');
+    // replace, not push: nobody should be able to navigate back into a
+    // consumed OTP screen.
+    router.replace(resolveLoginDestination(searchParams.get('next'), result.isNewUser));
     router.refresh();
   };
 
@@ -150,5 +153,13 @@ export default function LoginPage() {
         <span>นโยบายความเป็นส่วนตัว</span>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

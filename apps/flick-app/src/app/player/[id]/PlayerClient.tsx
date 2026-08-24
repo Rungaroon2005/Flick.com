@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { ReactionButton } from '@/components/ui/ReactionButton';
 import { useEntitlement, useHlsPlayer, useMovieActions, useWatchProgress } from '@/features/playback';
+import { withNext } from '@/lib/nextParam';
 import type { Episode, Movie, PlaybackAuthorization } from '@/types';
 
 const CHROME_IDLE_MS = 2500;
@@ -48,6 +49,9 @@ export default function PlayerClient({
   initialBalance: number;
 }) {
   const router = useRouter();
+  // Every escape from the gate sheet carries this, so paying or subscribing
+  // returns to the episode being sold rather than to the lobby.
+  const returnPath = `/player/${episodeId}`;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [chromeVisible, setChromeVisible] = useState(true);
@@ -372,10 +376,14 @@ export default function PlayerClient({
               <p className="text-sm text-fg-dim">
                 เหรียญไม่พอ · มี {balance} จาก {gate.coinCost}
               </p>
-              <Button variant="secondary" onClick={() => router.push('/discover')} className="mt-4 w-full">
+              <Button variant="secondary" onClick={() => router.push(`/movie/${movie.id}`)} className="mt-4 w-full">
                 ดูตอนฟรี
               </Button>
-              <Button variant="primary" onClick={() => router.push('/subscribe')} className="mt-2 w-full">
+              <Button
+                variant="primary"
+                onClick={() => router.push(withNext('/subscribe', returnPath))}
+                className="mt-2 w-full"
+              >
                 ดูแพ็กเกจสมาชิก
               </Button>
             </>
@@ -400,7 +408,11 @@ export default function PlayerClient({
               >
                 {unlocking ? 'กำลังปลดล็อก…' : `ใช้ ${gate.coinCost} เหรียญ`}
               </Button>
-              <Button variant="secondary" onClick={() => router.push('/subscribe')} className="mt-2 w-full">
+              <Button
+                variant="secondary"
+                onClick={() => router.push(withNext('/subscribe', returnPath))}
+                className="mt-2 w-full"
+              >
                 ดูแพ็กเกจสมาชิก
               </Button>
             </>
@@ -408,7 +420,11 @@ export default function PlayerClient({
         ) : (
           <>
             <p className="text-sm text-fg-dim">เนื้อหานี้สงวนไว้สำหรับสมาชิกพรีเมียมเท่านั้น</p>
-            <Button variant="primary" onClick={() => router.push('/subscribe')} className="mt-4 w-full">
+            <Button
+              variant="primary"
+              onClick={() => router.push(withNext('/subscribe', returnPath))}
+              className="mt-4 w-full"
+            >
               ดูแพ็กเกจสมาชิก
             </Button>
           </>

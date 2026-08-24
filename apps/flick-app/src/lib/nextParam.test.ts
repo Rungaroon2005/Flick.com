@@ -17,6 +17,15 @@ describe('safeNext', () => {
     expect(safeNext(raw)).toBeNull();
   });
 
+  it.each([
+    ['/\t/evil.com', 'tab-smuggled protocol-relative'],
+    ['/\n/evil.com', 'newline-smuggled protocol-relative'],
+    ['/\r/evil.com', 'carriage-return-smuggled protocol-relative'],
+    ['/\t\\evil.com', 'tab plus backslash'],
+  ])('rejects %j (%s)', (raw) => {
+    expect(safeNext(raw)).toBeNull();
+  });
+
   it.each([null, undefined])('rejects %s', (raw) => {
     expect(safeNext(raw)).toBeNull();
   });

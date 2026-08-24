@@ -9,6 +9,11 @@
  */
 export function safeNext(raw: string | null | undefined): string | null {
   if (!raw) return null;
+  // URL parsers strip tab, newline, and carriage-return before parsing, so a
+  // value containing them will not navigate to the value we checked — reject
+  // any that contain these control characters to prevent collapsing to
+  // //evil.com or other off-origin URLs.
+  if (/[\t\r\n]/.test(raw)) return null;
   if (!raw.startsWith('/')) return null;
   if (raw.startsWith('//')) return null;
   if (raw.startsWith('/\\')) return null;

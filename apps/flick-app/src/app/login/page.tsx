@@ -150,7 +150,7 @@ function LoginForm() {
                 setCode('');
                 setError('');
               }}
-              className="mt-1 text-sm text-fg-dim transition-colors hover:text-fg"
+              className="focus-ring mt-1 text-sm text-fg-dim transition-colors hover:text-fg"
             >
               เปลี่ยนเบอร์โทรศัพท์
             </button>

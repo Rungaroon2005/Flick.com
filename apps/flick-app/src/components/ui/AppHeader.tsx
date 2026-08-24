@@ -16,11 +16,11 @@ const actions = [
 
 export function AppHeader({ greeting, coinBalance, activeAction, variant = 'solid' }: AppHeaderProps) {
   return (
-    // h-16 is fixed at every width and is load-bearing: SearchClient's filter
-    // bar sticks at top-16 against it. Changing this height means changing
-    // that offset in the same commit.
+    // Height is defined by --spacing-header in globals.css, not a literal
+    // here: SearchClient's filter bar sticks at top-header against the same
+    // token, and the root's scroll-padding-top is derived from it too.
     <header
-      className={`sticky top-0 z-[100] flex h-16 items-center justify-between px-5 backdrop-blur-sm md:px-8 lg:px-10 ${
+      className={`sticky top-0 z-[100] flex h-header items-center justify-between px-5 backdrop-blur-sm md:px-8 lg:px-10 ${
         variant === 'overlay' ? 'bg-gradient-to-b from-black/90 to-transparent' : 'bg-ink/95'
       }`}
     >

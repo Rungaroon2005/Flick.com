@@ -77,6 +77,11 @@
   --duration-exit: 140ms;
 
   --shadow-surface: 0 16px 40px -18px rgba(0, 0, 0, 0.75);
+
+  /* AppHeader's height. Load-bearing in three places: the header itself,
+     search's filter bar sticking beneath it, and the scroll-padding below
+     that keeps keyboard focus out from under both. */
+  --spacing-header: 4rem;
 }
 
 /* Safe-area utilities — Tailwind v4 ships none, and the portrait player and
@@ -110,15 +115,25 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* One focus treatment for the whole app. Button encoded this inline and
-   nothing else did, which is how three focus-visible occurrences ended up
-   covering twelve screens. 2px at 2px offset clears WCAG 2.2's focus-
-   appearance floor; brand-ink is 7.85:1 on the ink ground. */
+/* An explicit opt-in, not a reset: the base-layer :focus-visible rule
+   (@layer base, below) is already the floor most elements had before this
+   existed; this decouples components from that global rule and lets tests
+   assert the ring directly. The two auth inputs were the real gap — their
+   outline-none utility shares the base rule's cascade layer and beat it. */
 @utility focus-ring {
   &:focus-visible {
     outline: 2px solid var(--color-brand-ink);
     outline-offset: 2px;
   }
+}
+
+html {
+  /* Two bars stack on /search (header + filter bar) and one everywhere
+     else. This is the worst case rather than a per-route value, because
+     the scroll container is html and a route cannot restyle its own
+     ancestor. It only affects programmatic scroll-into-view on focus —
+     exactly the moment the clearance is wanted. */
+  scroll-padding-top: calc(var(--spacing-header) * 2);
 }
 
 /* Landing page hero — a slow, small bob on the front card of the poster

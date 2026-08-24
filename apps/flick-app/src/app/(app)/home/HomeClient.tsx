@@ -97,7 +97,7 @@ export default function HomeClient({
               <div className="mt-3 flex items-center gap-4">
                 <Link
                   href={featuredEpisodeId ? `/player/${featuredEpisodeId}` : `/movie/${featured.id}`}
-                  className="inline-flex h-12 items-center gap-2 rounded-full border border-white/25 bg-brand/90 px-6 text-sm font-semibold text-white shadow-[0_0_32px_-4px_rgba(255,77,26,0.75)] backdrop-blur-xl transition-transform active:scale-95"
+                  className="inline-flex h-12 items-center gap-2 rounded-full border border-white/25 bg-brand/90 px-6 text-sm font-semibold text-ink shadow-[0_0_32px_-4px_rgba(246,131,85,0.75)] backdrop-blur-xl transition-transform active:scale-95"
                 >
                   <Icon name="play" size={14} />
                   ดูเลย

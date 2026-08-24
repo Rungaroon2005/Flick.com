@@ -36,14 +36,17 @@ is design work and none of it should be touched.
 
 ## Part 1 — Design system & Tailwind architecture
 
-**Direction: cinnabar on warm ink.** Keep `--flick-red` exactly as it is; fix what's around it.
+**Direction: vermilion-orange on black.** Rebranded from light orange (`#F69E51`) to a
+punchier, fully-saturated orange-red (`#FF5C1A`); the ground stays the existing warm
+near-black rather than pure `#000` — the "warm surfaces, warm brand" rule still holds, it's
+just the most vivid point yet on the same warm hue family, so fill/ink/deep roles and
+contrast were re-measured again.
 
-### Why the palette reads muddy today
+### Why the palette reads muddy on cool neighbors
 
-`--flick-red: #CC3300` is a warm vermilion. The problem is its neighbors: `--bg-surface:
-#1A1A2E` and `--bg-surface-hover: #252540` are blue-violet navies — an accidental
-near-complement that makes the red read dirty. **Fix: rotate the surfaces warm and leave
-the brand hue untouched.**
+A warm brand hue next to blue-violet navies (e.g. `#1A1A2E` / `#252540`) reads as an
+accidental near-complement — dirty rather than rich. **Fix: keep the surfaces warm
+(`--color-ink*` below) regardless of which warm hue the brand itself lands on.**
 
 ### Core palette
 
@@ -52,23 +55,29 @@ the brand hue untouched.**
 | Ink | `#0B0908` | App ground. Warm near-black, replacing pure `#000`. |
 | Ink 1 | `#171310` | Cards, sheets, nav bar. Replaces `#1A1A2E`. |
 | Ink 2 | `#241D18` | Raised/hover/skeleton base. Replaces `#252540`. |
-| Cinnabar | `#CC3300` | **Fill only.** Primary buttons, active nav, scrub fill, like-state. |
-| Ember | `#FF4D1A` | **Ink only.** Accessible text/icon form of the brand on dark. Already `--flick-red-light`. |
-| Gold | `#E8B84B` | Coin economy only — balances, costs, unlock affordances. |
+| Vermilion | `#FF5C1A` | **Fill only.** Primary buttons, active nav, scrub fill, like-state. White text only reaches 3.09:1 (fails normal-text AA) — pair with `text-ink`, never `text-white`. |
+| Vermilion ink | `#F68355` | **Ink only.** Accessible text/icon form of the brand on dark. |
+| Vermilion deep | `#C23700` | Pressed states, deep accents/borders, gradient stops. Clears AA with white text (5.47:1) — used for the `Button` hover state. |
+| Gold | `#E8B84B` | Coin economy only — balances, costs, unlock affordances. Deliberately a paler, more yellow gold than the brand so the two don't read as the same color. |
 
-### Measured contrast (WCAG, against existing `#000` ground)
+### Measured contrast (WCAG, against `#0B0908` ink ground)
 
 | Pair | Ratio | Result |
 |---|---|---|
-| `#CC3300` text on `#0B0908` | 4.04:1 | **Fails AA** |
-| White on `#CC3300` fill | 5.20:1 | Passes AA |
-| `#FF4D1A` text on `#0B0908` | 6.33:1 | Passes AA |
+| `#FF5C1A` text on `#0B0908` | 6.44:1 | Passes AA |
+| White on `#FF5C1A` fill | 3.09:1 | **Fails AA** for normal text — use `text-ink` on `bg-brand`, never `text-white`, icons included |
+| `--color-ink` text on `#FF5C1A` fill | 6.44:1 | Passes AA |
+| `#F68355` text on `#0B0908` | 7.85:1 | Passes AAA |
+| White on `#C23700` (brand-deep) fill | 5.47:1 | Passes AA — safe for the `Button` hover state |
 | `--text-muted` (`#666680`) on black | 3.78:1 | **Fails AA** for body text — legal for large/disabled only |
 | `--text-secondary` (`#A0A0B0`) on black | 8.15:1 | Passes AAA |
 | Gold `#E8B84B` on ink | 11.4:1 | Safe as an ink |
 
-**System rule:** cinnabar is a surface, not an ink. `bg-brand` and `text-brand` resolve to
-*different hex values* so a developer can't get it wrong by reaching for the obvious class.
+**System rule:** the brand vermilion is a surface, not an ink. `bg-brand` and `text-brand-ink`
+resolve to *different hex values* so a developer can't get it wrong by reaching for the
+obvious class — and `bg-brand` still needs `text-ink` everywhere, including on icon-only
+fills, since white only just misses the AA line and one consistent rule beats a
+brightness-dependent judgment call.
 
 ### Typography: the Thai problem is the whole problem
 
@@ -146,8 +155,8 @@ export default { plugins: { '@tailwindcss/postcss': {} } };
   --color-ink: #0B0908;
   --color-ink-1: #171310;
   --color-ink-2: #241D18;
-  --color-brand: #CC3300;      /* fill */
-  --color-brand-ink: #FF4D1A;  /* text/icon */
+  --color-brand: #FF5C1A;      /* fill — pair with text-ink */
+  --color-brand-ink: #F68355;  /* text/icon */
   --color-coin: #E8B84B;
   --color-fg: #FFFFFF;
   --color-fg-dim: #A9A099;     /* 8.15:1 — safe for copy */

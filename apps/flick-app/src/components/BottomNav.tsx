@@ -41,7 +41,7 @@ export default function BottomNav() {
                 {isActive && (
                   <span
                     aria-hidden="true"
-                    className="absolute inset-0 rounded-full bg-brand/15 shadow-[0_0_18px_-2px_rgba(255,77,26,0.55)]"
+                    className="absolute inset-0 rounded-full bg-brand/15 shadow-[0_0_18px_-2px_rgba(246,131,85,0.55)]"
                   />
                 )}
                 <Icon

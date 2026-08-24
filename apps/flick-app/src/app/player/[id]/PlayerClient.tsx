@@ -343,7 +343,7 @@ export default function PlayerClient({
                 aria-pressed={playbackRate === rate}
                 onClick={() => changePlaybackRate(rate)}
                 className={`rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-surface ease-enter active:scale-95
-                  ${playbackRate === rate ? 'bg-brand text-white shadow-[0_0_16px_-3px_rgba(255,77,26,0.6)]' : 'bg-ink-2 text-fg-dim hover:bg-hairline'}`}
+                  ${playbackRate === rate ? 'bg-brand text-ink shadow-[0_0_16px_-3px_rgba(246,131,85,0.6)]' : 'bg-ink-2 text-fg-dim hover:bg-hairline'}`}
               >
                 {rate}x
               </button>

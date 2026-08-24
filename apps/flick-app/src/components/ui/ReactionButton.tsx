@@ -60,7 +60,7 @@ export function ReactionButton({
         className={`relative flex items-center justify-center rounded-full border backdrop-blur-md transition-[background-color,border-color,box-shadow] duration-ui active:scale-90 disabled:opacity-50
           ${
             active
-              ? 'border-brand-ink/40 bg-brand text-white shadow-[0_0_18px_-2px_rgba(204,51,0,0.7)]'
+              ? 'border-brand-ink/40 bg-brand text-ink shadow-[0_0_18px_-2px_rgba(255,92,26,0.7)]'
               : 'border-white/15 bg-black/45 text-white hover:bg-black/60'
           }`}
       >

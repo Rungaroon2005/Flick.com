@@ -13,7 +13,7 @@ export function Chip({ active = false, className = '', children, ...rest }: Chip
         transition-all duration-surface ease-enter active:scale-95
         ${
           active
-            ? 'bg-brand text-white shadow-[0_0_16px_-3px_rgba(255,77,26,0.6)]'
+            ? 'bg-brand text-ink shadow-[0_0_16px_-3px_rgba(246,131,85,0.6)]'
             : 'bg-ink-1 text-fg-dim hover:-translate-y-0.5 hover:text-fg'
         }
         ${className}`}

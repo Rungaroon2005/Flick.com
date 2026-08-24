@@ -46,7 +46,7 @@ export const SUBSCRIPTION_PLANS = [
     features: ['ไม่มีโฆษณา', 'คุณภาพ 1080p', 'ดูทุกตอน', '2 อุปกรณ์'],
     featuresEn: ['Ad-free', '1080p quality', 'All episodes', '2 devices'],
     badge: null,
-    color: '#CC3300',
+    color: '#FF5C1A',
   },
   {
     id: 'monthly',

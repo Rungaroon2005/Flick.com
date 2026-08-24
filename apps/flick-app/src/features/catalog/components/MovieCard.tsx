@@ -52,7 +52,7 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
           className="object-cover transition-[filter] duration-surface"
         />
         {showBookmark && (
-          <div className="absolute top-2 right-2 z-[2] flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+          <div className="absolute top-2 right-2 z-[2] flex h-6 w-6 items-center justify-center rounded-full bg-brand text-ink shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
             <Icon name="bookmarkFilled" size={16} />
           </div>
         )}

@@ -121,7 +121,7 @@ export default async function ProfilePage() {
               </div>
               <Link
                 href="/subscribe"
-                className="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white shadow-md shadow-black/20 transition-all duration-surface ease-enter hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
+                className="rounded-full bg-brand px-4 py-2 text-sm font-medium text-ink shadow-md shadow-black/20 transition-all duration-surface ease-enter hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
               >
                 จัดการ
               </Link>

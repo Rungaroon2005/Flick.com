@@ -3,6 +3,7 @@ import { ErrorPanel } from '@/components/ui/ErrorPanel';
 import API_BASE_URL from '@/lib/api';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
+import { withNext } from '@/lib/nextParam';
 import type { Episode, Movie, PlaybackAuthorization } from '@/types';
 import { decodeMovies } from '@/types/api';
 import PlayerClient from './PlayerClient';
@@ -28,10 +29,11 @@ export default async function PlayerPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const session = await getSession();
-  if (!session) redirect('/login');
+  if (!session) redirect(withNext('/login', `/player/${id}`));
 
-  const { id: episodeId } = await params;
+  const episodeId = id;
   let playback: { movie: Movie; episode: Episode } | null = null;
   let authorization: PlaybackAuthorization | null = null;
   let sessionExpired = false;
@@ -47,7 +49,7 @@ export default async function PlayerPage({
     console.error('Error loading player on server:', error);
   }
 
-  if (sessionExpired) redirect('/login');
+  if (sessionExpired) redirect(withNext('/login', `/player/${id}`));
   if (!playback || !authorization) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-ink px-6">

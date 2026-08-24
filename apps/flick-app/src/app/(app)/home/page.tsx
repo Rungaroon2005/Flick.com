@@ -5,6 +5,7 @@ import { PageShell } from '@/components/ui/PageShell';
 import API_BASE_URL from '@/lib/api';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
+import { withNext } from '@/lib/nextParam';
 import { ContinueWatchingItem, Movie } from '@/types';
 import { decodeMovies } from '@/types/api';
 
@@ -25,7 +26,7 @@ export default async function HomePage() {
   // Authorisation happens here, on the server, before any of this page is sent.
   // redirect() throws, so nothing below runs for an unauthenticated request.
   const session = await getSession();
-  if (!session) redirect('/login');
+  if (!session) redirect(withNext('/login', '/home'));
 
   const [moviesResult, bookmarksResult, continueResult] = await Promise.allSettled([
     getMovies(),
@@ -37,7 +38,7 @@ export default async function HomePage() {
     (result): result is PromiseRejectedResult => result.status === 'rejected',
   );
   if (privateFailures.some(({ reason }) => reason instanceof ApiError && reason.status === 401)) {
-    redirect('/login');
+    redirect(withNext('/login', '/home'));
   }
 
   const movies = moviesResult.status === 'fulfilled' ? moviesResult.value : [];

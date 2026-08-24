@@ -3,6 +3,7 @@ import SubscribeClient from './SubscribeClient';
 import { ErrorPanel } from '@/components/ui/ErrorPanel';
 import API_BASE_URL from '@/lib/api';
 import { getSession } from '@/lib/session';
+import { withNext } from '@/lib/nextParam';
 import type { CoinPack, SubscriptionPlan } from '@/types';
 import { decodePlans } from '@/types/api';
 
@@ -25,7 +26,7 @@ async function getPlans(): Promise<PlansResponse> {
 // the time this Server Component runs.
 export default async function SubscribePage() {
   const session = await getSession();
-  if (!session) redirect('/login');
+  if (!session) redirect(withNext('/login', '/subscribe'));
 
   let data: PlansResponse | null = null;
   try {

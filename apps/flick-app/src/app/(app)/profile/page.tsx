@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { PageShell } from '@/components/ui/PageShell';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
+import { withNext } from '@/lib/nextParam';
 import { Subscription } from '@/types';
 
 /** Display-only label for a plan id. Falls back to the raw planType, so an id
@@ -35,7 +36,7 @@ const settingsRows = ['ภาษา', 'ลักษณะการแสดง�
 export default async function ProfilePage() {
   // Authorisation happens on the server, before any of this page is sent.
   const session = await getSession();
-  if (!session) redirect('/login');
+  if (!session) redirect(withNext('/login', '/profile'));
 
   let subscription: Subscription | null = null;
   let wallet: { balance: number } | null = null;
@@ -67,7 +68,7 @@ export default async function ProfilePage() {
   }
   // redirect() throws, so it must be called outside the try/catch above or the
   // catch would swallow its NEXT_REDIRECT control-flow signal.
-  if (sessionExpired) redirect('/login');
+  if (sessionExpired) redirect(withNext('/login', '/profile'));
 
   return (
     <PageShell>

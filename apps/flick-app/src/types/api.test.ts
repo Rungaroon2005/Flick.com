@@ -26,4 +26,22 @@ describe('API contract decoders', () => {
     expect(() => decodeMovies([{ id: 'movie-1', title: 'Missing fields' }])).toThrow();
     expect(() => decodePlans({ subscriptions: {}, coins: [] })).toThrow('collections');
   });
+
+  it('accepts a valid checkout response', () => {
+    expect(
+      decodeApiResponse('/payments/checkout', {
+        checkoutUrl: 'https://fake-gateway.local/checkout/intent-1',
+        intentId: 'intent-1',
+      }),
+    ).toEqual({
+      checkoutUrl: 'https://fake-gateway.local/checkout/intent-1',
+      intentId: 'intent-1',
+    });
+  });
+
+  it('rejects a checkout response missing required fields', () => {
+    expect(() =>
+      decodeApiResponse('/payments/checkout', { checkoutUrl: 'https://fake-gateway.local' }),
+    ).toThrow('Invalid checkout response');
+  });
 });

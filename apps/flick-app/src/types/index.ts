@@ -45,6 +45,14 @@ export interface WalletResponse {
   balance: number;
 }
 
+/** Body of POST /payments/checkout. Deliberately carries no price — the
+ *  server resolves the amount from its own catalog (see
+ *  apps/flick-api/src/payments/catalog.ts). */
+export interface CheckoutResponse {
+  checkoutUrl: string;
+  intentId: string;
+}
+
 export interface Episode {
   id: string;
   seasonId: string;

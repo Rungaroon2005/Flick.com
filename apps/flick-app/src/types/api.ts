@@ -1,6 +1,7 @@
 import type {
   AuthenticatedUser,
   BookmarkResponse,
+  CheckoutResponse,
   CoinPack,
   ContinueWatchingItem,
   DownloadRecord,
@@ -32,6 +33,7 @@ export type ApiPath =
   | '/subscriptions/me'
   | '/wallet'
   | '/wallet/spend'
+  | '/payments/checkout'
   | `/playback/${string}/authorize`
   | `/me/movies/${string}/actions`
   | `/me/likes/${string}`
@@ -49,6 +51,7 @@ export type ApiResponse<Path extends ApiPath> =
   : Path extends '/me/downloads' ? DownloadRecord[]
   : Path extends '/subscriptions/me' ? Subscription | null | undefined
   : Path extends '/wallet' ? WalletResponse
+  : Path extends '/payments/checkout' ? CheckoutResponse
   : Path extends `/playback/${string}/authorize` ? PlaybackAuthorization
   : Path extends `/me/movies/${string}/actions` ? MovieActionsResponse
   : Path extends `/me/likes/${string}` ? LikeResponse
@@ -156,6 +159,16 @@ export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unkno
     const wallet = requireRecord(value, 'wallet');
     requireNumber(wallet, 'balance');
     return wallet as ApiResponse<Path>;
+  }
+  if (path === '/payments/checkout') {
+    const checkout = requireRecord(value, 'checkout');
+    if (
+      typeof checkout.checkoutUrl !== 'string' ||
+      typeof checkout.intentId !== 'string'
+    ) {
+      throw new TypeError('Invalid checkout response');
+    }
+    return checkout as ApiResponse<Path>;
   }
   if (path === '/auth/otp/request') {
     const otp = requireRecord(value, 'otp request');

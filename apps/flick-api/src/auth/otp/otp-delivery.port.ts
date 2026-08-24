@@ -1,6 +1,6 @@
 import type { OtpChannel } from '@prisma/client';
 
-/** DI token; an interface has no runtime value to inject against. */
+/** DI token — an interface has no runtime value to inject against. */
 export const OTP_DELIVERY_PORT = Symbol('OTP_DELIVERY_PORT');
 
 export interface OtpDeliveryPort {

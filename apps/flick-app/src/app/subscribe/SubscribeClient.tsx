@@ -1,19 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
 import { Container } from '@/components/ui/Container';
 import { Icon } from '@/components/ui/Icon';
+import { rememberPendingCheckout, startCheckout } from '@/features/payments';
 import { CoinPack, SubscriptionPlan } from '@/types';
-
-// There is no payment gateway in this project. Coin top-ups therefore stay
-// disabled: the old handler wrote a fake coin balance to localStorage and
-// reported "purchase successful" for a payment that never happened.
-const UNAVAILABLE_MSG = 'ระบบชำระเงินยังไม่เปิดให้บริการในขณะนี้ ใช้งานฟรีได้ทุกฟีเจอร์ด้านล่าง';
 
 const FREE_PLAN_ID = 'free';
 
-/** Plan and pricing copy remains server-owned. Paid actions stay disabled until
- *  the API has a verified payment-gateway activation path. */
+/** Plan and pricing copy remains server-owned: SubscriptionPlan/CoinPack ids
+ *  and prices come straight from GET /plans and are never re-derived on the
+ *  client. What this component sends to POST /payments/checkout is only the
+ *  chosen id — never a price — so the server-resolved catalog amount is the
+ *  only amount that can ever be charged. */
 export default function SubscribeClient({
   plans,
   coinPacks,
@@ -22,6 +23,32 @@ export default function SubscribeClient({
   coinPacks: CoinPack[];
 }) {
   const router = useRouter();
+  const [busyItem, setBusyItem] = useState<string | null>(null);
+  const [error, setError] = useState<string>('');
+
+  const handleBuy = async (
+    itemType: 'SUBSCRIPTION' | 'COIN_PACK',
+    itemId: string,
+  ) => {
+    setBusyItem(itemId);
+    setError('');
+    const result = await startCheckout(itemType, itemId);
+    if (!result.success) {
+      setBusyItem(null);
+      setError(result.error);
+      return;
+    }
+    // Remembered so /subscribe/processing knows what to poll for — the
+    // gateway's return URL only carries the intent id, not the item type.
+    await rememberPendingCheckout(itemType, result.intentId);
+    // Full navigation, not router.push — the checkout page is the gateway's
+    // origin, not ours. location.assign(), not `location.href =`: this
+    // version's react-hooks/react-compiler lint rule flags a direct property
+    // assignment on `window.location` from inside a component as mutating a
+    // frozen value; the equivalent method call is not flagged (see how
+    // PlayerClient.tsx's existing window.location.reload() call passes).
+    window.location.assign(result.checkoutUrl);
+  };
 
   return (
     <div className="min-h-dvh bg-ink pb-10">
@@ -40,29 +67,28 @@ export default function SubscribeClient({
 
       <Container>
         <section>
-          <p className="mb-5 flex items-start gap-2 rounded-2xl border border-white/5 bg-ink-1 p-4 text-sm text-fg-dim">
-            <Icon name="infoCircle" size={16} className="mt-0.5 shrink-0 text-fg-mute" />
-            {UNAVAILABLE_MSG}
-          </p>
+          {error && (
+            <div
+              role="alert"
+              className="mb-5 flex items-center gap-2 rounded-lg bg-fail/15 px-3 py-2.5 text-sm text-fail"
+            >
+              <Icon name="alertCircle" size={16} className="shrink-0" />
+              {error}
+            </div>
+          )}
 
           <div className="flex flex-col gap-5 md:grid md:grid-cols-3 md:items-start">
             {plans.map((plan) => {
               // The free plan is identified from the data, never from JSX order.
-              // It navigates normally; paid plans render as previews.
               const isFree = plan.id === FREE_PLAN_ID || plan.price === 0;
               return (
                 <div
                   key={plan.id}
-                  className={`relative rounded-3xl border p-6 shadow-lg shadow-black/20 transition-all duration-surface ease-enter ${isFree ? 'border-brand-ink' : 'border-white/10 opacity-90'}`}
+                  className={`relative rounded-3xl border p-6 shadow-lg shadow-black/20 transition-all duration-surface ease-enter ${isFree ? 'border-brand-ink' : 'border-white/10'}`}
                 >
-                  {plan.badge && !isFree && (
+                  {plan.badge && (
                     <span className="absolute -top-2.5 right-5 rounded-full bg-coin px-3 py-1 text-xs font-semibold text-ink">
                       {plan.badge}
-                    </span>
-                  )}
-                  {!isFree && (
-                    <span className="absolute -top-2.5 left-5 rounded-full bg-ink-2 px-3 py-1 text-xs font-medium text-fg-dim">
-                      เร็ว ๆ นี้
                     </span>
                   )}
                   <h2 className="font-display text-lg font-bold text-fg">{plan.name}</h2>
@@ -85,12 +111,16 @@ export default function SubscribeClient({
                       ใช้งานฟรี
                     </button>
                   ) : (
-                    <button
-                      disabled
-                      className="mt-5 flex h-11 w-full items-center justify-center rounded-full bg-ink-2 font-semibold text-fg-mute"
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="mt-5 w-full"
+                      loading={busyItem === plan.id}
+                      disabled={busyItem !== null && busyItem !== plan.id}
+                      onClick={() => handleBuy('SUBSCRIPTION', plan.id)}
                     >
-                      เร็ว ๆ นี้
-                    </button>
+                      สมัครแพ็กเกจนี้
+                    </Button>
                   )}
                 </div>
               );
@@ -106,7 +136,7 @@ export default function SubscribeClient({
             {coinPacks.map((pack) => (
               <div
                 key={pack.id}
-                className="relative flex flex-col items-center gap-1 rounded-2xl border border-white/10 p-4 text-center opacity-90"
+                className="relative flex flex-col items-center gap-1 rounded-2xl border border-white/10 p-4 text-center"
               >
                 {pack.badge && (
                   <span className="absolute -top-2.5 rounded-full bg-coin px-2.5 py-0.5 text-[10px] font-semibold text-ink">
@@ -118,6 +148,16 @@ export default function SubscribeClient({
                   {pack.coins}
                 </div>
                 <div className="text-sm text-fg-dim">฿{pack.price}</div>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  className="mt-2 w-full"
+                  loading={busyItem === pack.id}
+                  disabled={busyItem !== null && busyItem !== pack.id}
+                  onClick={() => handleBuy('COIN_PACK', pack.id)}
+                >
+                  ซื้อ
+                </Button>
               </div>
             ))}
           </div>

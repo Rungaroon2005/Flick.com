@@ -12,6 +12,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { WalletModule } from './wallet/wallet.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { PaymentsModule } from './payments/payments.module';
 import { PlaybackModule } from './playback/playback.module';
 import { EngagementModule } from './engagement/engagement.module';
 import { validateEnv } from './common/config.validation';
@@ -27,6 +28,7 @@ import { DatabaseModule } from './database/database.module';
     AuthModule,
     WalletModule,
     SubscriptionsModule,
+    PaymentsModule,
     PlaybackModule,
     EngagementModule,
   ],

@@ -1,1 +1,1 @@
-export { login, logout, register } from './api';
+export { logout, requestOtp, verifyOtp } from './api';

@@ -8,7 +8,7 @@ import {
 
 /**
  * A 6-digit code from a CSPRNG. `Math.random` is a non-cryptographic PRNG
- * whose internal state is recoverable from a handful of outputs; with it, an
+ * whose internal state is recoverable from a handful of outputs — with it, an
  * attacker who requests a few codes for their own number can predict the code
  * sent to someone else's. `randomInt` draws from the OS entropy pool.
  */
@@ -22,7 +22,7 @@ export function generateOtpCode(): string {
  * A short human-readable handle shown on screen and repeated in the message,
  * so a user with two codes in their inbox knows which screen each belongs to.
  * Collision-tolerant by design: it is a display hint, never a lookup key on
- * its own; verify always scopes by destination first.
+ * its own — verify always scopes by destination first.
  */
 export function generateOtpRef(): string {
   let ref = '';

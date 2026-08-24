@@ -34,6 +34,15 @@ describe('normalizeDestination', () => {
       BadRequestException,
     );
   });
+
+  it('rejects raw input with characters outside digits, spaces, hyphens, parens, dots, and leading +', () => {
+    expect(() => sms('aaa0812345678bbb')).toThrow(BadRequestException);
+    expect(() => sms('Order #0812345678')).toThrow(BadRequestException);
+  });
+
+  it('rejects Thai numbers with leading zero in national significant number', () => {
+    expect(() => sms('0000000000')).toThrow(BadRequestException);
+  });
 });
 
 describe('maskDestination', () => {
@@ -47,5 +56,13 @@ describe('maskDestination', () => {
     const masked = maskDestination('someone@example.com');
     expect(masked).not.toContain('someone');
     expect(masked).toContain('example.com');
+  });
+
+  it('never returns full input even for short destinations', () => {
+    const masked5 = maskDestination('12345');
+    expect(masked5).not.toBe('12345');
+    expect(masked5).not.toContain('12345');
+    const masked1 = maskDestination('1');
+    expect(masked1).not.toBe('1');
   });
 });

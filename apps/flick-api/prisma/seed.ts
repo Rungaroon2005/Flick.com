@@ -1,7 +1,6 @@
 import { PrismaClient, ContentStatus } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import * as bcrypt from 'bcrypt';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://macintosh@localhost:5432/flickdb?schema=public';
 const pool = new Pool({ connectionString });
@@ -10,6 +9,31 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('Seeding database...');
+
+  // Idempotency: this script always used bare `.create()`, so re-running it
+  // against a database that already has these fixture rows (e.g. after
+  // switching the seeded user from password to OTP auth) fails on the
+  // primary-key unique constraint. Clear only the known fixture rows this
+  // script owns — by id — before recreating them. Movie deletion cascades to
+  // its seasons/episodes/movie_genres rows (see schema.prisma onDelete:
+  // Cascade); genres themselves are shared and left alone via
+  // connectOrCreate below.
+  //
+  // The User row is handled differently, below (upsert, not delete-then-
+  // create): PaymentEvent.user and UserCoin.user are onDelete: Restrict, so
+  // deleting 'e2e-free-user' would fail with a foreign-key violation (P2003)
+  // the moment a later e2e suite has credited that user a coin pack or
+  // recorded a payment event against it.
+  const seedMovieIds = [
+    'sathu',
+    'dao-sindome',
+    'neephee',
+    'ngao',
+    'rak',
+    'sena',
+    'e2e-draft',
+  ];
+  await prisma.movie.deleteMany({ where: { id: { in: seedMovieIds } } });
 
   // Create Movies
   const sathu = await prisma.movie.create({
@@ -249,12 +273,32 @@ async function main() {
     },
   });
 
-  await prisma.user.create({
-    data: {
+  // upsert, not delete-then-create: PaymentEvent/UserCoin rows accumulated
+  // against this user by other e2e suites would make a delete fail with a
+  // foreign-key violation (see the comment above). update explicitly nulls
+  // passwordHash so re-seeding over a row left behind by an older
+  // password-based seed actually clears it, rather than leaving a stale
+  // hash on a supposedly passwordless account.
+  await prisma.user.upsert({
+    where: { id: 'e2e-free-user' },
+    update: {
+      email: 'e2e-free@flick.test',
+      // The phone IS the login identity now — stored normalized, exactly as
+      // OtpService writes it.
+      phone: '+66800000001',
+      displayName: 'E2E Free User',
+      isVerified: true,
+      passwordHash: null,
+    },
+    create: {
       id: 'e2e-free-user',
       email: 'e2e-free@flick.test',
+      // The phone IS the login identity now — stored normalized, exactly as
+      // OtpService writes it.
+      phone: '+66800000001',
       displayName: 'E2E Free User',
-      passwordHash: await bcrypt.hash('flick-e2e-password', 12),
+      isVerified: true,
+      // passwordHash intentionally absent — passwordless.
     },
   });
 

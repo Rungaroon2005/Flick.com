@@ -13,6 +13,21 @@ export interface AuthMutationResponse {
   user: Pick<AuthenticatedUser, 'id' | 'email' | 'displayName'>;
 }
 
+/** Body of POST /auth/otp/request. Identical whether or not an account exists. */
+export interface OtpRequestResponse {
+  ref: string;
+  expiresIn: number;
+}
+
+/** Body of POST /auth/otp/verify. The token itself is in an HttpOnly cookie. */
+export interface OtpVerifyResponse {
+  success: boolean;
+  user: Pick<AuthenticatedUser, 'id' | 'email' | 'displayName'> & {
+    phone: string | null;
+  };
+  isNewUser: boolean;
+}
+
 export interface MovieActionsResponse {
   liked: boolean;
   bookmarked: boolean;
@@ -28,6 +43,14 @@ export interface BookmarkResponse {
 
 export interface WalletResponse {
   balance: number;
+}
+
+/** Body of POST /payments/checkout. Deliberately carries no price — the
+ *  server resolves the amount from its own catalog (see
+ *  apps/flick-api/src/payments/catalog.ts). */
+export interface CheckoutResponse {
+  checkoutUrl: string;
+  intentId: string;
 }
 
 export interface Episode {

@@ -16,7 +16,7 @@ import { AVAILABLE_EPISODE_FILTER } from '../common/content-availability';
 export const unlockDescription = (episodeId: string) =>
   `unlock:episode:${episodeId}`;
 
-type Tx = Prisma.TransactionClient;
+export type Tx = Prisma.TransactionClient;
 
 @Injectable()
 export class WalletService {
@@ -112,13 +112,50 @@ export class WalletService {
   }
 
   /**
-   * Credits `amount` coins to `userId` (e.g. EARNED, PURCHASED, REFUNDED).
-   * For internal use only — there is no public "buy coins" endpoint here;
-   * that requires a payment gateway integration that is out of scope for
-   * this task. `paymentEventId` links the ledger row to a `PaymentEvent`
-   * once that integration exists. Uses the same row-lock pattern as
-   * `spend()` for the same reason: a precomputed `balanceAfter` literal is
-   * not safe against concurrent credits without it.
+   * The actual credit write. Assumes it is already inside a transaction —
+   * `lockUserRow` only serializes concurrent writers while that transaction
+   * is open.
+   */
+  private async creditWithin(
+    tx: Tx,
+    userId: string,
+    amount: number,
+    type: TransactionType,
+    description: string,
+    paymentEventId?: string,
+  ): Promise<number> {
+    const user = await this.lockUserRow(tx, userId);
+    if (!user) throw new NotFoundException();
+
+    const balanceAfter = user.coinBalance + amount;
+    await tx.userCoin.create({
+      data: {
+        userId,
+        transactionType: type,
+        amount,
+        balanceAfter,
+        description,
+        ...(paymentEventId ? { paymentEventId } : {}),
+      },
+    });
+    await tx.user.update({
+      where: { id: userId },
+      data: { coinBalance: balanceAfter },
+    });
+    return balanceAfter;
+  }
+
+  /**
+   * Credits `amount` coins to `userId` (EARNED, PURCHASED, REFUNDED).
+   *
+   * Pass `tx` to join an existing transaction. The payment webhook does this
+   * so the PaymentEvent row, the PaymentIntent status change, and this ledger
+   * write all commit together or not at all — a process crash between them
+   * would otherwise hand out coins for a payment we never recorded, or record
+   * a payment that never paid out.
+   *
+   * Uses the same row-lock pattern as `spend()`: a precomputed `balanceAfter`
+   * literal is not safe against concurrent credits without it.
    */
   async credit(
     userId: string,
@@ -126,32 +163,32 @@ export class WalletService {
     type: TransactionType,
     description: string,
     paymentEventId?: string,
+    tx?: Tx,
   ): Promise<number> {
     if (amount <= 0) {
       throw new BadRequestException('จำนวนเหรียญไม่ถูกต้อง');
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const user = await this.lockUserRow(tx, userId);
-      if (!user) throw new NotFoundException();
-
-      const balanceAfter = user.coinBalance + amount;
-      await tx.userCoin.create({
-        data: {
-          userId,
-          transactionType: type,
-          amount,
-          balanceAfter,
-          description,
-          ...(paymentEventId ? { paymentEventId } : {}),
-        },
-      });
-      await tx.user.update({
-        where: { id: userId },
-        data: { coinBalance: balanceAfter },
-      });
-      return balanceAfter;
-    });
+    if (tx) {
+      return this.creditWithin(
+        tx,
+        userId,
+        amount,
+        type,
+        description,
+        paymentEventId,
+      );
+    }
+    return this.prisma.$transaction((ownTx) =>
+      this.creditWithin(
+        ownTx,
+        userId,
+        amount,
+        type,
+        description,
+        paymentEventId,
+      ),
+    );
   }
 
   /**

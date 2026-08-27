@@ -6,10 +6,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, SubscriptionStatus, TransactionType } from '@prisma/client';
+import { Prisma, SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
-import { WalletService } from '../wallet/wallet.service';
-import type { Tx } from '../wallet/wallet.service';
 import { resolveCatalogItem, type CatalogItemType } from './catalog';
 import {
   PAYMENT_GATEWAY_PORT,
@@ -17,6 +15,8 @@ import {
   type PaymentGatewayPort,
 } from './payment-gateway.port';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
+
+type Tx = Prisma.TransactionClient;
 
 /** An unpaid intent stops being honourable after this long. */
 const INTENT_TTL_MS = 15 * 60 * 1000;
@@ -29,7 +29,6 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_GATEWAY_PORT) private readonly gateway: PaymentGatewayPort,
-    private readonly wallet: WalletService,
     config: ConfigService,
   ) {
     this.appBaseUrl = config.get<string>(
@@ -222,7 +221,7 @@ export class PaymentsService {
         // un-retire the item. The payment genuinely arrived; record that fact,
         // keep the intent SUCCEEDED, and leave the entitlement for a human.
         try {
-          await this.grantEntitlement(tx, intent, paymentEvent.id);
+          await this.grantEntitlement(tx, intent);
         } catch (grantErr) {
           this.logger.error(
             `MANUAL RECONCILIATION REQUIRED: payment succeeded but entitlement could not be granted. ` +
@@ -256,7 +255,6 @@ export class PaymentsService {
       itemType: string;
       itemId: string;
     },
-    paymentEventId: string,
   ): Promise<void> {
     // Re-resolved server-side rather than trusted from the stored row, so the
     // price/duration source of truth stays plans.config.ts.
@@ -265,33 +263,19 @@ export class PaymentsService {
       intent.itemId,
     );
 
-    if (item.itemType === 'SUBSCRIPTION') {
-      const startDate = new Date();
-      await tx.subscription.create({
-        data: {
-          userId: intent.userId,
-          planType: intent.itemId,
-          status: SubscriptionStatus.ACTIVE,
-          // One-time purchases only: no stored card, nothing to auto-charge.
-          autoRenew: false,
-          startDate,
-          endDate: new Date(startDate.getTime() + (item.durationMs ?? 0)),
-          paymentMethod: this.gateway.name,
-        },
-      });
-      this.logger.log(`Subscription granted for intent ${intent.id}`);
-      return;
-    }
-
-    // `tx` passed through so the coin ledger commits with the payment records.
-    await this.wallet.credit(
-      intent.userId,
-      item.coins ?? 0,
-      TransactionType.PURCHASED,
-      `purchase:coinpack:${intent.itemId}`,
-      paymentEventId,
-      tx,
-    );
-    this.logger.log(`Coins credited for intent ${intent.id}`);
+    const startDate = new Date();
+    await tx.subscription.create({
+      data: {
+        userId: intent.userId,
+        planType: intent.itemId,
+        status: SubscriptionStatus.ACTIVE,
+        // One-time purchases only: no stored card, nothing to auto-charge.
+        autoRenew: false,
+        startDate,
+        endDate: new Date(startDate.getTime() + item.durationMs),
+        paymentMethod: this.gateway.name,
+      },
+    });
+    this.logger.log(`Subscription granted for intent ${intent.id}`);
   }
 }

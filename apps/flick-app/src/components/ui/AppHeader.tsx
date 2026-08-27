@@ -4,7 +4,6 @@ import { HeaderNav } from './HeaderNav';
 
 interface AppHeaderProps {
   greeting?: string;
-  coinBalance?: number;
   activeAction?: 'downloads' | 'search';
   variant?: 'solid' | 'overlay';
 }
@@ -14,7 +13,7 @@ const actions = [
   { name: 'search' as const, href: '/search', label: 'ค้นหา', icon: 'search' as const },
 ];
 
-export function AppHeader({ greeting, coinBalance, activeAction, variant = 'solid' }: AppHeaderProps) {
+export function AppHeader({ greeting, activeAction, variant = 'solid' }: AppHeaderProps) {
   return (
     // Height is defined by --spacing-header in globals.css, not a literal
     // here: SearchClient's filter bar sticks at top-header against the same
@@ -30,15 +29,6 @@ export function AppHeader({ greeting, coinBalance, activeAction, variant = 'soli
       </div>
       <HeaderNav />
       <div className="flex items-center gap-3">
-        {coinBalance !== undefined && (
-          <Link
-            href="/profile"
-            className="focus-ring flex items-center gap-1.5 rounded-full bg-fg/10 py-1.5 pr-3 pl-2 text-data font-medium text-coin transition-colors duration-ui hover:bg-fg/15"
-          >
-            <Icon name="coin" size={16} />
-            {coinBalance}
-          </Link>
-        )}
         {actions.map((action) => {
           const className = `flex h-8 w-8 items-center justify-center rounded-full transition-all duration-ui ease-enter active:scale-90 ${
             activeAction === action.name ? 'bg-brand-ink/10 text-brand-ink' : 'bg-fg/10 text-fg hover:bg-fg/15'

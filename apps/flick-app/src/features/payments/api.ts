@@ -9,7 +9,7 @@
 import { ApiError, apiFetch } from '@/lib/apiClient';
 import { safeNext } from '@/lib/nextParam';
 
-export type CheckoutItemType = 'SUBSCRIPTION' | 'COIN_PACK';
+export type CheckoutItemType = 'SUBSCRIPTION';
 
 export type CheckoutResult =
   | { success: true; checkoutUrl: string; intentId: string }
@@ -45,20 +45,15 @@ const PENDING_CHECKOUT_KEY = 'flick:pendingCheckout';
 interface PendingCheckout {
   itemType: CheckoutItemType;
   intentId: string;
-  /** Wallet balance captured right before leaving for the gateway. COIN_PACK
-   *  only. Lets the processing screen notice a credit that lands before the
-   *  screen itself ever mounts — a plain "did it change since I loaded"
-   *  check would miss that case. */
-  baselineBalance?: number;
   /** The active subscription's endDate (if any) at the moment checkout was
-   *  started, or null if there was no active subscription. SUBSCRIPTION
-   *  only. Renewal-before-expiry is a real flow here (no auto-renew — see
-   *  the plan doc — so buying again while still entitled is expected), so
-   *  "a subscription exists" is not proof of a NEW grant; only "a
-   *  subscription with a later endDate than this baseline" is. Left
-   *  undefined if the pre-checkout fetch failed — the processing screen
-   *  then falls back to treating any subscription as a grant, same as it
-   *  would for a genuine first-time purchase. */
+   *  started, or null if there was no active subscription. Renewal-before-
+   *  expiry is a real flow here (no auto-renew — see the plan doc — so
+   *  buying again while still entitled is expected), so "a subscription
+   *  exists" is not proof of a NEW grant; only "a subscription with a later
+   *  endDate than this baseline" is. Left undefined if the pre-checkout
+   *  fetch failed — the processing screen then falls back to treating any
+   *  subscription as a grant, same as it would for a genuine first-time
+   *  purchase. */
   baselineSubscriptionEndDate?: string | null;
   /** Where to land once the grant is confirmed. Validated on the way in and
    *  again on the way out: sessionStorage is writable by any script on the
@@ -70,11 +65,10 @@ interface PendingCheckout {
  * Stashes what the processing screen needs once the browser returns from the
  * gateway. The API's return URL only carries `?intent=<id>` (see
  * PaymentsService.createCheckout) — it has no item type — so this is the only
- * way the processing screen learns whether to watch /subscriptions/me or
- * /wallet for the entitlement, and what "before" looked like. Best-effort:
- * sessionStorage can be unavailable (private browsing, a different tab) and
- * that is never fatal — the processing screen falls back to polling both
- * signals when it finds nothing.
+ * way the processing screen learns whether to watch /subscriptions/me for
+ * the entitlement, and what "before" looked like. Best-effort: sessionStorage
+ * can be unavailable (private browsing, a different tab) and that is never
+ * fatal — the processing screen falls back to polling when it finds nothing.
  */
 export async function rememberPendingCheckout(
   itemType: CheckoutItemType,
@@ -84,22 +78,12 @@ export async function rememberPendingCheckout(
   const pending: PendingCheckout = { itemType, intentId };
   const safe = safeNext(next);
   if (safe) pending.next = safe;
-  if (itemType === 'COIN_PACK') {
-    try {
-      const wallet = await apiFetch('/wallet');
-      pending.baselineBalance = wallet.balance;
-    } catch {
-      // No baseline available — the processing screen uses its first poll
-      // as the baseline instead.
-    }
-  } else {
-    try {
-      const subscription = await apiFetch('/subscriptions/me');
-      pending.baselineSubscriptionEndDate = subscription ? subscription.endDate : null;
-    } catch {
-      // No baseline available — left undefined, so the processing screen
-      // grants on any subscription appearing (same as a first-time buyer).
-    }
+  try {
+    const subscription = await apiFetch('/subscriptions/me');
+    pending.baselineSubscriptionEndDate = subscription ? subscription.endDate : null;
+  } catch {
+    // No baseline available — left undefined, so the processing screen
+    // grants on any subscription appearing (same as a first-time buyer).
   }
   try {
     sessionStorage.setItem(PENDING_CHECKOUT_KEY, JSON.stringify(pending));
@@ -117,10 +101,7 @@ export function recallPendingCheckout(intentId: string | null): PendingCheckout 
     const raw = sessionStorage.getItem(PENDING_CHECKOUT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<PendingCheckout>;
-    if (
-      (parsed.itemType !== 'SUBSCRIPTION' && parsed.itemType !== 'COIN_PACK') ||
-      typeof parsed.intentId !== 'string'
-    ) {
+    if (parsed.itemType !== 'SUBSCRIPTION' || typeof parsed.intentId !== 'string') {
       return null;
     }
     if (parsed.intentId !== intentId) return null;
@@ -142,7 +123,6 @@ export function clearPendingCheckout(): void {
  *  polling loop the same way from tick to tick, updated only when a value
  *  gets captured for the first time. */
 export interface CheckoutBaseline {
-  balance: number | null;
   /** undefined = never captured (fetch failed, or not applicable to this
    *  poll yet); null = captured, no active subscription existed; string =
    *  captured, the pre-existing subscription's endDate. */
@@ -150,7 +130,6 @@ export interface CheckoutBaseline {
 }
 
 export const INITIAL_CHECKOUT_BASELINE: CheckoutBaseline = {
-  balance: null,
   subscriptionEndDate: undefined,
 };
 
@@ -192,42 +171,21 @@ export async function checkGranted(
     };
   }
 
-  if (itemType === 'COIN_PACK') {
-    const wallet = await apiFetch('/wallet');
-    if (baseline.balance === null) {
-      // No baseline could be captured before checkout (sessionStorage lost
-      // it, or the pre-checkout /wallet read failed) — this poll becomes the
-      // baseline instead. A false negative for this one tick is the honest
-      // trade-off: we cannot claim "granted" without something to compare to.
-      return { granted: false, baseline: { ...baseline, balance: wallet.balance } };
-    }
-    return { granted: wallet.balance > baseline.balance, baseline };
-  }
-
   // Item type unknown (different tab/device, cleared storage, or a direct
-  // navigation to this URL) — watch both signals so a real grant is still
-  // caught. Whichever baseline is still missing gets CAPTURED on this tick
-  // rather than compared, so a pre-existing subscription or coin balance can
-  // never itself read as "granted" — mirrors the COIN_PACK branch above.
-  const [subscription, wallet] = await Promise.all([
-    apiFetch('/subscriptions/me'),
-    apiFetch('/wallet'),
-  ]);
-
-  const nextBaseline: CheckoutBaseline = { ...baseline };
-  let granted = false;
-
-  if (baseline.balance === null) {
-    nextBaseline.balance = wallet.balance;
-  } else if (wallet.balance > baseline.balance) {
-    granted = true;
-  }
+  // navigation to this URL). The baseline gets CAPTURED on this tick rather
+  // than compared, so a pre-existing subscription can never itself read as
+  // "granted".
+  const subscription = await apiFetch('/subscriptions/me');
 
   if (baseline.subscriptionEndDate === undefined) {
-    nextBaseline.subscriptionEndDate = subscription ? subscription.endDate : null;
-  } else if (isNewerSubscription(subscription, baseline.subscriptionEndDate)) {
-    granted = true;
+    return {
+      granted: false,
+      baseline: { subscriptionEndDate: subscription ? subscription.endDate : null },
+    };
   }
 
-  return { granted, baseline: nextBaseline };
+  return {
+    granted: isNewerSubscription(subscription, baseline.subscriptionEndDate),
+    baseline,
+  };
 }

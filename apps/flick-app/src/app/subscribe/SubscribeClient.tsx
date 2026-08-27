@@ -6,34 +6,25 @@ import { Button } from '@/components/ui/Button';
 import { Container } from '@/components/ui/Container';
 import { Icon } from '@/components/ui/Icon';
 import { rememberPendingCheckout, startCheckout } from '@/features/payments';
-import { CoinPack, SubscriptionPlan } from '@/types';
+import { SubscriptionPlan } from '@/types';
 
 const FREE_PLAN_ID = 'free';
 
-/** Plan and pricing copy remains server-owned: SubscriptionPlan/CoinPack ids
- *  and prices come straight from GET /plans and are never re-derived on the
- *  client. What this component sends to POST /payments/checkout is only the
- *  chosen id — never a price — so the server-resolved catalog amount is the
- *  only amount that can ever be charged. */
-function SubscribeForm({
-  plans,
-  coinPacks,
-}: {
-  plans: SubscriptionPlan[];
-  coinPacks: CoinPack[];
-}) {
+/** Plan copy remains server-owned: SubscriptionPlan ids and prices come
+ *  straight from GET /plans and are never re-derived on the client. What
+ *  this component sends to POST /payments/checkout is only the chosen id —
+ *  never a price — so the server-resolved catalog amount is the only
+ *  amount that can ever be charged. */
+function SubscribeForm({ plans }: { plans: SubscriptionPlan[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [busyItem, setBusyItem] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
 
-  const handleBuy = async (
-    itemType: 'SUBSCRIPTION' | 'COIN_PACK',
-    itemId: string,
-  ) => {
+  const handleBuy = async (itemId: string) => {
     setBusyItem(itemId);
     setError('');
-    const result = await startCheckout(itemType, itemId);
+    const result = await startCheckout('SUBSCRIPTION', itemId);
     if (!result.success) {
       setBusyItem(null);
       setError(result.error);
@@ -41,7 +32,7 @@ function SubscribeForm({
     }
     // Remembered so /subscribe/processing knows what to poll for — the
     // gateway's return URL only carries the intent id, not the item type.
-    await rememberPendingCheckout(itemType, result.intentId, searchParams.get('next'));
+    await rememberPendingCheckout('SUBSCRIPTION', result.intentId, searchParams.get('next'));
     // Full navigation, not router.push — the checkout page is the gateway's
     // origin, not ours. location.assign(), not `location.href =`: this
     // version's react-hooks/react-compiler lint rule flags a direct property
@@ -78,7 +69,7 @@ function SubscribeForm({
             </div>
           )}
 
-          <div className="flex flex-col gap-5 md:grid md:grid-cols-3 md:items-start">
+          <div className="flex flex-col gap-5 md:grid md:grid-cols-2 md:items-start">
             {plans.map((plan) => {
               // The free plan is identified from the data, never from JSX order.
               const isFree = plan.id === FREE_PLAN_ID || plan.price === 0;
@@ -88,7 +79,7 @@ function SubscribeForm({
                   className={`relative rounded-3xl border p-6 shadow-lg shadow-black/20 transition-all duration-surface ease-enter ${isFree ? 'border-brand-ink' : 'border-white/10'}`}
                 >
                   {plan.badge && (
-                    <span className="absolute -top-2.5 right-5 rounded-full bg-coin px-3 py-1 text-xs font-semibold text-ink">
+                    <span className="absolute -top-2.5 right-5 rounded-full bg-gold px-3 py-1 text-xs font-semibold text-ink">
                       {plan.badge}
                     </span>
                   )}
@@ -118,7 +109,7 @@ function SubscribeForm({
                       className="mt-5 w-full"
                       loading={busyItem === plan.id}
                       disabled={busyItem !== null && busyItem !== plan.id}
-                      onClick={() => handleBuy('SUBSCRIPTION', plan.id)}
+                      onClick={() => handleBuy(plan.id)}
                     >
                       สมัครแพ็กเกจนี้
                     </Button>
@@ -126,41 +117,6 @@ function SubscribeForm({
                 </div>
               );
             })}
-          </div>
-        </section>
-      </Container>
-
-      <Container>
-        <section className="mt-10">
-          <h2 className="font-display text-lg font-bold text-fg">เติมเหรียญ (สำหรับปลดล็อคตอน)</h2>
-          <div className="mt-4 grid grid-cols-3 gap-3 md:grid-cols-6">
-            {coinPacks.map((pack) => (
-              <div
-                key={pack.id}
-                className="relative flex flex-col items-center gap-1 rounded-2xl border border-white/10 p-4 text-center"
-              >
-                {pack.badge && (
-                  <span className="absolute -top-2.5 rounded-full bg-coin px-2.5 py-0.5 text-[10px] font-semibold text-ink">
-                    {pack.badge}
-                  </span>
-                )}
-                <div className="mt-1 flex items-center gap-1 text-data text-coin">
-                  <Icon name="coin" size={16} />
-                  {pack.coins}
-                </div>
-                <div className="text-sm text-fg-dim">฿{pack.price}</div>
-                <Button
-                  variant="secondary"
-                  size="md"
-                  className="mt-2 w-full"
-                  loading={busyItem === pack.id}
-                  disabled={busyItem !== null && busyItem !== pack.id}
-                  onClick={() => handleBuy('COIN_PACK', pack.id)}
-                >
-                  ซื้อ
-                </Button>
-              </div>
-            ))}
           </div>
         </section>
       </Container>
@@ -172,16 +128,10 @@ function SubscribeForm({
 // rendering up to the nearest Suspense boundary; without one, `next build`
 // fails with "Missing Suspense boundary with useSearchParams" (same fix as
 // /login and /subscribe/processing).
-export default function SubscribeClient({
-  plans,
-  coinPacks,
-}: {
-  plans: SubscriptionPlan[];
-  coinPacks: CoinPack[];
-}) {
+export default function SubscribeClient({ plans }: { plans: SubscriptionPlan[] }) {
   return (
     <Suspense fallback={null}>
-      <SubscribeForm plans={plans} coinPacks={coinPacks} />
+      <SubscribeForm plans={plans} />
     </Suspense>
   );
 }

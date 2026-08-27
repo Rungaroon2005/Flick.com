@@ -82,7 +82,7 @@ export default function HomeClient({
             )}
 
             <div className="flex max-w-xs flex-col items-center gap-2 md:max-w-sm md:items-start">
-              <span className="text-[11px] font-medium tracking-wide text-coin">แนะนำวันนี้</span>
+              <span className="text-[11px] font-medium tracking-wide text-gold">แนะนำวันนี้</span>
               <h1 className="font-display text-2xl leading-tight font-extrabold text-fg [text-wrap:balance] sm:text-3xl md:text-4xl">
                 {featured.title}
               </h1>

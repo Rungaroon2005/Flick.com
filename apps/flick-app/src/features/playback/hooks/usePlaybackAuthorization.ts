@@ -20,7 +20,6 @@ export function usePlaybackAuthorization(
   const [authorizationResolved, setAuthorizationResolved] = useState(initialAuthorization !== undefined);
   const [error, setError] = useState<string | null>(null);
   const [gateError, setGateError] = useState<string | null>(null);
-  const [unlocking, setUnlocking] = useState(false);
 
   const applyAuthorization = useCallback((authorization: PlaybackAuthorization) => {
     setAuthorizationResolved(true);
@@ -72,25 +71,5 @@ export function usePlaybackAuthorization(
     };
   }, [applyAuthorization, authorizationResolved, enabled, episodeId, router]);
 
-  const unlockWithCoins = useCallback(async () => {
-    setUnlocking(true);
-    setGateError(null);
-    try {
-      await apiFetch('/wallet/spend', {
-        method: 'POST',
-        body: JSON.stringify({ episodeId }),
-      });
-      await authorize();
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        router.push('/login');
-        return;
-      }
-      setGateError(err instanceof ApiError ? err.message : 'ไม่สามารถปลดล็อกตอนนี้ได้');
-    } finally {
-      setUnlocking(false);
-    }
-  }, [authorize, episodeId, router]);
-
-  return { videoUrl, gate, error, gateError, unlocking, authorize, unlockWithCoins };
+  return { videoUrl, gate, error, gateError, authorize };
 }

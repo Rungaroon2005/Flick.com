@@ -1,4 +1,4 @@
-// Subscription plans and coin pack configuration
+// Subscription plan configuration
 // Extracted from plans.controller.ts to allow updates without code changes
 
 /**
@@ -14,7 +14,6 @@
  * activation remains disabled until that integration exists.
  */
 export const PLAN_DURATIONS_MS = {
-  weekly: 7 * 24 * 60 * 60 * 1000,
   monthly: 30 * 24 * 60 * 60 * 1000,
 } as const;
 
@@ -38,21 +37,10 @@ export const SUBSCRIPTION_PLANS = [
     color: '#666',
   },
   {
-    id: 'weekly',
-    name: 'VIP รายสัปดาห์',
-    nameEn: 'Weekly VIP',
-    price: 49,
-    period: '/สัปดาห์',
-    features: ['ไม่มีโฆษณา', 'คุณภาพ 1080p', 'ดูทุกตอน', '2 อุปกรณ์'],
-    featuresEn: ['Ad-free', '1080p quality', 'All episodes', '2 devices'],
-    badge: null,
-    color: '#FF5C1A',
-  },
-  {
     id: 'monthly',
     name: 'VIP รายเดือน',
     nameEn: 'Monthly VIP',
-    price: 149,
+    price: 249,
     period: '/เดือน',
     features: [
       'ไม่มีโฆษณา',
@@ -72,25 +60,5 @@ export const SUBSCRIPTION_PLANS = [
     ],
     badge: 'คุ้มที่สุด',
     color: '#FFD700',
-  },
-];
-
-export const COIN_PACKS = [
-  { id: 'starter', name: 'Starter', coins: 100, price: 35, unlocks: '~10 ตอน' },
-  {
-    id: 'popular',
-    name: 'Popular',
-    coins: 320,
-    price: 99,
-    unlocks: '~32 ตอน',
-    badge: 'ยอดนิยม',
-  },
-  {
-    id: 'bestvalue',
-    name: 'Best Value',
-    coins: 1100,
-    price: 299,
-    unlocks: '~110 ตอน',
-    badge: 'คุ้มที่สุด',
   },
 ];

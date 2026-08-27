@@ -5,7 +5,6 @@ export interface AuthenticatedUser {
   email: string | null;
   displayName: string;
   role: 'USER' | 'ADMIN';
-  coinBalance: number;
 }
 
 export interface AuthMutationResponse {
@@ -41,10 +40,6 @@ export interface BookmarkResponse {
   bookmarked: boolean;
 }
 
-export interface WalletResponse {
-  balance: number;
-}
-
 /** Body of POST /payments/checkout. Deliberately carries no price — the
  *  server resolves the amount from its own catalog (see
  *  apps/flick-api/src/payments/catalog.ts). */
@@ -63,20 +58,19 @@ export interface Episode {
   videoUrl?: string | null;
   thumbnailUrl: string | null;
   durationMinutes: number;
-  coinCost: number;
+  isPremium: boolean;
   releaseDate: string; // ISO string from backend
 }
 
 export type PlaybackAuthorization =
   | {
       allowed: true;
-      reason: 'free' | 'subscription' | 'unlocked';
+      reason: 'free' | 'subscription';
       videoUrl: string;
     }
   | {
       allowed: false;
-      reason: 'subscription_required' | 'coins_required';
-      coinCost: number;
+      reason: 'subscription_required';
     };
 
 export interface ContinueWatchingItem {
@@ -127,7 +121,7 @@ export interface Movie {
 export interface Subscription {
   id: string;
   userId: string;
-  planType: string; // 'weekly' | 'monthly' in practice
+  planType: string; // 'monthly' in practice
   status: 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'EXPIRED';
   autoRenew: boolean;
   startDate: string; // ISO string from backend
@@ -153,11 +147,3 @@ export interface SubscriptionPlan {
   color: string;
 }
 
-export interface CoinPack {
-  id: string;
-  name: string;
-  coins: number;
-  price: number;
-  unlocks?: string;
-  badge?: string;
-}

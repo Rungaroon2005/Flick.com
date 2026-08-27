@@ -24,7 +24,7 @@ describe('API contract decoders', () => {
 
   it('rejects malformed catalog and pricing collections', () => {
     expect(() => decodeMovies([{ id: 'movie-1', title: 'Missing fields' }])).toThrow();
-    expect(() => decodePlans({ subscriptions: {}, coins: [] })).toThrow('collections');
+    expect(() => decodePlans({ subscriptions: {} })).toThrow('collections');
   });
 
   it('accepts a valid checkout response', () => {

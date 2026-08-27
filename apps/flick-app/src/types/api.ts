@@ -27,6 +27,7 @@ export type ApiPath =
   | '/auth/logout'
   | '/auth/me'
   | '/movies'
+  | `/movies?q=${string}`
   | '/me/bookmarks'
   | '/me/continue-watching'
   | '/me/downloads'
@@ -47,6 +48,7 @@ export type ApiResponse<Path extends ApiPath> =
   : Path extends '/auth/logout' ? { success: boolean }
   : Path extends '/auth/me' ? AuthenticatedUser
   : Path extends '/movies' | '/me/bookmarks' ? Movie[]
+  : Path extends `/movies?q=${string}` ? Movie[]
   : Path extends '/me/continue-watching' ? ContinueWatchingItem[]
   : Path extends '/me/downloads' ? DownloadRecord[]
   : Path extends '/subscriptions/me' ? Subscription | null | undefined
@@ -112,6 +114,7 @@ export function decodePlans(value: unknown): PlansResponse {
 }
 
 export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unknown): ApiResponse<Path> {
+  if (path.startsWith('/movies?q=')) return decodeMovies(value) as ApiResponse<Path>;
   if (path === '/movies' || path === '/me/bookmarks') return decodeMovies(value) as ApiResponse<Path>;
   if (path === '/me/continue-watching' || path === '/me/downloads') {
     if (!Array.isArray(value)) throw new TypeError(`Invalid ${path} response`);

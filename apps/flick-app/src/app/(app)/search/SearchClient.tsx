@@ -1,11 +1,12 @@
 'use client';
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { MovieCard } from '@/features/catalog';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { PageShell } from '@/components/ui/PageShell';
+import { apiFetch } from '@/lib/apiClient';
 import { Movie } from '@/types';
 
 const RECENT_SEARCHES_KEY = 'flick:recent-searches';
@@ -61,8 +62,9 @@ function saveRecentSearch(term: string, current: string[]): void {
   }
 }
 
-export default function SearchClient({ initialMovies }: { initialMovies: Movie[] }) {
+export default function SearchClient() {
   const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Movie[] | null>(null);
   const recentSearchesSnapshot = useSyncExternalStore(
     subscribeToRecentSearches,
     getRecentSearchesSnapshot,
@@ -70,20 +72,34 @@ export default function SearchClient({ initialMovies }: { initialMovies: Movie[]
   );
   const recentSearches = useMemo(() => parseRecentSearches(recentSearchesSnapshot), [recentSearchesSnapshot]);
 
-  // No debounce here: this filters an already-loaded, in-memory catalogue
-  // (there is no GET /movies?q= yet — see docs/FRONTEND_PLAN.md Appendix),
-  // so there is no per-keystroke network call to throttle. Debouncing a
-  // synchronous useMemo would only add typing lag for no benefit; revisit
-  // once server-side search exists.
-  const searchResults = useMemo(() => {
-    if (!query.trim()) return null;
-    const lowerQuery = query.toLowerCase();
-    return initialMovies.filter(
-      (movie) =>
-        (movie.title && movie.title.toLowerCase().includes(lowerQuery)) ||
-        (movie.genres && movie.genres.some((g) => g.name.toLowerCase().includes(lowerQuery))),
-    );
-  }, [query, initialMovies]);
+  // 250ms: long enough that a normal typist issues one request per word,
+  // short enough that results feel attached to the keystroke. The previous
+  // in-memory filter needed no debounce because it made no request; this
+  // one does.
+  useEffect(() => {
+    const term = query.trim();
+    // No reset-to-null branch here: the empty-query view (recent searches,
+    // genre shortcuts) is a completely separate render path below, gated on
+    // `!query.trim()`, so a stale `results` value is never shown — it just
+    // sits unused until the next non-empty query resolves.
+    if (!term) return;
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      apiFetch(`/movies?q=${encodeURIComponent(term)}`)
+        .then((movies) => {
+          if (!cancelled) setResults(movies);
+        })
+        .catch(() => {
+          if (!cancelled) setResults([]);
+        });
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
 
   const commitSearch = (term: string) => {
     if (!term.trim()) return;
@@ -146,9 +162,9 @@ export default function SearchClient({ initialMovies }: { initialMovies: Movie[]
                 </div>
               </section>
             </div>
-          ) : searchResults && searchResults.length > 0 ? (
+          ) : results && results.length > 0 ? (
             <div className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-4 lg:grid-cols-5 xl:grid-cols-6">
-              {searchResults.map((movie) => (
+              {results.map((movie) => (
                 <MovieCard key={movie.id} movie={movie} size="fill" />
               ))}
             </div>

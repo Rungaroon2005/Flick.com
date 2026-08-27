@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { ErrorPanel } from '@/components/ui/ErrorPanel';
+import { ToastProvider } from '@/components/ui/Toast';
 import API_BASE_URL from '@/lib/api';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
@@ -59,13 +60,15 @@ export default async function PlayerPage({
   }
 
   return (
-    <PlayerClient
-      key={episodeId}
-      episodeId={episodeId}
-      initialMovie={playback.movie}
-      initialEpisode={playback.episode}
-      initialAuthorization={authorization}
-      initialBalance={session.coinBalance}
-    />
+    <ToastProvider>
+      <PlayerClient
+        key={episodeId}
+        episodeId={episodeId}
+        initialMovie={playback.movie}
+        initialEpisode={playback.episode}
+        initialAuthorization={authorization}
+        initialBalance={session.coinBalance}
+      />
+    </ToastProvider>
   );
 }

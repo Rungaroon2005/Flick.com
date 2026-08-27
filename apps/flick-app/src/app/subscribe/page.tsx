@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import SubscribeClient from './SubscribeClient';
 import { ErrorPanel } from '@/components/ui/ErrorPanel';
+import { ToastProvider } from '@/components/ui/Toast';
 import API_BASE_URL from '@/lib/api';
 import { getSession } from '@/lib/session';
 import { withNext } from '@/lib/nextParam';
@@ -43,5 +44,9 @@ export default async function SubscribePage() {
     );
   }
 
-  return <SubscribeClient plans={data.subscriptions} coinPacks={data.coins} />;
+  return (
+    <ToastProvider>
+      <SubscribeClient plans={data.subscriptions} coinPacks={data.coins} />
+    </ToastProvider>
+  );
 }

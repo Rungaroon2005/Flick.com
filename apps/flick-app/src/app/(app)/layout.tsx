@@ -1,4 +1,5 @@
 import BottomNav from '@/components/BottomNav';
+import { ToastProvider } from '@/components/ui/Toast';
 
 /**
  * Shared shell for every tab-bar route (home, discover, bookmarks,
@@ -11,9 +12,9 @@ import BottomNav from '@/components/BottomNav';
  */
 export default function AppShellLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <ToastProvider>
       {children}
       <BottomNav />
-    </>
+    </ToastProvider>
   );
 }

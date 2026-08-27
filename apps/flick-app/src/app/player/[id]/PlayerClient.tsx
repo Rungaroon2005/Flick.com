@@ -93,7 +93,6 @@ export default function PlayerClient({
     bookmarked,
     movieActionsLoading,
     pendingAction,
-    notice,
     toggleLike,
     toggleFavorite,
     addDownload,
@@ -436,12 +435,12 @@ export default function PlayerClient({
         )}
       </Sheet>
 
-      {!gate && (playbackError || notice) && (
+      {!gate && playbackError && (
         <p
           role="status"
           className="absolute inset-x-4 bottom-20 z-10 rounded-2xl border border-white/10 bg-black/80 px-4 py-3 text-center text-sm text-fg backdrop-blur-xl"
         >
-          {playbackError ?? notice}
+          {playbackError}
         </p>
       )}
     </div>

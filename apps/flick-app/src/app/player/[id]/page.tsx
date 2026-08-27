@@ -5,8 +5,8 @@ import API_BASE_URL from '@/lib/api';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
 import { withNext } from '@/lib/nextParam';
-import type { Episode, Movie, PlaybackAuthorization } from '@/types';
-import { decodeMovies } from '@/types/api';
+import type { Episode, Movie, PlaybackAuthorization, SubscriptionPlan } from '@/types';
+import { decodeMovies, decodePlans } from '@/types/api';
 import PlayerClient from './PlayerClient';
 
 function findEpisode(movies: Movie[], episodeId: string): { movie: Movie; episode: Episode } | null {
@@ -25,6 +25,21 @@ async function getMovies(): Promise<Movie[]> {
   return decodeMovies(await response.json());
 }
 
+// GET /plans is not in ApiPath — subscribe/page.tsx already fetches it with
+// a raw server-side fetch plus decodePlans, so this mirrors that rather
+// than extending the API contract trio for one more Server Component.
+async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/plans`, { next: { revalidate: 300 } });
+    if (!response.ok) return [];
+    return decodePlans(await response.json()).subscriptions;
+  } catch {
+    // The gate still works without them — it falls back to the /subscribe
+    // link. A plans outage must never block playback.
+    return [];
+  }
+}
+
 export default async function PlayerPage({
   params,
 }: {
@@ -38,6 +53,10 @@ export default async function PlayerPage({
   let playback: { movie: Movie; episode: Episode } | null = null;
   let authorization: PlaybackAuthorization | null = null;
   let sessionExpired = false;
+  // getSubscriptionPlans never throws (see above), so joining it here can't
+  // turn a plans outage into the catch block's "can't load this episode"
+  // failure path below.
+  const plansPromise = getSubscriptionPlans();
   try {
     const [movies, authorizationResult] = await Promise.all([
       getMovies(),
@@ -49,6 +68,7 @@ export default async function PlayerPage({
     if (error instanceof ApiError && error.status === 401) sessionExpired = true;
     console.error('Error loading player on server:', error);
   }
+  const plans = await plansPromise;
 
   if (sessionExpired) redirect(withNext('/login', `/player/${id}`));
   if (!playback || !authorization) {
@@ -68,6 +88,7 @@ export default async function PlayerPage({
         initialEpisode={playback.episode}
         initialAuthorization={authorization}
         initialBalance={session.coinBalance}
+        plans={plans}
       />
     </ToastProvider>
   );

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { ReactionButton } from '@/components/ui/ReactionButton';
 import { useEntitlement, useHlsPlayer, useMovieActions, useWatchProgress } from '@/features/playback';
 import { withNext } from '@/lib/nextParam';
-import type { Episode, Movie, PlaybackAuthorization } from '@/types';
+import type { Episode, Movie, PlaybackAuthorization, SubscriptionPlan } from '@/types';
 
 const CHROME_IDLE_MS = 2500;
 
@@ -41,12 +41,14 @@ export default function PlayerClient({
   initialEpisode,
   initialAuthorization,
   initialBalance,
+  plans,
 }: {
   episodeId: string;
   initialMovie: Movie;
   initialEpisode: Episode;
   initialAuthorization: PlaybackAuthorization;
   initialBalance: number;
+  plans: SubscriptionPlan[];
 }) {
   const router = useRouter();
   // Every escape from the gate sheet carries this, so paying or subscribing
@@ -258,12 +260,12 @@ export default function PlayerClient({
                   event.stopPropagation();
                   void addDownload();
                 }}
-                aria-label="ดาวน์โหลด"
+                aria-label="เก็บไว้ดูทีหลัง"
                 className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-xl transition-all duration-surface ease-enter active:scale-90 hover:bg-black/60"
               >
                 <Icon name="download" size={20} />
               </button>
-              <span className="text-xs text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">ดาวน์โหลด</span>
+              <span className="text-xs text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">เก็บไว้</span>
             </div>
           </div>
 
@@ -419,6 +421,22 @@ export default function PlayerClient({
         ) : (
           <>
             <p className="text-sm text-fg-dim">เนื้อหานี้สงวนไว้สำหรับสมาชิกพรีเมียมเท่านั้น</p>
+            {plans.length > 0 && (
+              <ul className="mt-4 flex flex-col gap-2">
+                {plans.map((plan) => (
+                  <li
+                    key={plan.id}
+                    className="flex items-baseline justify-between rounded-xl border border-white/10 bg-ink-2 px-4 py-3"
+                  >
+                    <span className="text-sm font-medium text-fg">{plan.name}</span>
+                    <span className="text-data text-fg-dim">
+                      ฿{plan.price}
+                      {plan.period}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Button
               variant="primary"
               onClick={() => router.push(withNext('/subscribe', returnPath))}

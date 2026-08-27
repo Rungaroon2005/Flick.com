@@ -115,7 +115,14 @@ export class MoviesService {
     return this.toDto(movie);
   }
 
-  async findAll(): Promise<MovieDto[]> {
+  async findAll(q?: string): Promise<MovieDto[]> {
+    // A query param takes the search path below, uncached: caching one slot
+    // per distinct search term isn't worth the memory, and this endpoint
+    // has never needed sub-request latency the way the full catalogue does.
+    if (q !== undefined) {
+      return this.searchMovies(q);
+    }
+
     // 1. Check cache
     let cachedMovies: MovieDto[] | undefined;
     try {
@@ -147,6 +154,37 @@ export class MoviesService {
     }
 
     return dtos;
+  }
+
+  // Reuses toDto — the same videoUrl-stripping mapping every other movie
+  // endpoint goes through, never a second one that could drift out of sync.
+  private async searchMovies(q: string): Promise<MovieDto[]> {
+    const term = q.trim();
+    const where = term
+      ? {
+          ...PUBLISHED_FILTER,
+          OR: [
+            { title: { contains: term, mode: 'insensitive' as const } },
+            {
+              genres: {
+                some: {
+                  genre: {
+                    name: { contains: term, mode: 'insensitive' as const },
+                  },
+                },
+              },
+            },
+          ],
+        }
+      : undefined;
+
+    const movies = await this.prisma.movie.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: MOVIE_LIST_INCLUDE,
+    });
+
+    return (movies ?? []).map((movie) => this.toDto(movie));
   }
 
   async findOne(id: string) {

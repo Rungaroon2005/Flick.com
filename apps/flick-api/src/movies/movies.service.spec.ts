@@ -230,4 +230,49 @@ describe('MoviesService', () => {
       expect(prismaMock.movie.findMany).not.toHaveBeenCalled();
     });
   });
+
+  describe('findAll with a query', () => {
+    interface FindManyCallArg {
+      where?: { OR?: unknown[] };
+    }
+
+    it('filters by title, case-insensitively', async () => {
+      await service.findAll('ดราม่า');
+      const [arg] = prismaMock.movie.findMany.mock.calls[0] as [
+        FindManyCallArg,
+      ];
+      expect(arg.where?.OR).toContainEqual({
+        title: { contains: 'ดราม่า', mode: 'insensitive' },
+      });
+    });
+
+    it('applies no where clause when the query is blank', async () => {
+      await service.findAll('   ');
+      const [arg] = prismaMock.movie.findMany.mock.calls[0] as [
+        FindManyCallArg,
+      ];
+      expect(arg.where).toBeUndefined();
+    });
+
+    it('never returns videoUrl', async () => {
+      prismaMock.movie.findMany.mockResolvedValue([
+        {
+          id: 'm1',
+          genres: [],
+          seasons: [
+            {
+              id: 's1',
+              episodes: [
+                { id: 'e1', title: 'Ep 1', videoUrl: 'SHOULD-NOT-LEAK' },
+              ],
+            },
+          ],
+        },
+      ]);
+      const result = await service.findAll('x');
+      for (const movie of result) {
+        expect(movie).not.toHaveProperty('videoUrl');
+      }
+    });
+  });
 });

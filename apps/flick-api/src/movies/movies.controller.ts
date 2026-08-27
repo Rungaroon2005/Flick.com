@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Body } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Query } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { MoviesService } from './movies.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
@@ -17,8 +17,8 @@ export class MoviesController {
 
   @Public()
   @Get()
-  findAll() {
-    return this.moviesService.findAll();
+  findAll(@Query('q') q?: string) {
+    return this.moviesService.findAll(q);
   }
 
   @Public()

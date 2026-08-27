@@ -10,7 +10,6 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
-import { WalletModule } from './wallet/wallet.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PlaybackModule } from './playback/playback.module';
@@ -26,7 +25,6 @@ import { DatabaseModule } from './database/database.module';
     MoviesModule,
     UsersModule,
     AuthModule,
-    WalletModule,
     SubscriptionsModule,
     PaymentsModule,
     PlaybackModule,

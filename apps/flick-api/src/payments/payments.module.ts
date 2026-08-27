@@ -8,10 +8,9 @@ import {
 } from './payment-gateway.port';
 import { FakeGatewayAdapter } from './adapters/fake-gateway.adapter';
 import { OmiseGatewayAdapter } from './adapters/omise-gateway.adapter';
-import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
-  imports: [ConfigModule, WalletModule],
+  imports: [ConfigModule],
   controllers: [PaymentsController],
   providers: [
     PaymentsService,

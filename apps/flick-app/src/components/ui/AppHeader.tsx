@@ -10,7 +10,7 @@ interface AppHeaderProps {
 }
 
 const actions = [
-  { name: 'downloads' as const, href: '/downloads', label: 'ดาวน์โหลด', icon: 'download' as const },
+  { name: 'downloads' as const, href: '/downloads', label: 'รายการของฉัน', icon: 'bookmark' as const },
   { name: 'search' as const, href: '/search', label: 'ค้นหา', icon: 'search' as const },
 ];
 

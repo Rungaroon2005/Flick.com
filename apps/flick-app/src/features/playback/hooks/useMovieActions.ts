@@ -46,10 +46,10 @@ export function useMovieActions(
   const addDownload = async () => {
     try {
       await apiFetch(`/me/downloads/${episodeId}`, { method: 'PUT' });
-      showToast('บันทึกรายการดาวน์โหลดแล้ว');
+      showToast('เก็บไว้ในรายการของฉันแล้ว');
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) router.push('/login');
-      else showToast(err instanceof ApiError ? err.message : 'ไม่สามารถบันทึกรายการดาวน์โหลดได้');
+      else showToast(err instanceof ApiError ? err.message : 'ไม่สามารถเก็บไว้ในรายการของฉันได้');
     }
   };
 

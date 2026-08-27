@@ -20,16 +20,16 @@ export default function DownloadsClient({
 
       <main>
         <Container width="reading">
-          <h1 className="text-title mb-1 font-display">รายการดาวน์โหลด</h1>
+          <h1 className="text-title mb-1 font-display">รายการของฉัน</h1>
           <p className="mb-6 text-sm text-fg-dim">
-            หน้านี้บันทึกรายการไว้ในบัญชี ยังไม่รองรับการรับชมแบบออฟไลน์
+            เรื่องที่คุณเก็บไว้ดูทีหลัง
           </p>
 
           {initialDownloads.length === 0 ? (
             <EmptyState
               icon="download"
-              title="ยังไม่มีตอนที่ดาวน์โหลด"
-              description="ดาวน์โหลดไว้ดูตอนไม่มีเน็ตได้"
+              title="ยังไม่มีเรื่องในรายการ"
+              description="เก็บเรื่องที่สนใจไว้ดูทีหลังได้จากหน้าเรื่อง"
               action={{ label: 'ไปเลือกเรื่อง', href: '/discover' }}
             />
           ) : (

@@ -53,14 +53,14 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
     try {
       await apiFetch(`/me/downloads/${episodeId}`, { method: 'PUT' });
       setDownloadedEpisodeIds((current) => new Set(current).add(episodeId));
-      setDownloadMessage('บันทึกรายการดาวน์โหลดแล้ว');
+      setDownloadMessage('เก็บไว้ในรายการของฉันแล้ว');
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         router.push('/login');
         return;
       }
       setDownloadMessage(
-        err instanceof ApiError ? err.message : 'ไม่สามารถบันทึกรายการดาวน์โหลดได้',
+        err instanceof ApiError ? err.message : 'ไม่สามารถเก็บไว้ในรายการของฉันได้',
       );
     }
   };
@@ -112,7 +112,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
               />
               <button
                 disabled={!firstEpisode}
-                aria-label="ดาวน์โหลดตอนแรก"
+                aria-label="เก็บตอนแรกไว้ดูทีหลัง"
                 onClick={() => firstEpisode && addDownload(firstEpisode.id)}
                 className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-fg/10 text-fg transition-all duration-surface ease-enter hover:bg-fg/15 active:scale-90 disabled:opacity-40"
               >
@@ -215,7 +215,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
                   </button>
                   <button
                     onClick={() => addDownload(ep.id)}
-                    aria-label={`ดาวน์โหลด ${ep.title}`}
+                    aria-label={`เก็บ ${ep.title} ไว้ดูทีหลัง`}
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-fg-dim transition-all duration-surface ease-enter hover:bg-white/5 active:scale-90"
                   >
                     <Icon name={downloadedEpisodeIds.has(ep.id) ? 'checkCircle' : 'download'} size={18} />

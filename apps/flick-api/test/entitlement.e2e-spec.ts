@@ -82,7 +82,7 @@ describe('Content entitlement (e2e)', () => {
     expect(body).not.toContain('videoUrl');
   });
 
-  it('denies a premium episode to a user with no subscription and no coins', async () => {
+  it('denies a premium episode to a user with no subscription', async () => {
     const response = await request(app.getHttpServer())
       .get(`/playback/${PREMIUM_EPISODE_ID}/authorize`)
       .set('Cookie', freeUserCookie)
@@ -90,14 +90,12 @@ describe('Content entitlement (e2e)', () => {
     const authorization = response.body as {
       allowed: boolean;
       reason: string;
-      coinCost: number;
       videoUrl?: string;
     };
 
     expect(authorization).toMatchObject({
       allowed: false,
-      reason: 'coins_required',
-      coinCost: 10,
+      reason: 'subscription_required',
     });
     expect(authorization.videoUrl).toBeUndefined();
   });
@@ -106,7 +104,7 @@ describe('Content entitlement (e2e)', () => {
     await request(app.getHttpServer())
       .post('/subscriptions')
       .set('Cookie', freeUserCookie)
-      .send({ planId: 'weekly' })
+      .send({ planId: 'monthly' })
       .expect(503);
 
     const response = await request(app.getHttpServer())
@@ -115,7 +113,7 @@ describe('Content entitlement (e2e)', () => {
       .expect(200);
     expect(response.body).toMatchObject({
       allowed: false,
-      reason: 'coins_required',
+      reason: 'subscription_required',
     });
   });
 

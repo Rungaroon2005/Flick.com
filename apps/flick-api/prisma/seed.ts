@@ -20,10 +20,9 @@ async function main() {
   // connectOrCreate below.
   //
   // The User row is handled differently, below (upsert, not delete-then-
-  // create): PaymentEvent.user and UserCoin.user are onDelete: Restrict, so
-  // deleting 'e2e-free-user' would fail with a foreign-key violation (P2003)
-  // the moment a later e2e suite has credited that user a coin pack or
-  // recorded a payment event against it.
+  // create): PaymentEvent.user is onDelete: Restrict, so deleting
+  // 'e2e-free-user' would fail with a foreign-key violation (P2003) the
+  // moment a later e2e suite has recorded a payment event against it.
   const seedMovieIds = [
     'sathu',
     'dao-sindome',
@@ -63,8 +62,8 @@ async function main() {
             episodeCount: 5,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'อยู่อย่างยาก', description: 'คลิปตัวอย่างจาก movie1.MOV', durationMinutes: 1, thumbnailUrl: '/posters/sathu.jpg', videoUrl: '/videos/movie1-preview.m4v', coinCost: 0, releaseDate: new Date() },
-                { id: 'sathu-premium', episodeNumber: 2, title: 'อยู่อย่างง่าย', description: 'ตอนที่ 2', durationMinutes: 10, thumbnailUrl: '/posters/sathu.jpg', videoUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', isPremium: true, coinCost: 10, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'อยู่อย่างยาก', description: 'คลิปตัวอย่างจาก movie1.MOV', durationMinutes: 1, thumbnailUrl: '/posters/sathu.jpg', videoUrl: '/videos/movie1-preview.m4v', releaseDate: new Date() },
+                { id: 'sathu-premium', episodeNumber: 2, title: 'อยู่อย่างง่าย', description: 'ตอนที่ 2', durationMinutes: 10, thumbnailUrl: '/posters/sathu.jpg', videoUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', isPremium: true, releaseDate: new Date() },
               ],
             },
           },
@@ -100,8 +99,8 @@ async function main() {
             episodeCount: 2,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'เพื่อนไม่คบ', description: 'คลิปตัวอย่างจาก movie2.MOV', durationMinutes: 1, thumbnailUrl: '/posters/dao.jpg', videoUrl: '/videos/movie2-preview.m4v', coinCost: 0, releaseDate: new Date() },
-                { episodeNumber: 2, title: 'ดาวตก', description: 'ตอนที่ 2', durationMinutes: 14, thumbnailUrl: '/posters/dao.jpg', coinCost: 10, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'เพื่อนไม่คบ', description: 'คลิปตัวอย่างจาก movie2.MOV', durationMinutes: 1, thumbnailUrl: '/posters/dao.jpg', videoUrl: '/videos/movie2-preview.m4v', releaseDate: new Date() },
+                { episodeNumber: 2, title: 'ดาวตก', description: 'ตอนที่ 2', durationMinutes: 14, thumbnailUrl: '/posters/dao.jpg', isPremium: true, releaseDate: new Date() },
               ],
             },
           },
@@ -137,8 +136,8 @@ async function main() {
             episodeCount: 2,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'คืนแรก', description: 'ตอนที่ 1', durationMinutes: 12, thumbnailUrl: '/posters/neephee.jpg', coinCost: 0, releaseDate: new Date() },
-                { episodeNumber: 2, title: 'เสียงเรียก', description: 'ตอนที่ 2', durationMinutes: 12, thumbnailUrl: '/posters/neephee.jpg', coinCost: 10, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'คืนแรก', description: 'ตอนที่ 1', durationMinutes: 12, thumbnailUrl: '/posters/neephee.jpg', releaseDate: new Date() },
+                { episodeNumber: 2, title: 'เสียงเรียก', description: 'ตอนที่ 2', durationMinutes: 12, thumbnailUrl: '/posters/neephee.jpg', isPremium: true, releaseDate: new Date() },
               ],
             },
           },
@@ -174,8 +173,8 @@ async function main() {
             episodeCount: 2,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'ร่องรอย', description: 'ตอนที่ 1', durationMinutes: 15, thumbnailUrl: '/posters/ngao.jpg', coinCost: 0, releaseDate: new Date() },
-                { episodeNumber: 2, title: 'ผู้ต้องสงสัย', description: 'ตอนที่ 2', durationMinutes: 15, thumbnailUrl: '/posters/ngao.jpg', coinCost: 10, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'ร่องรอย', description: 'ตอนที่ 1', durationMinutes: 15, thumbnailUrl: '/posters/ngao.jpg', releaseDate: new Date() },
+                { episodeNumber: 2, title: 'ผู้ต้องสงสัย', description: 'ตอนที่ 2', durationMinutes: 15, thumbnailUrl: '/posters/ngao.jpg', isPremium: true, releaseDate: new Date() },
               ],
             },
           },
@@ -211,8 +210,8 @@ async function main() {
             episodeCount: 2,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'พบกันครั้งแรก', description: 'ตอนที่ 1', durationMinutes: 13, thumbnailUrl: '/posters/rak.jpg', coinCost: 0, releaseDate: new Date() },
-                { episodeNumber: 2, title: 'สัญญาใจ', description: 'ตอนที่ 2', durationMinutes: 13, thumbnailUrl: '/posters/rak.jpg', coinCost: 10, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'พบกันครั้งแรก', description: 'ตอนที่ 1', durationMinutes: 13, thumbnailUrl: '/posters/rak.jpg', releaseDate: new Date() },
+                { episodeNumber: 2, title: 'สัญญาใจ', description: 'ตอนที่ 2', durationMinutes: 13, thumbnailUrl: '/posters/rak.jpg', isPremium: true, releaseDate: new Date() },
               ],
             },
           },
@@ -248,8 +247,8 @@ async function main() {
             episodeCount: 2,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'บุกเดี่ยว', description: 'ตอนที่ 1', durationMinutes: 16, thumbnailUrl: '/posters/sena.jpg', coinCost: 0, releaseDate: new Date() },
-                { episodeNumber: 2, title: 'ภารกิจสุดท้าย', description: 'ตอนที่ 2', durationMinutes: 16, thumbnailUrl: '/posters/sena.jpg', coinCost: 10, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'บุกเดี่ยว', description: 'ตอนที่ 1', durationMinutes: 16, thumbnailUrl: '/posters/sena.jpg', releaseDate: new Date() },
+                { episodeNumber: 2, title: 'ภารกิจสุดท้าย', description: 'ตอนที่ 2', durationMinutes: 16, thumbnailUrl: '/posters/sena.jpg', isPremium: true, releaseDate: new Date() },
               ],
             },
           },
@@ -273,8 +272,8 @@ async function main() {
     },
   });
 
-  // upsert, not delete-then-create: PaymentEvent/UserCoin rows accumulated
-  // against this user by other e2e suites would make a delete fail with a
+  // upsert, not delete-then-create: PaymentEvent rows accumulated against
+  // this user by other e2e suites would make a delete fail with a
   // foreign-key violation (see the comment above). update explicitly nulls
   // passwordHash so re-seeding over a row left behind by an older
   // password-based seed actually clears it, rather than leaving a stale

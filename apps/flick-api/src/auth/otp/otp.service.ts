@@ -235,8 +235,7 @@ export class OtpService {
         // challenge.attempts + 1`) does NOT have this property: N concurrent
         // wrong guesses would all read the same starting value, one would
         // win the row lock, and the other N-1 would silently lose their
-        // increment instead of each counting once — see wallet.service.ts's
-        // `lockUserRow` doc for the same bug class. The `consumedAt: null`
+        // increment instead of each counting once. The `consumedAt: null`
         // guard still stops an already-consumed challenge from being
         // incremented at all.
         const incremented = await tx.otpChallenge.updateMany({

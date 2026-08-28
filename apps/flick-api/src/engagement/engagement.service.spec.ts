@@ -211,8 +211,7 @@ describe('EngagementService', () => {
   it('refuses to record a download for an unauthorized episode', async () => {
     playback.authorize.mockResolvedValue({
       allowed: false,
-      reason: 'coins_required',
-      coinCost: 10,
+      reason: 'subscription_required',
     });
     await expect(service.addDownload('u1', 'e1')).rejects.toThrow(
       ForbiddenException,

@@ -243,8 +243,8 @@ model PaymentIntent {
 
   // Both resolved server-side from plans.config.ts at checkout. The client
   // sends only itemType + itemId; it can never propose an amount.
-  itemType      String // "SUBSCRIPTION" | "COIN_PACK"
-  itemId        String // key into plans.config.ts — 'weekly' | 'starter' | ...
+  itemType      String // "SUBSCRIPTION"
+  itemId        String // key into plans.config.ts — 'monthly' | ...
   amountSatangs Int
   currency      String @default("THB")
 

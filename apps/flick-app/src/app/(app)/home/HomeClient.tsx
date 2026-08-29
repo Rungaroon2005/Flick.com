@@ -37,6 +37,14 @@ export default function HomeClient({
   const recommendedMovies = initialMovies.slice(1, 7);
   const featuredEpisodeId = featured ? firstEpisodeId(featured) : null;
 
+  // Hoisted so the "รายการของฉัน" action link isn't duplicated across the
+  // two Shelf branches below (populated rail vs. empty-state body).
+  const myListAction = (
+    <Link href="/bookmarks" className="text-sm font-medium text-fg-mute active:text-fg">
+      ทั้งหมด &gt;
+    </Link>
+  );
+
   return (
     <main className="flex flex-col gap-10 pt-2 sm:gap-14">
       {/* Hero — a portrait showcase, not a VOD banner. The ambient backdrop
@@ -178,26 +186,23 @@ export default function HomeClient({
         )}
 
         {/* My List Section — real bookmarks from GET /me/bookmarks. */}
-        <Shelf
-          title="รายการของฉัน"
-          action={
-            <Link href="/bookmarks" className="text-sm font-medium text-fg-mute active:text-fg">
-              ทั้งหมด &gt;
-            </Link>
-          }
-        >
-          {initialBookmarks.length > 0 ? (
-            /* Every movie in this row is bookmarked by construction, so the
-               badge reflects real state. */
-            initialBookmarks.map((m) => (
+        {initialBookmarks.length > 0 ? (
+          <Shelf title="รายการของฉัน" action={myListAction}>
+            {/* Every movie in this row is bookmarked by construction, so the
+                badge reflects real state. */}
+            {initialBookmarks.map((m) => (
               <div key={m.id} className="snap-start">
                 <MovieCard movie={m} size="medium" showBookmark />
               </div>
-            ))
-          ) : (
-            <p className="py-4 text-sm text-fg-mute">ยังไม่มีเรื่องที่บันทึกไว้</p>
-          )}
-        </Shelf>
+            ))}
+          </Shelf>
+        ) : (
+          <Shelf
+            title="รายการของฉัน"
+            action={myListAction}
+            body={<p className="py-4 text-sm text-fg-mute">ยังไม่มีเรื่องที่บันทึกไว้</p>}
+          />
+        )}
       </div>
     </main>
   );

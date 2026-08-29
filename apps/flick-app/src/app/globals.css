@@ -99,11 +99,15 @@
 
   /* Shelf rhythm. Previously one value (gap-3) separated BOTH a heading from
      its rail AND two sibling cards, which is why the page reads as evenly
-     spaced rather than composed. These are a 4/12/40px progression: cards
+     spaced rather than composed. These are a 12/20/56px progression: cards
      sit closest (they are one object), the heading stands off its rail, and
      shelves clear each other by a full step. --spacing-shelf-inset is the
      rail's horizontal padding, previously repeated verbatim at six call
-     sites in HomeClient. */
+     sites in HomeClient. --spacing-shelf-stack is a flat 56px at every
+     breakpoint, including mobile, where the old `gap-10` gave 40px — shelves
+     now sit 16px further apart on a phone than before. That's an intended
+     consequence of stating one rhythm instead of a `sm:` step, not an
+     oversight. */
   --spacing-shelf-gap: 0.75rem;
   --spacing-shelf-head: 1.25rem;
   --spacing-shelf-stack: 3.5rem;

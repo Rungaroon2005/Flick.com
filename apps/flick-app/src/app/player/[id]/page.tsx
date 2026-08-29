@@ -87,7 +87,6 @@ export default async function PlayerPage({
         initialMovie={playback.movie}
         initialEpisode={playback.episode}
         initialAuthorization={authorization}
-        initialBalance={session.coinBalance}
         plans={plans}
       />
     </ToastProvider>

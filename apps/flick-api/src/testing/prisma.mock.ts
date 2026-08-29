@@ -12,7 +12,6 @@ export interface PrismaMock {
     create: jest.Mock;
     update: jest.Mock;
   };
-  userCoin: { create: jest.Mock; findMany: jest.Mock; findFirst: jest.Mock };
   subscription: {
     findFirst: jest.Mock;
     create: jest.Mock;
@@ -78,11 +77,6 @@ export const createPrismaMock = (): PrismaMock => {
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-    },
-    userCoin: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findFirst: jest.fn(),
     },
     subscription: {
       findFirst: jest.fn(),

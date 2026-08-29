@@ -5,12 +5,11 @@ import { ToastProvider } from '@/components/ui/Toast';
 import API_BASE_URL from '@/lib/api';
 import { getSession } from '@/lib/session';
 import { withNext } from '@/lib/nextParam';
-import type { CoinPack, SubscriptionPlan } from '@/types';
+import type { SubscriptionPlan } from '@/types';
 import { decodePlans } from '@/types/api';
 
 interface PlansResponse {
   subscriptions: SubscriptionPlan[];
-  coins: CoinPack[];
 }
 
 async function getPlans(): Promise<PlansResponse> {
@@ -46,7 +45,7 @@ export default async function SubscribePage() {
 
   return (
     <ToastProvider>
-      <SubscribeClient plans={data.subscriptions} coinPacks={data.coins} />
+      <SubscribeClient plans={data.subscriptions} />
     </ToastProvider>
   );
 }

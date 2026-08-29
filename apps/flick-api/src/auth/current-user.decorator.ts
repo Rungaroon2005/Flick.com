@@ -6,7 +6,6 @@ export interface AuthenticatedUser {
   email: string | null;
   displayName: string;
   role: Role;
-  coinBalance: number;
 }
 
 /** Extracts the AuthenticatedUser attached to the request by JwtStrategy.validate. */

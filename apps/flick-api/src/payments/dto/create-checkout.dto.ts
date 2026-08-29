@@ -7,7 +7,7 @@ import type { CatalogItemType } from '../catalog';
  * any of those is rejected outright rather than silently ignored.
  */
 export class CreateCheckoutDto {
-  @IsIn(['SUBSCRIPTION', 'COIN_PACK'])
+  @IsIn(['SUBSCRIPTION'])
   itemType: CatalogItemType;
 
   @IsString()

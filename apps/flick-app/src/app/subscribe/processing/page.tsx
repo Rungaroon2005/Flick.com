@@ -34,7 +34,6 @@ function ProcessingScreen() {
     // "never captured (undefined)", and those two states must stay distinct
     // (see CheckoutBaseline's doc comment and isNewerSubscription).
     let baseline: CheckoutBaseline = {
-      balance: pending?.baselineBalance ?? INITIAL_CHECKOUT_BASELINE.balance,
       subscriptionEndDate: pending ? pending.baselineSubscriptionEndDate : INITIAL_CHECKOUT_BASELINE.subscriptionEndDate,
     };
 

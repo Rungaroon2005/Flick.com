@@ -184,7 +184,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
               {episodes.map((ep) => (
                 <div
                   key={ep.id}
-                  className={`flex items-center gap-3 rounded-2xl border border-white/5 bg-ink-1 p-3 transition-all duration-surface ease-enter [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:bg-ink-2 ${ep.coinCost > 0 ? 'opacity-80' : ''}`}
+                  className={`flex items-center gap-3 rounded-2xl border border-white/5 bg-ink-1 p-3 transition-all duration-surface ease-enter [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:bg-ink-2 ${ep.isPremium ? 'opacity-80' : ''}`}
                 >
                   <button
                     onClick={() => router.push(`/player/${ep.id}`)}
@@ -206,8 +206,11 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
                     </span>
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="truncate text-sm font-medium text-fg">{ep.title}</span>
-                      {ep.coinCost > 0 && (
-                        <span className="text-xs font-medium text-coin">ล็อก · {ep.coinCost} เหรียญ</span>
+                      {ep.isPremium && (
+                        <span className="flex items-center gap-1 text-xs font-medium text-gold">
+                          <Icon name="lock" size={12} />
+                          พรีเมียม
+                        </span>
                       )}
                       <span className="text-xs text-fg-mute">{ep.durationMinutes} นาที</span>
                       <span className="line-clamp-1 text-xs text-fg-mute">{ep.description}</span>

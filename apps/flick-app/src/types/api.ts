@@ -2,7 +2,6 @@ import type {
   AuthenticatedUser,
   BookmarkResponse,
   CheckoutResponse,
-  CoinPack,
   ContinueWatchingItem,
   DownloadRecord,
   LikeResponse,
@@ -13,12 +12,10 @@ import type {
   PlaybackAuthorization,
   Subscription,
   SubscriptionPlan,
-  WalletResponse,
 } from './index';
 
 export interface PlansResponse {
   subscriptions: SubscriptionPlan[];
-  coins: CoinPack[];
 }
 
 export type ApiPath =
@@ -32,8 +29,6 @@ export type ApiPath =
   | '/me/continue-watching'
   | '/me/downloads'
   | '/subscriptions/me'
-  | '/wallet'
-  | '/wallet/spend'
   | '/payments/checkout'
   | `/playback/${string}/authorize`
   | `/me/movies/${string}/actions`
@@ -52,7 +47,6 @@ export type ApiResponse<Path extends ApiPath> =
   : Path extends '/me/continue-watching' ? ContinueWatchingItem[]
   : Path extends '/me/downloads' ? DownloadRecord[]
   : Path extends '/subscriptions/me' ? Subscription | null | undefined
-  : Path extends '/wallet' ? WalletResponse
   : Path extends '/payments/checkout' ? CheckoutResponse
   : Path extends `/playback/${string}/authorize` ? PlaybackAuthorization
   : Path extends `/me/movies/${string}/actions` ? MovieActionsResponse
@@ -95,19 +89,13 @@ export function decodeMovies(value: unknown): Movie[] {
 
 export function decodePlans(value: unknown): PlansResponse {
   const plans = requireRecord(value, 'plans');
-  if (!Array.isArray(plans.subscriptions) || !Array.isArray(plans.coins)) {
+  if (!Array.isArray(plans.subscriptions)) {
     throw new TypeError('Invalid plans collections');
   }
   for (const planValue of plans.subscriptions) {
     const plan = requireRecord(planValue, 'subscription plan');
     if (typeof plan.id !== 'string' || typeof plan.price !== 'number' || !Array.isArray(plan.features)) {
       throw new TypeError('Invalid subscription plan');
-    }
-  }
-  for (const packValue of plans.coins) {
-    const pack = requireRecord(packValue, 'coin pack');
-    if (typeof pack.id !== 'string' || typeof pack.coins !== 'number' || typeof pack.price !== 'number') {
-      throw new TypeError('Invalid coin pack');
     }
   }
   return plans as unknown as PlansResponse;
@@ -136,8 +124,6 @@ export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unkno
     requireBoolean(authorization, 'allowed');
     if (authorization.allowed) {
       if (typeof authorization.videoUrl !== 'string') throw new TypeError('Invalid playback videoUrl');
-    } else {
-      requireNumber(authorization, 'coinCost');
     }
     return authorization as ApiResponse<Path>;
   }
@@ -157,11 +143,6 @@ export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unkno
     const result = requireRecord(value, 'bookmark');
     requireBoolean(result, 'bookmarked');
     return result as ApiResponse<Path>;
-  }
-  if (path === '/wallet') {
-    const wallet = requireRecord(value, 'wallet');
-    requireNumber(wallet, 'balance');
-    return wallet as ApiResponse<Path>;
   }
   if (path === '/payments/checkout') {
     const checkout = requireRecord(value, 'checkout');

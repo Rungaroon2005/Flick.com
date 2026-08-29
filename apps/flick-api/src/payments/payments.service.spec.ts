@@ -1,10 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { BadRequestException } from '@nestjs/common';
-import { Prisma, TransactionType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PaymentsService } from './payments.service';
 import { PrismaService } from '../prisma.service';
-import { WalletService } from '../wallet/wallet.service';
 import { PAYMENT_GATEWAY_PORT } from './payment-gateway.port';
 import { createPrismaMock } from '../testing/prisma.mock';
 import { PLAN_DURATIONS_MS } from '../plans/plans.config';
@@ -40,7 +39,6 @@ describe('PaymentsService.createCheckout', () => {
         PaymentsService,
         { provide: PrismaService, useValue: prisma },
         { provide: PAYMENT_GATEWAY_PORT, useValue: gateway },
-        { provide: WalletService, useValue: { credit: jest.fn() } },
         {
           provide: ConfigService,
           useValue: {
@@ -56,13 +54,13 @@ describe('PaymentsService.createCheckout', () => {
   it('stores the server-resolved price, ignoring anything the client might want', async () => {
     await service.createCheckout('u1', {
       itemType: 'SUBSCRIPTION',
-      itemId: 'weekly',
+      itemId: 'monthly',
     });
 
     const created = prisma.paymentIntent.create.mock.calls[0][0] as {
       data: Record<string, unknown>;
     };
-    expect(created.data.amountSatangs).toBe(4900);
+    expect(created.data.amountSatangs).toBe(24900);
     expect(created.data.status).toBe('PENDING');
     expect(created.data.userId).toBe('u1');
     expect(created.data.idempotencyKey).toEqual(expect.any(String));
@@ -71,8 +69,8 @@ describe('PaymentsService.createCheckout', () => {
 
   it('passes the intent id to the gateway so the webhook can be tied back', async () => {
     await service.createCheckout('u1', {
-      itemType: 'COIN_PACK',
-      itemId: 'starter',
+      itemType: 'SUBSCRIPTION',
+      itemId: 'monthly',
     });
 
     const request = gateway.createCheckout.mock.calls[0][0] as {
@@ -80,14 +78,14 @@ describe('PaymentsService.createCheckout', () => {
       amountSatangs: number;
     };
     expect(request.intentId).toBe('pi_1');
-    expect(request.amountSatangs).toBe(3500); // ฿35
+    expect(request.amountSatangs).toBe(24900); // ฿249
   });
 
   it('returns the checkout url and intent id', async () => {
     await expect(
       service.createCheckout('u1', {
         itemType: 'SUBSCRIPTION',
-        itemId: 'weekly',
+        itemId: 'monthly',
       }),
     ).resolves.toEqual({
       checkoutUrl: 'https://gw.test/c/pi_1',
@@ -114,7 +112,7 @@ describe('PaymentsService.createCheckout', () => {
 
     await service.createCheckout('u1', {
       itemType: 'SUBSCRIPTION',
-      itemId: 'weekly',
+      itemId: 'monthly',
     });
 
     expect(prisma.paymentIntent.update).toHaveBeenCalledWith({
@@ -127,7 +125,6 @@ describe('PaymentsService.createCheckout', () => {
 describe('PaymentsService.handleWebhook', () => {
   let service: PaymentsService;
   let prisma: ReturnType<typeof createPrismaMock>;
-  let wallet: { credit: jest.Mock };
   let gateway: {
     name: string;
     createCheckout: jest.Mock;
@@ -144,7 +141,7 @@ describe('PaymentsService.handleWebhook', () => {
     status: 'SUCCEEDED' as const,
     intentId: 'pi_1',
     gatewayChargeId: 'chrg_1',
-    amountSatangs: 4900,
+    amountSatangs: 24900,
     currency: 'THB',
     ...overrides,
   });
@@ -153,8 +150,8 @@ describe('PaymentsService.handleWebhook', () => {
     id: 'pi_1',
     userId: 'u1',
     itemType: 'SUBSCRIPTION',
-    itemId: 'weekly',
-    amountSatangs: 4900,
+    itemId: 'monthly',
+    amountSatangs: 24900,
     currency: 'THB',
     status: 'PENDING',
     gateway: 'fake',
@@ -166,7 +163,6 @@ describe('PaymentsService.handleWebhook', () => {
 
   beforeEach(async () => {
     prisma = createPrismaMock();
-    wallet = { credit: jest.fn().mockResolvedValue(100) };
     gateway = {
       name: 'fake',
       createCheckout: jest.fn(),
@@ -182,7 +178,6 @@ describe('PaymentsService.handleWebhook', () => {
         PaymentsService,
         { provide: PrismaService, useValue: prisma },
         { provide: PAYMENT_GATEWAY_PORT, useValue: gateway },
-        { provide: WalletService, useValue: wallet },
         {
           provide: ConfigService,
           useValue: {
@@ -233,40 +228,14 @@ describe('PaymentsService.handleWebhook', () => {
       data: Record<string, unknown>;
     };
     expect(created.data.userId).toBe('u1');
-    expect(created.data.planType).toBe('weekly');
+    expect(created.data.planType).toBe('monthly');
     expect(created.data.status).toBe('ACTIVE');
     // One-time purchase model: nothing auto-charges later.
     expect(created.data.autoRenew).toBe(false);
 
     const start = created.data.startDate as Date;
     const end = created.data.endDate as Date;
-    expect(end.getTime() - start.getTime()).toBe(PLAN_DURATIONS_MS.weekly);
-  });
-
-  it('credits coins inside the same transaction as the payment records', async () => {
-    prisma.paymentIntent.findUnique.mockResolvedValue(
-      pendingIntent({
-        itemType: 'COIN_PACK',
-        itemId: 'starter',
-        amountSatangs: 3500,
-      }),
-    );
-    gateway.parseWebhookEvent.mockReturnValue(
-      succeededEvent({ amountSatangs: 3500 }),
-    );
-
-    await run();
-
-    expect(wallet.credit).toHaveBeenCalledWith(
-      'u1',
-      100, // starter pack coins
-      TransactionType.PURCHASED,
-      expect.stringContaining('starter'),
-      'pe_1',
-      // The 6th argument is the transaction client — its presence is the
-      // whole point of the Task 22 refactor.
-      expect.anything(),
-    );
+    expect(end.getTime() - start.getTime()).toBe(PLAN_DURATIONS_MS.monthly);
   });
 
   it('treats a duplicate delivery as a no-op and still answers 200', async () => {
@@ -280,7 +249,6 @@ describe('PaymentsService.handleWebhook', () => {
 
     await expect(run()).resolves.toEqual({ received: true });
     expect(prisma.subscription.create).not.toHaveBeenCalled();
-    expect(wallet.credit).not.toHaveBeenCalled();
   });
 
   it('never promotes an already-FAILED intent to SUCCEEDED', async () => {
@@ -383,14 +351,13 @@ describe('PaymentsService.handleWebhook', () => {
     await expect(run()).resolves.toEqual({ received: true });
     expect(prisma.paymentIntent.updateMany).not.toHaveBeenCalled();
     expect(prisma.subscription.create).not.toHaveBeenCalled();
-    expect(wallet.credit).not.toHaveBeenCalled();
   });
 
   it('still commits the payment record when the catalog item has been retired', async () => {
     // The plan was purchasable at checkout and has since left the catalog, so
     // resolveCatalogItem (real, not mocked) throws inside grantEntitlement.
     prisma.paymentIntent.findUnique.mockResolvedValue(
-      pendingIntent({ itemId: 'retired-weekly' }),
+      pendingIntent({ itemId: 'retired-monthly' }),
     );
 
     // No throw: the gateway must not be told to retry a state that will
@@ -398,6 +365,5 @@ describe('PaymentsService.handleWebhook', () => {
     await expect(run()).resolves.toEqual({ received: true });
     expect(prisma.paymentEvent.create).toHaveBeenCalled();
     expect(prisma.subscription.create).not.toHaveBeenCalled();
-    expect(wallet.credit).not.toHaveBeenCalled();
   });
 });

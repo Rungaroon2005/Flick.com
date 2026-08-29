@@ -5,19 +5,17 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
-import { WalletService } from '../wallet/wallet.service';
 import { AVAILABLE_EPISODE_FILTER } from '../common/content-availability';
 
 export type PlaybackAuthorization =
   | {
       allowed: true;
-      reason: 'free' | 'subscription' | 'unlocked';
+      reason: 'free' | 'subscription';
       videoUrl: string;
     }
   | {
       allowed: false;
-      reason: 'subscription_required' | 'coins_required';
-      coinCost: number;
+      reason: 'subscription_required';
     };
 
 /**
@@ -32,7 +30,6 @@ export class PlaybackService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly subscriptions: SubscriptionsService,
-    private readonly wallet: WalletService,
   ) {}
 
   /**
@@ -40,12 +37,9 @@ export class PlaybackService {
    * short-circuits as soon as one check grants access:
    *   1. free (no DB/service calls beyond the episode lookup itself)
    *   2. active subscription
-   *   3. per-episode coin unlock
    *
-   * No caching here on purpose — entitlement changes the instant a user
-   * spends coins or their subscription lapses; a stale cache would grant or
-   * deny wrongly. No `$transaction`/row-locking either — this is a pure
-   * read composed of three existing read-only checks, nothing to serialize.
+   * No caching here on purpose — entitlement changes the instant a
+   * subscription lapses; a stale cache would grant or deny wrongly.
    */
   async authorize(
     userId: string,
@@ -53,24 +47,17 @@ export class PlaybackService {
   ): Promise<PlaybackAuthorization> {
     const episode = await this.prisma.episode.findFirst({
       where: { id: episodeId, ...AVAILABLE_EPISODE_FILTER },
-      select: { id: true, videoUrl: true, isPremium: true, coinCost: true },
+      select: { id: true, videoUrl: true, isPremium: true },
     });
     if (!episode) throw new NotFoundException('ไม่พบตอนนี้');
 
-    if (!episode.isPremium && episode.coinCost === 0) {
+    if (!episode.isPremium) {
       return this.grant('free', episode.videoUrl);
     }
     if (await this.subscriptions.hasActiveSubscription(userId)) {
       return this.grant('subscription', episode.videoUrl);
     }
-    if (await this.wallet.hasUnlocked(userId, episodeId)) {
-      return this.grant('unlocked', episode.videoUrl);
-    }
-    return {
-      allowed: false,
-      reason: episode.coinCost > 0 ? 'coins_required' : 'subscription_required',
-      coinCost: episode.coinCost,
-    };
+    return { allowed: false, reason: 'subscription_required' };
   }
 
   /**
@@ -80,7 +67,7 @@ export class PlaybackService {
    * have to special-case.
    */
   private grant(
-    reason: 'free' | 'subscription' | 'unlocked',
+    reason: 'free' | 'subscription',
     videoUrl: string | null,
   ): PlaybackAuthorization {
     if (videoUrl === null) {

@@ -19,12 +19,12 @@ const ToastContext = createContext<ToastApi | null>(null);
 
 /**
  * One feedback channel for the whole app. Specified in FRONTEND_PLAN.md
- * Part 3 and never built, which is why a coin unlock succeeds silently and
- * the player's notice could sit over a scene for the rest of an episode.
+ * Part 3 and never built, which is why the player's notice could sit over
+ * a scene for the rest of an episode.
  *
- * A queue rather than a single slot: a coin spend that fails and a playback
- * warning can land in the same second, and dropping one of them is how a
- * user ends up not knowing why nothing happened.
+ * A queue rather than a single slot: a like/bookmark action that fails and
+ * a playback warning can land in the same second, and dropping one of them
+ * is how a user ends up not knowing why nothing happened.
  */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);

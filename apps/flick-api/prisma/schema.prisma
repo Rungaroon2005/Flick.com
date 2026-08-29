@@ -28,14 +28,6 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
-enum TransactionType {
-  EARNED
-  PURCHASED
-  SPENT
-  REFUNDED
-  EXPIRED
-}
-
 enum InteractionType {
   LIKE
   DISLIKE
@@ -67,9 +59,6 @@ model User {
   theme        String  @default("dark")
   isVerified   Boolean @default(false)
 
-  // Cache for UI speed, but derived from UserCoin ledger
-  coinBalance Int @default(0)
-
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
@@ -77,13 +66,12 @@ model User {
   subscriptions  Subscription[]
   paymentEvents  PaymentEvent[]
   paymentIntents PaymentIntent[]
-  userCoins      UserCoin[]
-  watchHistory  WatchHistory[]
-  bookmarks     Bookmark[]
-  downloads     Download[]
-  devices       Device[]
-  interactions  Interaction[]
-  notifications Notification[]
+  watchHistory   WatchHistory[]
+  bookmarks      Bookmark[]
+  downloads      Download[]
+  devices        Device[]
+  interactions   Interaction[]
+  notifications  Notification[]
 
   @@index([email])
   @@index([phone])
@@ -209,7 +197,6 @@ model Episode {
   thumbnailUrl    String
   durationMinutes Int
   isPremium       Boolean @default(false)
-  coinCost        Int     @default(0)
 
   releaseDate DateTime
   createdAt   DateTime  @default(now())
@@ -256,8 +243,8 @@ model PaymentIntent {
 
   // Both resolved server-side from plans.config.ts at checkout. The client
   // sends only itemType + itemId; it can never propose an amount.
-  itemType      String // "SUBSCRIPTION" | "COIN_PACK"
-  itemId        String // key into plans.config.ts — 'weekly' | 'starter' | ...
+  itemType      String // "SUBSCRIPTION"
+  itemId        String // key into plans.config.ts — 'monthly' | ...
   amountSatangs Int
   currency      String @default("THB")
 
@@ -267,8 +254,8 @@ model PaymentIntent {
   status String @default("PENDING")
 
   gateway         String
-  gatewayChargeId String? @unique
-  idempotencyKey  String  @unique
+  gatewayChargeId String?  @unique
+  idempotencyKey  String   @unique
   expiresAt       DateTime
 
   createdAt DateTime @default(now())
@@ -294,30 +281,11 @@ model PaymentEvent {
 
   createdAt DateTime @default(now())
 
-  user      User       @relation(fields: [userId], references: [id], onDelete: Restrict)
-  userCoins UserCoin[]
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@index([gatewayEventId])
   @@map("payment_events")
-}
-
-model UserCoin {
-  id              String          @id @default(uuid())
-  userId          String
-  paymentEventId  String?
-  transactionType TransactionType
-  amount          Int // Positive for gain, negative for spend
-  balanceAfter    Int // Running balance for quick audits
-  description     String
-
-  createdAt DateTime @default(now())
-
-  user         User          @relation(fields: [userId], references: [id], onDelete: Restrict)
-  paymentEvent PaymentEvent? @relation(fields: [paymentEventId], references: [id], onDelete: SetNull)
-
-  @@index([userId, createdAt])
-  @@map("user_coins")
 }
 
 // -----------------------------------------------------------------------------

@@ -22,12 +22,13 @@
      text-ink everywhere, icons included, for one consistent rule regardless
      of fill brightness). text-brand-ink is an INK (7.85:1 on --color-ink)
      for the brand hue used directly as text/icon color. Distinct from
-     --color-coin (vivid orange-red vs. coin's paler yellow-gold) so brand
-     actions and the coin economy stay visually separable. */
+     --color-gold (vivid orange-red vs. gold's paler yellow) so brand
+     actions and gold accents (badges, premium markers) stay visually
+     separable. */
   --color-brand: #FF5C1A;
   --color-brand-ink: #F68355;
   --color-brand-deep: #C23700;
-  --color-coin: #E8B84B;
+  --color-gold: #E8B84B;
 
   --color-fg: #FFFFFF;
   --color-fg-dim: #A9A099;

@@ -182,8 +182,7 @@ export class EngagementService {
 
   async addDownload(userId: string, episodeId: string) {
     // Entitlement-checked via the same authorization path playback uses —
-    // otherwise downloads become a side door around coin/subscription
-    // gating.
+    // otherwise downloads become a side door around subscription gating.
     const authorization = await this.playback.authorize(userId, episodeId);
     if (!authorization.allowed) {
       throw new ForbiddenException(

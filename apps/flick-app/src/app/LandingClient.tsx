@@ -89,7 +89,7 @@ export default function LandingClient({ movies }: { movies: Movie[] }) {
                   <Icon name="play" size={16} className="text-white" />
                 </div>
               </div>
-              <span className="absolute top-3 left-3 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-medium tracking-wide text-coin backdrop-blur-sm">
+              <span className="absolute top-3 left-3 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-medium tracking-wide text-gold backdrop-blur-sm">
                 EP.1 ฟรี
               </span>
             </div>

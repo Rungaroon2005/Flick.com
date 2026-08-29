@@ -131,7 +131,7 @@ describe('Payments (e2e)', () => {
     status: 'SUCCEEDED',
     intentId,
     chargeId: `chrg_${intentId}`,
-    amountSatangs: 4900,
+    amountSatangs: 24900,
     currency: 'THB',
     ...overrides,
   });
@@ -139,7 +139,7 @@ describe('Payments (e2e)', () => {
   it('requires a session to start a checkout', () => {
     return request(app.getHttpServer())
       .post('/payments/checkout')
-      .send({ itemType: 'SUBSCRIPTION', itemId: 'weekly' })
+      .send({ itemType: 'SUBSCRIPTION', itemId: 'monthly' })
       .expect(401);
   });
 
@@ -157,12 +157,12 @@ describe('Payments (e2e)', () => {
     return request(app.getHttpServer())
       .post('/payments/checkout')
       .set('Cookie', cookies)
-      .send({ itemType: 'SUBSCRIPTION', itemId: 'weekly', amountSatangs: 1 })
+      .send({ itemType: 'SUBSCRIPTION', itemId: 'monthly', amountSatangs: 1 })
       .expect(400);
   });
 
   it('grants nothing until a verified webhook arrives', async () => {
-    await checkout('SUBSCRIPTION', 'weekly');
+    await checkout('SUBSCRIPTION', 'monthly');
 
     const me = await request(app.getHttpServer())
       .get('/subscriptions/me')
@@ -177,7 +177,7 @@ describe('Payments (e2e)', () => {
   });
 
   it('rejects a forged webhook signature', async () => {
-    const intentId = await checkout('SUBSCRIPTION', 'weekly');
+    const intentId = await checkout('SUBSCRIPTION', 'monthly');
 
     await request(app.getHttpServer())
       .post('/payments/webhook/fake')
@@ -194,7 +194,7 @@ describe('Payments (e2e)', () => {
   });
 
   it('activates a subscription on a verified webhook', async () => {
-    const intentId = await checkout('SUBSCRIPTION', 'weekly');
+    const intentId = await checkout('SUBSCRIPTION', 'monthly');
     await postWebhook(chargeEvent(intentId)).expect(200);
 
     const me = await request(app.getHttpServer())
@@ -203,67 +203,47 @@ describe('Payments (e2e)', () => {
       .expect(200);
 
     const subscription = me.body as { planType: string; autoRenew: boolean };
-    expect(subscription.planType).toBe('weekly');
+    expect(subscription.planType).toBe('monthly');
     expect(subscription.autoRenew).toBe(false);
   });
 
   it('is idempotent under duplicate delivery', async () => {
-    const intentId = await checkout('COIN_PACK', 'starter');
-    const event = chargeEvent(intentId, { amountSatangs: 3500 });
-
-    const before = await request(app.getHttpServer())
-      .get('/wallet')
-      .set('Cookie', cookies)
-      .expect(200);
+    await clearSeededUserSubscriptions();
+    const intentId = await checkout('SUBSCRIPTION', 'monthly');
+    const event = chargeEvent(intentId);
 
     await postWebhook(event).expect(200);
     await postWebhook(event).expect(200); // replay
     await postWebhook(event).expect(200); // and again
 
-    const after = await request(app.getHttpServer())
-      .get('/wallet')
-      .set('Cookie', cookies)
-      .expect(200);
-
-    const delta =
-      (after.body as { balance: number }).balance -
-      (before.body as { balance: number }).balance;
-    // Credited exactly once, no matter how many times the gateway retried.
-    expect(delta).toBe(100);
+    // Granted exactly once, no matter how many times the gateway retried.
+    const count = await prisma.subscription.count({
+      where: { userId: seededUserId },
+    });
+    expect(count).toBe(1);
   });
 
   it('ignores a webhook whose amount does not match the intent', async () => {
-    const intentId = await checkout('COIN_PACK', 'starter');
-
-    const before = await request(app.getHttpServer())
-      .get('/wallet')
-      .set('Cookie', cookies)
-      .expect(200);
+    await clearSeededUserSubscriptions();
+    const intentId = await checkout('SUBSCRIPTION', 'monthly');
 
     await postWebhook(chargeEvent(intentId, { amountSatangs: 1 })).expect(200);
 
-    const after = await request(app.getHttpServer())
-      .get('/wallet')
+    const me = await request(app.getHttpServer())
+      .get('/subscriptions/me')
       .set('Cookie', cookies)
       .expect(200);
-    expect((after.body as { balance: number }).balance).toBe(
-      (before.body as { balance: number }).balance,
-    );
+    expect(me.body).toEqual({});
   });
 
   it('never lets a later SUCCEEDED overwrite a FAILED intent', async () => {
-    const intentId = await checkout('COIN_PACK', 'starter');
-
-    const before = await request(app.getHttpServer())
-      .get('/wallet')
-      .set('Cookie', cookies)
-      .expect(200);
+    await clearSeededUserSubscriptions();
+    const intentId = await checkout('SUBSCRIPTION', 'monthly');
 
     await postWebhook(
       chargeEvent(intentId, {
         id: `evt_fail_${intentId}`,
         status: 'FAILED',
-        amountSatangs: 3500,
       }),
     ).expect(200);
 
@@ -271,17 +251,14 @@ describe('Payments (e2e)', () => {
       chargeEvent(intentId, {
         id: `evt_late_${intentId}`,
         status: 'SUCCEEDED',
-        amountSatangs: 3500,
       }),
     ).expect(200);
 
-    const after = await request(app.getHttpServer())
-      .get('/wallet')
+    const me = await request(app.getHttpServer())
+      .get('/subscriptions/me')
       .set('Cookie', cookies)
       .expect(200);
-    expect((after.body as { balance: number }).balance).toBe(
-      (before.body as { balance: number }).balance,
-    );
+    expect(me.body).toEqual({});
   });
 
   it('answers 200 for a webhook referencing no known intent', () => {

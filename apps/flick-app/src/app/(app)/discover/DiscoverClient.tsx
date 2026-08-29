@@ -298,12 +298,8 @@ function FeedSlide({
 
       {gate && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/70 px-8 text-center">
-          <Icon name="bookmarkFilled" size={28} className="text-coin" />
-          <p className="text-sm text-fg-dim">
-            {gate.reason === 'coins_required'
-              ? `ตอนนี้ใช้ ${gate.coinCost} เหรียญ`
-              : 'เนื้อหานี้สงวนไว้สำหรับสมาชิกพรีเมียมเท่านั้น'}
-          </p>
+          <Icon name="bookmarkFilled" size={28} className="text-gold" />
+          <p className="text-sm text-fg-dim">เนื้อหานี้สงวนไว้สำหรับสมาชิกพรีเมียมเท่านั้น</p>
           <Button variant="primary" onClick={() => router.push(`/movie/${movie.id}`)}>
             ดูรายละเอียด
           </Button>

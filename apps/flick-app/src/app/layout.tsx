@@ -18,7 +18,7 @@ const plexThai = IBM_Plex_Sans_Thai({
   display: 'swap',
 });
 
-// Data face — tabular figures for timecodes, coin balances, episode numbers.
+// Data face — tabular figures for timecodes, prices, episode numbers.
 const plexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],

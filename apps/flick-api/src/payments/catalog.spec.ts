@@ -1,35 +1,17 @@
 import { BadRequestException } from '@nestjs/common';
 import { resolveCatalogItem } from './catalog';
-import {
-  COIN_PACKS,
-  PLAN_DURATIONS_MS,
-  SUBSCRIPTION_PLANS,
-} from '../plans/plans.config';
+import { PLAN_DURATIONS_MS, SUBSCRIPTION_PLANS } from '../plans/plans.config';
 
 describe('resolveCatalogItem', () => {
-  it('prices the weekly plan in satangs, not baht', () => {
-    const item = resolveCatalogItem('SUBSCRIPTION', 'weekly');
-    expect(item.amountSatangs).toBe(4900); // ฿49
-    expect(item.durationMs).toBe(PLAN_DURATIONS_MS.weekly);
-  });
-
-  it('prices the monthly plan with its own duration', () => {
+  it('prices the monthly plan in satangs, with its own duration', () => {
     const item = resolveCatalogItem('SUBSCRIPTION', 'monthly');
-    expect(item.amountSatangs).toBe(14900);
-    // The bug plans.config.ts documents: weekly must never get the monthly
-    // duration.
+    expect(item.amountSatangs).toBe(24900); // ฿249
     expect(item.durationMs).toBe(PLAN_DURATIONS_MS.monthly);
-    expect(item.durationMs).not.toBe(PLAN_DURATIONS_MS.weekly);
   });
 
-  it('resolves every paid plan and coin pack in the config', () => {
+  it('resolves every paid plan in the config', () => {
     for (const id of Object.keys(PLAN_DURATIONS_MS)) {
       expect(() => resolveCatalogItem('SUBSCRIPTION', id)).not.toThrow();
-    }
-    for (const pack of COIN_PACKS) {
-      const item = resolveCatalogItem('COIN_PACK', pack.id);
-      expect(item.coins).toBe(pack.coins);
-      expect(item.amountSatangs).toBe(pack.price * 100);
     }
   });
 
@@ -45,18 +27,8 @@ describe('resolveCatalogItem', () => {
     );
   });
 
-  it('rejects unknown ids and cross-type ids', () => {
+  it('rejects unknown ids', () => {
     expect(() => resolveCatalogItem('SUBSCRIPTION', 'nope')).toThrow(
-      BadRequestException,
-    );
-    expect(() => resolveCatalogItem('COIN_PACK', 'nope')).toThrow(
-      BadRequestException,
-    );
-    // A coin pack id must not resolve as a subscription.
-    expect(() => resolveCatalogItem('SUBSCRIPTION', 'starter')).toThrow(
-      BadRequestException,
-    );
-    expect(() => resolveCatalogItem('COIN_PACK', 'weekly')).toThrow(
       BadRequestException,
     );
   });
@@ -89,8 +61,8 @@ describe('resolveCatalogItem — prototype-pollution guard', () => {
           ...actual,
           // A plan whose id collides with an Object.prototype method name.
           // PLAN_DURATIONS_MS deliberately has NO 'toString' key — only
-          // weekly/monthly — so a naive `itemId in PLAN_DURATIONS_MS` check
-          // would still see 'toString' as present (inherited from
+          // monthly — so a naive `itemId in PLAN_DURATIONS_MS` check would
+          // still see 'toString' as present (inherited from
           // Object.prototype), fall through, find this plan below, and
           // incorrectly resolve it.
           SUBSCRIPTION_PLANS: [

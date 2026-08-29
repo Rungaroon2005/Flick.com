@@ -21,15 +21,15 @@
 | `BottomNav` mounted per-page, not in a layout | 7 × `page.tsx` | Unmounts/remounts on every navigation. Blocks shared-layout transitions structurally. | Blocker |
 | Player fetches the entire catalogue, then finds the episode with a nested loop | `PlayerClient.tsx:66-78` | `GET /movies` → `findEpisode()` over every season of every movie. Time-to-first-frame scales with catalogue size. | High |
 | Player controls never auto-hide; UI is emoji glyphs | `PlayerClient.tsx` | `▶ ⏸ ⚙️ ♥ ☆ ⇩ ⛶ ←` render differently per platform. Permanent chrome costs picture area. | High |
-| Commerce is a dead end | `SubscribeClient.tsx` | `coins_required` gate routes to `/subscribe`, where every plan button and coin pack is disabled. | High |
+| Commerce is a dead end | `SubscribeClient.tsx` | The entitlement gate routes to `/subscribe`, where every plan button is disabled. | High |
 | `next/image` used with no `remotePatterns` configured | `MovieCard.tsx` / `next.config.mjs` | Remote posters can't be optimized; `HomeClient` falls back to raw `<img>` with an eslint-disable. | High |
 | Player toast has no dismissal path | `PlayerClient.tsx` | `notice` only clears on the next action — can sit on screen for the rest of the episode. | Medium |
 | 13 inert rows on the profile screen | `profile/page.tsx` | Settings/support lists render `settingItemDisabled` with a chevron — a promise of navigation that isn't kept. | Medium |
 | Search filters the whole catalogue client-side, undebounced, via raw `fetch` | `search/page.tsx:17-21` | Bypasses `apiFetch`; empty query renders the full catalogue as if it were a result set. | Medium |
 
 **What to preserve:** `apiFetch` centralizes credentials and error shape; every screen uses
-cancellation guards; `PlayerClient` re-asks the server for authorization after a coin spend
-rather than granting optimistically; `page.tsx` files isolate failure domains. None of that
+cancellation guards; `PlayerClient` re-asks the server for authorization rather than
+granting optimistically; `page.tsx` files isolate failure domains. None of that
 is design work and none of it should be touched.
 
 ---
@@ -58,7 +58,7 @@ accidental near-complement — dirty rather than rich. **Fix: keep the surfaces 
 | Vermilion | `#FF5C1A` | **Fill only.** Primary buttons, active nav, scrub fill, like-state. White text only reaches 3.09:1 (fails normal-text AA) — pair with `text-ink`, never `text-white`. |
 | Vermilion ink | `#F68355` | **Ink only.** Accessible text/icon form of the brand on dark. |
 | Vermilion deep | `#C23700` | Pressed states, deep accents/borders, gradient stops. Clears AA with white text (5.47:1) — used for the `Button` hover state. |
-| Gold | `#E8B84B` | Coin economy only — balances, costs, unlock affordances. Deliberately a paler, more yellow gold than the brand so the two don't read as the same color. |
+| Gold | `#E8B84B` | Badges and premium markers — plan badges, the premium-episode lock, section accents. Deliberately a paler, more yellow gold than the brand so the two don't read as the same color. |
 
 ### Measured contrast (WCAG, against `#0B0908` ink ground)
 
@@ -96,7 +96,7 @@ Thai coverage. This is the highest-leverage change in the plan.
 |---|---|---|
 | Display (หัวเรื่อง) | **Anuphan** | Loopless, variable, Thai+Latin. Deliberately not Kanit/Prompt (already ubiquitous in Thai product design). Used ≥20px only. |
 | Body & UI (เนื้อความ) | **IBM Plex Sans Thai** | Looped, Latin co-designed. Default `font-sans`. |
-| Data (ตัวเลข) | **IBM Plex Mono** | Tabular figures for timecodes, coin balances, episode numbers — not decoration, prevents UI jitter. |
+| Data (ตัวเลข) | **IBM Plex Mono** | Tabular figures for timecodes, prices, episode numbers — not decoration, prevents UI jitter. |
 
 Alternative: **LINE Seed Sans TH** for display if brand familiarity matters more than novelty
 — free, loads via `next/font/local` since it isn't on Google Fonts. Swappable in Phase 0 at
@@ -112,7 +112,7 @@ no cost downstream.
 | `text-base` | 16px | **1.78** | Plex Thai 400 | Descriptions, body copy |
 | `text-sm` | 14px | 1.7 | Plex Thai 400 | Metadata, secondary rows |
 | `text-xs` | 12px | 1.6 | Plex Thai 500 | Nav labels, chips, badges |
-| `text-data` | 14px | 1.2 | Plex Mono 500 | Timecode, coins, episode numbers |
+| `text-data` | 14px | 1.2 | Plex Mono 500 | Timecode, prices, episode numbers |
 
 ### Spacing & radius (unchanged, just tokenized)
 
@@ -157,7 +157,7 @@ export default { plugins: { '@tailwindcss/postcss': {} } };
   --color-ink-2: #241D18;
   --color-brand: #FF5C1A;      /* fill — pair with text-ink */
   --color-brand-ink: #F68355;  /* text/icon */
-  --color-coin: #E8B84B;
+  --color-gold: #E8B84B;       /* badges, premium markers */
   --color-fg: #FFFFFF;
   --color-fg-dim: #A9A099;     /* 8.15:1 — safe for copy */
   --color-fg-mute: #7A716B;    /* large text / disabled only */
@@ -297,24 +297,23 @@ button. No bespoke illustrations — the copy does the job.
 | Entitlement gate | Sheet, not an error | See commerce below |
 | Unexpected | `app/error.tsx` (currently missing) | ลองใหม่ via `reset()` |
 
-### The commerce dead end
+### The entitlement gate
 
-The coin gate offers "ดูแพ็กเกจสมาชิก," which lands on `/subscribe` where every paid button
-is disabled. `POST /wallet/spend` works — a user *with* coins can unlock — but there's no
-path to acquire coins. Keep the honesty, remove the dead end.
+Entitlement is subscription-only: an episode is either free or it needs an active
+subscription. `PlaybackAuthorization`'s deny arm carries a single reason,
+`subscription_required`, so the gate has exactly one branch to render.
 
-**Redesign the gate as a bottom sheet, branched on balance** (using `gate.coinCost` and
-`GET /wallet`, both already available):
+**The gate is a bottom sheet, not a redirect** — the poster stays visible behind it, which
+is also the sales argument:
 
-| Branch | Treatment |
+| Element | Treatment |
 |---|---|
-| Balance ≥ cost | Primary: "ใช้ 10 เหรียญ" with visible arithmetic (◆320 → 310) |
-| Balance < cost | "เหรียญไม่พอ · มี 3 จาก 10" + ดูตอนฟรี (eps 1-10) + แจ้งเตือนเมื่อเติมเหรียญได้ |
-| Subscription required | Plan comparison inline in the sheet (from `GET /plans`) — never navigate away from the episode |
+| Copy | "เนื้อหานี้สงวนไว้สำหรับสมาชิกพรีเมียมเท่านั้น" |
+| Plan comparison | Rendered inline in the sheet (from `GET /plans`) — never navigate away from the episode to see the price |
+| Primary action | "ดูแพ็กเกจสมาชิก" → `/subscribe?next=<episode>`, so checkout returns to the episode being sold |
 
-Build the full checkout flow (pack selection → confirm → pending → success → receipt)
-behind a `PAYMENTS_ENABLED` flag defaulting to off. When a gateway lands, commerce becomes
-a config change. Paid cards on `/subscribe` render as previews with a "เร็ว ๆ นี้" chip.
+A plans-endpoint failure degrades to the button alone rather than blocking playback: the
+list is hidden, the escape still works.
 
 ### Smaller gaps
 
@@ -323,8 +322,8 @@ a config change. Paid cards on `/subscribe` render as previews with a "เร็
 - **Profile's 13 inert rows:** keep only ภาษา, การเล่นวิดีโอ, อุปกรณ์ที่เข้าสู่ระบบ — all
   backed by real schema (`User.language`, `User.theme`, `Device`). Cut the other ten.
 - **Search:** route through `apiFetch`, debounce 250ms, show recent queries on empty field.
-- **Coin balance visibility:** already on `AuthenticatedUser.coinBalance`, only shown on
-  `/profile` today. Surface it in the app header.
+- **Membership visibility:** subscription status is shown only on `/profile` today. The app
+  header carries no entitlement signal.
 
 ---
 
@@ -461,18 +460,17 @@ reporting, and presentation in one ~600-line component.
    `useMovieActions`. Verify against the e2e entitlement suite before touching a class name.
 2. Migrate `/movie/[id]` + `InfoModal` to Tailwind + `Sheet`.
 3. Rebuild player shell on the three-zone model.
-4. Rebuild the gate as a balance-branched sheet.
+4. Rebuild the gate as a sheet with the plan comparison inline.
 
-**Exit:** `test/entitlement.e2e-spec.ts` green and unmodified; free/subscription/coin-gated/
-insufficient-balance all verified by hand; controls auto-hide/recall; no layout shift.
+**Exit:** `test/entitlement.e2e-spec.ts` green and unmodified; both entitlement outcomes
+(free, subscription-required) verified by hand; controls auto-hide/recall; no layout shift.
 
 ### Phase 5 — Commerce & account
 
 - Rebuild `/subscribe`: one honest notice, preview cards with "เร็ว ๆ นี้" chips.
 - Build checkout flow behind `PAYMENTS_ENABLED=false`.
-- Wallet view over the `UserCoin` ledger.
-- `/profile`: cut ten inert rows, keep three with schema behind them; surface coin balance
-  in the header.
+- `/profile`: cut ten inert rows, keep three with schema behind them; show membership
+  status and renewal date.
 - `/login` + `/register` (deferred deliberately — seen once, lowest-value styling work).
 
 **Exit:** no disabled control without an adjacent alternative.
@@ -497,8 +495,6 @@ Deliberately separated — none belongs in a styling migration.
 |---|---|---|
 | `GET /episodes/:id` | Player downloads the entire catalogue to find one episode | Phase 4 |
 | `GET /movies?q=` | Search filters the full catalogue client-side | Phase 3 |
-| Coin top-up endpoint + gateway | `POST /wallet/spend` exists; nothing grants coins | Phase 5 |
-| `GET /me/coins` (ledger) | Renders wallet history; `UserCoin.balanceAfter` already stored | Phase 5 |
 | `#FFD700` → `#E8B84B` in `plans.config.ts` | Plan colors are server-owned | Phase 5 |
 | Poster host confirmed | Needed for `images.remotePatterns` | Phase 0 |
 

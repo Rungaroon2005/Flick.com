@@ -52,7 +52,7 @@ export default async function HomePage() {
 
   return (
     <PageShell>
-      <AppHeader greeting={session.displayName} coinBalance={session.coinBalance} variant="overlay" />
+      <AppHeader greeting={session.displayName} variant="overlay" />
 
       {error ? (
         <div className="flex h-[calc(100dvh-64px)] items-center justify-center text-fg">

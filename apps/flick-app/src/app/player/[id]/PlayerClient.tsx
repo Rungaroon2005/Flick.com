@@ -30,24 +30,20 @@ function formatTime(totalSeconds: number): string {
  * correct for any source aspect ratio.
  *
  * Composition and data flow are unchanged from Phase 4 Step 1 — this
- * commit only touches markup, layout, and the two new small additions
- * called out in useEntitlement (wallet balance, fetched here) and the
- * chrome-visibility state below (both pure presentation, no entitlement
- * logic moved).
+ * commit only touches markup, layout, and the chrome-visibility state
+ * below (pure presentation, no entitlement logic moved).
  */
 export default function PlayerClient({
   episodeId,
   initialMovie,
   initialEpisode,
   initialAuthorization,
-  initialBalance,
   plans,
 }: {
   episodeId: string;
   initialMovie: Movie;
   initialEpisode: Episode;
   initialAuthorization: PlaybackAuthorization;
-  initialBalance: number;
   plans: SubscriptionPlan[];
 }) {
   const router = useRouter();
@@ -58,7 +54,6 @@ export default function PlayerClient({
   const [showSettings, setShowSettings] = useState(false);
   const [chromeVisible, setChromeVisible] = useState(true);
   const [isScrubbing, setIsScrubbing] = useState(false);
-  const [balance] = useState(initialBalance);
   const hideTimerRef = useRef<number | undefined>(undefined);
 
   const {
@@ -68,8 +63,6 @@ export default function PlayerClient({
     gate,
     error: entitlementError,
     gateError,
-    unlocking,
-    unlockWithCoins,
   } = useEntitlement(episodeId, router, initialMovie, initialEpisode, initialAuthorization);
 
   const {
@@ -362,90 +355,32 @@ export default function PlayerClient({
       {/* Paywall gate — a sheet, not a centered modal: it reads as a drawer
           over content the user is still connected to (the poster stays
           visible behind it), which is also the actual sales argument
-          (Part 3). Branches on balance for the coin-gated case; the
-          subscription-required case still routes to /subscribe rather than
-          inlining the plan comparison, which is a larger scope deferred
-          past this pass. */}
-      <Sheet
-        open={gate !== null}
-        onClose={closeGate}
-        title={gate?.reason === 'coins_required' ? 'ปลดล็อกตอนนี้' : 'สมัครสมาชิกเพื่อรับชม'}
-      >
-        {gate?.reason === 'coins_required' ? (
-          balance !== null && balance < gate.coinCost ? (
-            <>
-              <p className="text-sm text-fg-dim">
-                เหรียญไม่พอ · มี {balance} จาก {gate.coinCost}
-              </p>
-              <Button variant="secondary" onClick={() => router.push(`/movie/${movie.id}`)} className="mt-4 w-full">
-                ดูตอนฟรี
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => router.push(withNext('/subscribe', returnPath))}
-                className="mt-2 w-full"
+          (Part 3). */}
+      <Sheet open={gate !== null} onClose={closeGate} title="สมัครสมาชิกเพื่อรับชม">
+        <p className="text-sm text-fg-dim">เนื้อหานี้สงวนไว้สำหรับสมาชิกพรีเมียมเท่านั้น</p>
+        {plans.length > 0 && (
+          <ul className="mt-4 flex flex-col gap-2">
+            {plans.map((plan) => (
+              <li
+                key={plan.id}
+                className="flex items-baseline justify-between rounded-xl border border-white/10 bg-ink-2 px-4 py-3"
               >
-                ดูแพ็กเกจสมาชิก
-              </Button>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-fg-dim">
-                {balance !== null ? (
-                  <>
-                    <span className="text-data text-coin">◆ {balance}</span>
-                    {' → '}
-                    <span className="text-data text-coin">◆ {balance - gate.coinCost}</span>
-                  </>
-                ) : (
-                  `ตอนนี้ใช้ ${gate.coinCost} เหรียญ`
-                )}
-              </p>
-              <Button
-                variant="primary"
-                onClick={() => void unlockWithCoins()}
-                loading={unlocking}
-                className="mt-4 w-full"
-              >
-                {unlocking ? 'กำลังปลดล็อก…' : `ใช้ ${gate.coinCost} เหรียญ`}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => router.push(withNext('/subscribe', returnPath))}
-                className="mt-2 w-full"
-              >
-                ดูแพ็กเกจสมาชิก
-              </Button>
-            </>
-          )
-        ) : (
-          <>
-            <p className="text-sm text-fg-dim">เนื้อหานี้สงวนไว้สำหรับสมาชิกพรีเมียมเท่านั้น</p>
-            {plans.length > 0 && (
-              <ul className="mt-4 flex flex-col gap-2">
-                {plans.map((plan) => (
-                  <li
-                    key={plan.id}
-                    className="flex items-baseline justify-between rounded-xl border border-white/10 bg-ink-2 px-4 py-3"
-                  >
-                    <span className="text-sm font-medium text-fg">{plan.name}</span>
-                    <span className="text-data text-fg-dim">
-                      ฿{plan.price}
-                      {plan.period}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Button
-              variant="primary"
-              onClick={() => router.push(withNext('/subscribe', returnPath))}
-              className="mt-4 w-full"
-            >
-              ดูแพ็กเกจสมาชิก
-            </Button>
-          </>
+                <span className="text-sm font-medium text-fg">{plan.name}</span>
+                <span className="text-data text-fg-dim">
+                  ฿{plan.price}
+                  {plan.period}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
+        <Button
+          variant="primary"
+          onClick={() => router.push(withNext('/subscribe', returnPath))}
+          className="mt-4 w-full"
+        >
+          ดูแพ็กเกจสมาชิก
+        </Button>
         {gateError && (
           <p role="status" className="mt-3 text-center text-sm text-fg-dim">
             {gateError}

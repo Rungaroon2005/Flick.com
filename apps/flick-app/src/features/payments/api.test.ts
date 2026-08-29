@@ -39,7 +39,7 @@ describe('checkGranted — SUBSCRIPTION', () => {
   it('grants a first-time purchase (no baseline) as soon as any subscription appears', async () => {
     mockedApiFetch.mockResolvedValueOnce(subscription('2026-09-23T00:00:00.000Z'));
 
-    const baseline: CheckoutBaseline = { balance: null, subscriptionEndDate: null };
+    const baseline: CheckoutBaseline = { subscriptionEndDate: null };
     const result = await checkGranted('SUBSCRIPTION', baseline);
 
     expect(result.granted).toBe(true);
@@ -49,7 +49,7 @@ describe('checkGranted — SUBSCRIPTION', () => {
     const oldEndDate = '2026-09-01T00:00:00.000Z';
     mockedApiFetch.mockResolvedValueOnce(subscription(oldEndDate));
 
-    const baseline: CheckoutBaseline = { balance: null, subscriptionEndDate: oldEndDate };
+    const baseline: CheckoutBaseline = { subscriptionEndDate: oldEndDate };
     const result = await checkGranted('SUBSCRIPTION', baseline);
 
     expect(result.granted).toBe(false);
@@ -60,7 +60,7 @@ describe('checkGranted — SUBSCRIPTION', () => {
     const newEndDate = '2026-10-01T00:00:00.000Z';
     mockedApiFetch.mockResolvedValueOnce(subscription(newEndDate));
 
-    const baseline: CheckoutBaseline = { balance: null, subscriptionEndDate: oldEndDate };
+    const baseline: CheckoutBaseline = { subscriptionEndDate: oldEndDate };
     const result = await checkGranted('SUBSCRIPTION', baseline);
 
     expect(result.granted).toBe(true);
@@ -69,7 +69,7 @@ describe('checkGranted — SUBSCRIPTION', () => {
   it('does not grant when no subscription exists yet', async () => {
     mockedApiFetch.mockResolvedValueOnce(undefined);
 
-    const result = await checkGranted('SUBSCRIPTION', { balance: null, subscriptionEndDate: null });
+    const result = await checkGranted('SUBSCRIPTION', { subscriptionEndDate: null });
 
     expect(result.granted).toBe(false);
   });
@@ -78,7 +78,6 @@ describe('checkGranted — SUBSCRIPTION', () => {
     mockedApiFetch.mockResolvedValueOnce(subscription('2026-09-23T00:00:00.000Z'));
 
     const result = await checkGranted('SUBSCRIPTION', {
-      balance: null,
       subscriptionEndDate: undefined,
     });
 
@@ -86,68 +85,32 @@ describe('checkGranted — SUBSCRIPTION', () => {
   });
 });
 
-describe('checkGranted — COIN_PACK', () => {
-  it('does not grant on the first poll, which becomes the baseline', async () => {
-    mockedApiFetch.mockResolvedValueOnce({ balance: 100 });
-
-    const result = await checkGranted('COIN_PACK', { balance: null, subscriptionEndDate: undefined });
-
-    expect(result.granted).toBe(false);
-    expect(result.baseline.balance).toBe(100);
-  });
-
-  it('grants once the balance rises above the baseline', async () => {
-    mockedApiFetch.mockResolvedValueOnce({ balance: 150 });
-
-    const result = await checkGranted('COIN_PACK', { balance: 100, subscriptionEndDate: undefined });
-
-    expect(result.granted).toBe(true);
-  });
-});
-
 describe('checkGranted — item type unknown (sessionStorage fallback)', () => {
-  it('does not false-positive on a pre-existing subscription when only a coin-pack purchase is in flight', async () => {
-    // First tick: an already-subscribed user's coin-pack checkout, with no
-    // sessionStorage data (itemType unknown). The pre-existing subscription
-    // and current balance are captured as the baseline, not treated as a
-    // grant.
-    mockedApiFetch
-      .mockResolvedValueOnce(subscription('2026-09-23T00:00:00.000Z')) // /subscriptions/me
-      .mockResolvedValueOnce({ balance: 100 }); // /wallet
+  it('captures the baseline on the first tick instead of granting on a pre-existing subscription', async () => {
+    // First tick: no sessionStorage data (itemType unknown, e.g. a
+    // different tab). The pre-existing subscription is captured as the
+    // baseline, not treated as a grant.
+    mockedApiFetch.mockResolvedValueOnce(subscription('2026-09-23T00:00:00.000Z'));
 
     const first = await checkGranted(null, INITIAL_CHECKOUT_BASELINE);
     expect(first.granted).toBe(false);
-    expect(first.baseline).toEqual({ balance: 100, subscriptionEndDate: '2026-09-23T00:00:00.000Z' });
+    expect(first.baseline).toEqual({ subscriptionEndDate: '2026-09-23T00:00:00.000Z' });
 
-    // Second tick: the SAME pre-existing subscription is still there and the
-    // balance is unchanged — still no grant.
-    mockedApiFetch
-      .mockResolvedValueOnce(subscription('2026-09-23T00:00:00.000Z'))
-      .mockResolvedValueOnce({ balance: 100 });
+    // Second tick: the SAME pre-existing subscription is still there —
+    // still no grant.
+    mockedApiFetch.mockResolvedValueOnce(subscription('2026-09-23T00:00:00.000Z'));
     const second = await checkGranted(null, first.baseline);
     expect(second.granted).toBe(false);
-
-    // Third tick: the coin-pack webhook lands and the balance rises — now
-    // it grants.
-    mockedApiFetch
-      .mockResolvedValueOnce(subscription('2026-09-23T00:00:00.000Z'))
-      .mockResolvedValueOnce({ balance: 150 });
-    const third = await checkGranted(null, second.baseline);
-    expect(third.granted).toBe(true);
   });
 
   it('grants when a subscription with a later endDate appears after the baseline tick', async () => {
-    mockedApiFetch
-      .mockResolvedValueOnce(undefined) // /subscriptions/me — nothing yet
-      .mockResolvedValueOnce({ balance: 100 }); // /wallet
+    mockedApiFetch.mockResolvedValueOnce(undefined); // /subscriptions/me — nothing yet
 
     const first = await checkGranted(null, INITIAL_CHECKOUT_BASELINE);
     expect(first.granted).toBe(false);
     expect(first.baseline.subscriptionEndDate).toBeNull();
 
-    mockedApiFetch
-      .mockResolvedValueOnce(subscription('2026-09-23T00:00:00.000Z'))
-      .mockResolvedValueOnce({ balance: 100 });
+    mockedApiFetch.mockResolvedValueOnce(subscription('2026-09-23T00:00:00.000Z'));
     const second = await checkGranted(null, first.baseline);
     expect(second.granted).toBe(true);
   });
@@ -166,7 +129,7 @@ describe('pending checkout next', () => {
   });
 
   it('leaves next null when none was given', async () => {
-    await rememberPendingCheckout('COIN_PACK', 'pi_3');
+    await rememberPendingCheckout('SUBSCRIPTION', 'pi_3');
     expect(recallPendingCheckout('pi_3')?.next ?? null).toBeNull();
   });
 });

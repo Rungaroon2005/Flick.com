@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import LogoutButton from './LogoutButton';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { Container } from '@/components/ui/Container';
-import { Icon } from '@/components/ui/Icon';
 import { PageShell } from '@/components/ui/PageShell';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
@@ -14,7 +13,6 @@ import { Subscription } from '@/types';
  *  this map has not heard of degrades to something truthful rather than
  *  claiming the wrong plan — nothing here is ever sent back to the API. */
 const PLAN_LABELS: Record<string, string> = {
-  weekly: 'VIP รายสัปดาห์',
   monthly: 'VIP รายเดือน',
 };
 
@@ -39,23 +37,14 @@ export default async function ProfilePage() {
   if (!session) redirect(withNext('/login', '/profile'));
 
   let subscription: Subscription | null = null;
-  let wallet: { balance: number } | null = null;
   let sessionExpired = false;
   let error: string | null = null;
 
-  // Both calls sit in one try deliberately: unlike /home's optional bookmarks
-  // row, neither of these can degrade independently — membership status and
-  // coin balance are the entire point of this page, so a partial render would
-  // be a page that lies about the user's entitlements.
   try {
-    const [sub, w] = await Promise.all([
-      apiFetchServer('/subscriptions/me'),
-      apiFetchServer('/wallet'),
-    ]);
+    const sub = await apiFetchServer('/subscriptions/me');
     // GET /subscriptions/me answers "no subscription" with an empty 200 body,
     // which unwrapResponse surfaces as undefined.
     subscription = sub ?? null;
-    wallet = w;
   } catch (err) {
     // A 401 means the session died between getSession() above and this call:
     // that is a login redirect, never a generic error screen.
@@ -112,14 +101,6 @@ export default async function ProfilePage() {
                 >
                   จัดการ
                 </Link>
-              </div>
-
-              <div className="rounded-2xl border border-white/5 bg-ink-1 p-5">
-                <h3 className="text-xs font-medium text-fg-dim">เหรียญคงเหลือ</h3>
-                <p className="mt-1 flex items-center gap-1.5 text-data font-medium text-coin">
-                  <Icon name="coin" size={18} />
-                  {wallet?.balance ?? 0}
-                </p>
               </div>
             </div>
           )}

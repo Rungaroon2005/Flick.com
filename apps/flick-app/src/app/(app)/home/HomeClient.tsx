@@ -92,7 +92,7 @@ export default function HomeClient({
 
             <div className="flex max-w-xs flex-col items-center gap-2 md:max-w-sm md:items-start">
               <span className="text-[11px] font-medium tracking-wide text-gold">แนะนำวันนี้</span>
-              <h1 className="font-display text-2xl leading-tight font-extrabold text-fg [text-wrap:balance] sm:text-3xl md:text-display-lg">
+              <h1 className="font-display text-2xl leading-tight font-extrabold text-fg [text-wrap:balance] sm:text-3xl md:text-display-lg md:leading-(--text-display-lg--line-height)">
                 {featured.title}
               </h1>
               <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-fg-mute md:justify-start">

@@ -89,6 +89,14 @@ export interface DownloadRecord {
   movie: Movie;
 }
 
+/** Body of GET /episodes/:id — one episode plus the movie it belongs to.
+ *  The movie deliberately carries no `seasons`: the player's only use for
+ *  that was the catalogue walk this endpoint replaces. */
+export interface EpisodeDetail {
+  episode: Episode;
+  movie: Movie;
+}
+
 export interface Season {
   id: string;
   movieId: string;

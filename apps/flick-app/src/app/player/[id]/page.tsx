@@ -5,25 +5,9 @@ import API_BASE_URL from '@/lib/api';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
 import { withNext } from '@/lib/nextParam';
-import type { Episode, Movie, PlaybackAuthorization, SubscriptionPlan } from '@/types';
-import { decodeMovies, decodePlans } from '@/types/api';
+import type { EpisodeDetail, PlaybackAuthorization, SubscriptionPlan } from '@/types';
+import { decodePlans } from '@/types/api';
 import PlayerClient from './PlayerClient';
-
-function findEpisode(movies: Movie[], episodeId: string): { movie: Movie; episode: Episode } | null {
-  for (const movie of movies) {
-    for (const season of movie.seasons ?? []) {
-      const episode = season.episodes.find((item) => item.id === episodeId);
-      if (episode) return { movie, episode };
-    }
-  }
-  return null;
-}
-
-async function getMovies(): Promise<Movie[]> {
-  const response = await fetch(`${API_BASE_URL}/movies`, { next: { revalidate: 60 } });
-  if (!response.ok) throw new Error('Failed to fetch movies');
-  return decodeMovies(await response.json());
-}
 
 // GET /plans is not in ApiPath — subscribe/page.tsx already fetches it with
 // a raw server-side fetch plus decodePlans, so this mirrors that rather
@@ -50,7 +34,7 @@ export default async function PlayerPage({
   if (!session) redirect(withNext('/login', `/player/${id}`));
 
   const episodeId = id;
-  let playback: { movie: Movie; episode: Episode } | null = null;
+  let playback: EpisodeDetail | null = null;
   let authorization: PlaybackAuthorization | null = null;
   let sessionExpired = false;
   // getSubscriptionPlans never throws (see above), so joining it here can't
@@ -58,11 +42,13 @@ export default async function PlayerPage({
   // failure path below.
   const plansPromise = getSubscriptionPlans();
   try {
-    const [movies, authorizationResult] = await Promise.all([
-      getMovies(),
+    // One indexed lookup rather than the whole catalogue: this used to fetch
+    // GET /movies and walk every season of every movie to find one episode.
+    const [detail, authorizationResult] = await Promise.all([
+      apiFetchServer(`/episodes/${episodeId}`),
       apiFetchServer(`/playback/${episodeId}/authorize`),
     ]);
-    playback = findEpisode(movies, episodeId);
+    playback = detail;
     authorization = authorizationResult;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) sessionExpired = true;

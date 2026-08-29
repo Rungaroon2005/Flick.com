@@ -4,16 +4,6 @@ import { ApiError, apiFetch } from '@/lib/apiClient';
 import { usePlaybackAuthorization } from './usePlaybackAuthorization';
 import type { Episode, Movie, PlaybackAuthorization } from '@/types';
 
-function findEpisode(movies: Movie[], episodeId: string) {
-  for (const movie of movies) {
-    for (const season of movie.seasons ?? []) {
-      const episode = season.episodes.find((item) => item.id === episodeId);
-      if (episode) return { movie, episode };
-    }
-  }
-  return null;
-}
-
 /**
  * Owns "what are we watching and may this user watch it" — the single
  * server-side entitlement decision point (docs/FRONTEND_PLAN.md: the
@@ -36,24 +26,29 @@ export function useEntitlement(
   // Public catalogue metadata deliberately remains a separate request from
   // entitlement. It never contains videoUrl, and a metadata fault cannot turn
   // into an authorization grant.
+  //
+  // One indexed lookup, not the whole catalogue: this used to GET /movies and
+  // walk every season of every movie to find one episode, so time-to-first-
+  // frame grew with the size of the catalogue.
   useEffect(() => {
     if (movie && episode) return;
     let cancelled = false;
     void (async () => {
       try {
-        const movies = await apiFetch('/movies');
-        const result = findEpisode(movies, episodeId);
+        const detail = await apiFetch(`/episodes/${episodeId}`);
         if (cancelled) return;
-        if (!result) {
-          setMetadataError('ไม่พบตอนนี้');
-          return;
-        }
-        setMovie(result.movie);
-        setEpisode(result.episode);
+        setMovie(detail.movie);
+        setEpisode(detail.episode);
       } catch (err) {
         if (cancelled) return;
         if (err instanceof ApiError && err.status === 401) {
           router.push('/login');
+          return;
+        }
+        // The endpoint 404s for an episode that does not exist OR belongs to
+        // unpublished content — both are "not found" to a viewer.
+        if (err instanceof ApiError && err.status === 404) {
+          setMetadataError('ไม่พบตอนนี้');
           return;
         }
         setMetadataError('ไม่สามารถโหลดข้อมูลตอนนี้ได้');

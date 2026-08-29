@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MoviesModule } from './movies/movies.module';
+import { EpisodesModule } from './episodes/episodes.module';
 import { PlansController } from './plans/plans.controller';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
@@ -23,6 +24,7 @@ import { DatabaseModule } from './database/database.module';
     DatabaseModule,
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
     MoviesModule,
+    EpisodesModule,
     UsersModule,
     AuthModule,
     SubscriptionsModule,

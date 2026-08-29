@@ -82,6 +82,32 @@ describe('Content entitlement (e2e)', () => {
     expect(body).not.toContain('videoUrl');
   });
 
+  // GET /episodes/:id replaced the player's full-catalogue walk. It is a new
+  // path to episode data, so it needs the same videoUrl guarantee the movie
+  // list has — otherwise it becomes a side door around
+  // GET /playback/:episodeId/authorize.
+  it('never exposes videoUrl through the single-episode endpoint', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/episodes/${PREMIUM_EPISODE_ID}`)
+      .expect(200);
+    const body = JSON.stringify(response.body);
+
+    expect(response.body).toMatchObject({
+      episode: { id: PREMIUM_EPISODE_ID, isPremium: true },
+      movie: { id: 'sathu' },
+    });
+    expect(body).not.toContain('videoUrl');
+    // The seeded premium episode's real URL, to prove the assertion above is
+    // not passing merely because the value happens to be absent.
+    expect(body).not.toContain('mux.dev');
+  });
+
+  it('404s for an episode that does not exist', async () => {
+    await request(app.getHttpServer())
+      .get('/episodes/no-such-episode')
+      .expect(404);
+  });
+
   it('denies a premium episode to a user with no subscription', async () => {
     const response = await request(app.getHttpServer())
       .get(`/playback/${PREMIUM_EPISODE_ID}/authorize`)

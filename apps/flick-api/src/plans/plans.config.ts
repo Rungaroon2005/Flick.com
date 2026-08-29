@@ -19,6 +19,21 @@ export const PLAN_DURATIONS_MS = {
 
 export type PaidPlanId = keyof typeof PLAN_DURATIONS_MS;
 
+/**
+ * Plan accent colours are server-owned — the client renders whatever
+ * `GET /plans` hands it — so they are stated as hex here rather than as CSS
+ * custom properties, which would not survive the JSON boundary. They must
+ * still be the design system's values: these mirror the tokens in
+ * `apps/flick-app/src/app/globals.css`, and changing one without the other
+ * is the drift this naming exists to make visible.
+ */
+const DESIGN_TOKENS = {
+  /** `--color-gold` — badges and premium markers. */
+  gold: '#E8B84B',
+  /** `--color-fg-mute` — the system's warm neutral. */
+  fgMute: '#7A716B',
+} as const;
+
 export const SUBSCRIPTION_PLANS = [
   {
     id: 'free',
@@ -34,7 +49,7 @@ export const SUBSCRIPTION_PLANS = [
       '1 device',
     ],
     badge: null,
-    color: '#666',
+    color: DESIGN_TOKENS.fgMute,
   },
   {
     id: 'monthly',
@@ -59,6 +74,6 @@ export const SUBSCRIPTION_PLANS = [
       'Early access',
     ],
     badge: 'คุ้มที่สุด',
-    color: '#FFD700',
+    color: DESIGN_TOKENS.gold,
   },
 ];

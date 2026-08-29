@@ -4,6 +4,7 @@ import type {
   CheckoutResponse,
   ContinueWatchingItem,
   DownloadRecord,
+  EpisodeDetail,
   LikeResponse,
   Movie,
   MovieActionsResponse,
@@ -25,6 +26,7 @@ export type ApiPath =
   | '/auth/me'
   | '/movies'
   | `/movies?q=${string}`
+  | `/episodes/${string}`
   | '/me/bookmarks'
   | '/me/continue-watching'
   | '/me/downloads'
@@ -44,6 +46,7 @@ export type ApiResponse<Path extends ApiPath> =
   : Path extends '/auth/me' ? AuthenticatedUser
   : Path extends '/movies' | '/me/bookmarks' ? Movie[]
   : Path extends `/movies?q=${string}` ? Movie[]
+  : Path extends `/episodes/${string}` ? EpisodeDetail
   : Path extends '/me/continue-watching' ? ContinueWatchingItem[]
   : Path extends '/me/downloads' ? DownloadRecord[]
   : Path extends '/subscriptions/me' ? Subscription | null | undefined
@@ -87,6 +90,18 @@ export function decodeMovies(value: unknown): Movie[] {
   return value.map(decodeMovie);
 }
 
+export function decodeEpisodeDetail(value: unknown): EpisodeDetail {
+  const detail = requireRecord(value, 'episode detail');
+  const episode = requireRecord(detail.episode, 'episode');
+  if (typeof episode.id !== 'string' || typeof episode.title !== 'string') {
+    throw new TypeError('Invalid episode identity');
+  }
+  if (typeof episode.isPremium !== 'boolean') {
+    throw new TypeError('Invalid episode isPremium');
+  }
+  return { episode, movie: decodeMovie(detail.movie) } as unknown as EpisodeDetail;
+}
+
 export function decodePlans(value: unknown): PlansResponse {
   const plans = requireRecord(value, 'plans');
   if (!Array.isArray(plans.subscriptions)) {
@@ -104,6 +119,7 @@ export function decodePlans(value: unknown): PlansResponse {
 export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unknown): ApiResponse<Path> {
   if (path.startsWith('/movies?q=')) return decodeMovies(value) as ApiResponse<Path>;
   if (path === '/movies' || path === '/me/bookmarks') return decodeMovies(value) as ApiResponse<Path>;
+  if (path.startsWith('/episodes/')) return decodeEpisodeDetail(value) as ApiResponse<Path>;
   if (path === '/me/continue-watching' || path === '/me/downloads') {
     if (!Array.isArray(value)) throw new TypeError(`Invalid ${path} response`);
     return value as ApiResponse<Path>;

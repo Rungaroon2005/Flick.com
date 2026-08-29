@@ -81,6 +81,20 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
 
+  /* The app's 3D depth constant. Was a lone inline `perspective: 900px` on
+     LandingClient's fan — the only one in the codebase. A rotate without
+     perspective renders as a flat squash rather than depth, so a token makes
+     the value shared instead of a thing to remember.
+
+     Note the two ways to apply it, because they are not interchangeable and
+     picking the wrong one silently produces a flat result. The `perspective`
+     PROPERTY governs a element's CHILDREN — that is the fan (Task 3), whose
+     posters are children of the container. The `perspective()` transform
+     FUNCTION governs the element's OWN transform — that is MovieCard
+     (Task 4), which rotates itself. A card with the perspective property set
+     on itself gets no depth at all. */
+  --perspective-depth: 900px;
+
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   --ease-enter: cubic-bezier(0, 0, 0.2, 1);
 

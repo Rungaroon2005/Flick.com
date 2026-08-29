@@ -34,7 +34,8 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
         shadow-[0_8px_20px_-10px_rgba(0,0,0,0.7)]
         [-webkit-tap-highlight-color:transparent]
         transition-all duration-surface ease-enter
-        [@media(hover:hover)]:hover:z-10 [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:scale-105 [@media(hover:hover)]:hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.85)]
+        [@media(hover:hover)]:hover:z-10 [@media(hover:hover)]:hover:[transform:var(--card-raise)] [@media(hover:hover)]:hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.85)]
+        focus-visible:z-10 focus-visible:[transform:var(--card-raise)] focus-visible:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.85)]
         active:scale-95
         ${sizeClasses[size]}`}
     >
@@ -63,8 +64,9 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
       </div>
       <div
         className="absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/90 to-transparent
-          px-2 pt-4 pb-2 opacity-0 transition-opacity duration-surface
-          [@media(hover:hover)]:group-hover:opacity-100"
+          px-2 pt-4 pb-2 transition-opacity duration-surface
+          opacity-100 [@media(hover:hover)]:opacity-0
+          [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-visible:opacity-100"
       >
         {movie.title && (
           <span className="line-clamp-2 text-xs font-semibold text-fg [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">

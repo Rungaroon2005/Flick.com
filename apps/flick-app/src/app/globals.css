@@ -95,6 +95,24 @@
      on itself gets no depth at all. */
   --perspective-depth: 900px;
 
+  /* MovieCard's raised state, as a complete transform list rather than
+     separate translate/scale/rotate utilities. Two reasons.
+
+     One: hover and focus-visible must not drift apart. The previous treatment
+     lived only behind [@media(hover:hover)], so a keyboard user got the focus
+     ring and none of the depth; a single value is hard to half-apply.
+
+     Two: perspective() here is the transform FUNCTION, not the property. The
+     `perspective` property applies to an element's CHILDREN, and the card
+     rotates ITSELF — setting the property on the card produces a perfectly
+     flat result. It must also come first in the list, because transform
+     functions apply left to right and a perspective placed after the rotate
+     has nothing left to project.
+
+     rotateX is small on purpose: enough to read as a physical card catching
+     light, not enough to distort the poster art. */
+  --card-raise: perspective(var(--perspective-depth)) translateY(-4px) scale(1.05) rotateX(4deg);
+
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   --ease-enter: cubic-bezier(0, 0, 0.2, 1);
 

@@ -96,6 +96,18 @@
      search's filter bar sticking beneath it, and the scroll-padding below
      that keeps keyboard focus out from under both. */
   --spacing-header: 4rem;
+
+  /* Shelf rhythm. Previously one value (gap-3) separated BOTH a heading from
+     its rail AND two sibling cards, which is why the page reads as evenly
+     spaced rather than composed. These are a 4/12/40px progression: cards
+     sit closest (they are one object), the heading stands off its rail, and
+     shelves clear each other by a full step. --spacing-shelf-inset is the
+     rail's horizontal padding, previously repeated verbatim at six call
+     sites in HomeClient. */
+  --spacing-shelf-gap: 0.75rem;
+  --spacing-shelf-head: 1.25rem;
+  --spacing-shelf-stack: 3.5rem;
+  --spacing-shelf-inset: 1.25rem;
 }
 
 /* Safe-area utilities — Tailwind v4 ships none, and the portrait player and

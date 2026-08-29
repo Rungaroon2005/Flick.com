@@ -222,9 +222,19 @@ leading, because Thai at display size reads loose at body-scale 1.25."
 - Modify: `apps/flick-app/src/app/(app)/home/HomeClient.tsx` (three rail sections)
 
 **Interfaces:**
-- Consumes: `--text-display-lg` (Task 1).
+- Consumes: `--text-title` (already exists; **not** `--text-display-lg` — see
+  the heading-size note below).
 - Produces: `<Shelf title={...} action={...}>{children}</Shelf>` and the
   `--spacing-shelf-*` tokens. Task 4's card widths sit inside it.
+
+**Heading size — read before writing the component.** Rail headings use
+`text-title` (1.375rem), **not** `text-display-lg`. The bug discovery found is
+that headings bypass the existing `--text-title` token in favour of raw
+`text-2xl`; the fix is to stop bypassing it, not to jump two rungs higher. A
+2.75rem heading over a rail of 110px cards at 390px reads as clumsy, not
+premium, and would fight the rhythm this task exists to establish. `text-title`
+is also the codebase idiom — eight files already use it for headings.
+`--text-display-lg` has its own home in Step 3a below.
 
 **Context:** The current rhythm is not a rhythm — it is one value doing three
 jobs. In `HomeClient.tsx` the section stack is `gap-10 sm:gap-14`, the
@@ -282,7 +292,7 @@ export function Shelf({ title, action, children }: ShelfProps) {
   return (
     <section className="flex flex-col gap-(--spacing-shelf-head)">
       <div className="flex items-center justify-between px-(--spacing-shelf-inset) md:px-8 lg:px-10">
-        <h2 className="font-display text-display-lg tracking-tight text-fg">{title}</h2>
+        <h2 className="font-display text-title tracking-tight text-fg">{title}</h2>
         {action}
       </div>
       <div className="scrollbar-hide flex snap-x snap-mandatory gap-(--spacing-shelf-gap) overflow-x-auto px-(--spacing-shelf-inset) pb-2 md:px-8 lg:px-10 [-webkit-overflow-scrolling:touch]">
@@ -333,6 +343,30 @@ and becomes:
 Preserve each rail's existing children and action link exactly — this step moves
 markup, it does not change what is rendered inside. The `ดูต่อ` rail keeps its
 surrounding `{continueWatching.length > 0 && (...)}` guard.
+
+- [ ] **Step 3a: Put `--text-display-lg` where a display size belongs**
+
+The featured-title `h1` at `HomeClient.tsx:86` is the page's one genuine
+display moment, and it currently ramps through three raw Tailwind sizes
+(`text-2xl sm:text-3xl md:text-4xl` — 24/30/36px) without touching the scale.
+Change:
+
+```tsx
+              <h1 className="font-display text-2xl leading-tight font-extrabold text-fg [text-wrap:balance] sm:text-3xl md:text-4xl">
+```
+
+to:
+
+```tsx
+              <h1 className="font-display text-2xl leading-tight font-extrabold text-fg [text-wrap:balance] sm:text-3xl md:text-display-lg">
+```
+
+Only the top step changes. The small and medium steps stay raw: they are below
+the scale's display range, and inventing tokens for them would be the same
+over-abstraction this task is correcting elsewhere. `--text-display-lg` carries
+its own 1.12 leading and 800 weight at that breakpoint, which is why
+`leading-tight` and `font-extrabold` are left in place for the lower steps but
+are harmlessly overridden at `md:`.
 
 - [ ] **Step 4: Verify**
 
@@ -883,6 +917,21 @@ In `handleBuy`, record the choice as the first statement:
     setBusyItem(itemId);
 ```
 
+and clear it again in the failure branch that already exists a few lines below,
+so the next attempt is a fresh false→true transition:
+
+```tsx
+    if (!result.success) {
+      // Without this, `chosen` stays set and useBurst never sees another
+      // transition — a successful checkout navigates away, but a failed one
+      // leaves the user here, and every retry would animate nothing.
+      setChosen(null);
+      setBusyItem(null);
+      setError(result.error);
+      return;
+    }
+```
+
 Then, on the paid plan's card `div` — the one with the
 `relative rounded-3xl border p-6 ...` className — add the ring as a sibling
 **inside** that div, immediately before the `{plan.badge && (...)}` block:
@@ -1004,7 +1053,7 @@ across the landing fan, home shelves, cards, and plan selection."
 | Task | Depends on | Why here |
 |---|---|---|
 | 1 — display type | — | Pure token addition; Tasks 2 and 3 consume the rungs. |
-| 2 — shelf rhythm | 1 | `Shelf` uses `--text-display-lg`. Establishes the grid everything else sits in. |
+| 2 — shelf rhythm | 1 | Step 3a spends `--text-display-lg` on HomeClient's featured h1. Establishes the grid everything else sits in. |
 | 3 — poster fan | 1 | Uses `--text-hero`; publishes `--perspective-depth`, which Task 4 needs. |
 | 4 — card depth | 2, 3 | Needs the perspective token and the rail it lives in. |
 | 5 — flourish | — | Independent of 1-4; could run in parallel if desired. |

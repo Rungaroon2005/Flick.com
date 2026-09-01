@@ -55,6 +55,8 @@ Stated so the plan does not budget for work that is done:
 | 4 | **OAuth state lives in the database,** not in a cookie. | §8.2 — Apple's `form_post` callback is a cross-site POST and `sameSite: 'lax'` cookies are not sent on those. A cookie-based design breaks on Apple in a way that reads as a provider bug. |
 | 5 | **Google ships first; Apple is a separate phase.** | Google is roughly a third of the work and proves the whole spine — state, resolver, session issuance, frontend. Apple then lands against an already-tested resolver. |
 | 6 | **Expired `OAuthState` rows are reaped on a schedule.** | §9. Extended to cover expired `OtpChallenge` rows, which have the same unbounded-growth problem and an unused `@@index([expiresAt])` already waiting for it. |
+| 7 | **`OtpChallenge` retention is 7 days.** | Long enough for debugging and abuse mitigation, short enough to keep the PDPA footprint of the stored `ipAddress` small. Floored at 24h by the rate limiter — §9. |
+| 8 | **Pruning uses `@nestjs/schedule`.** | The standard NestJS mechanism, and it runs predictably regardless of traffic. The opportunistic alternative was rejected because it stops running exactly when traffic stops. |
 
 ---
 
@@ -382,21 +384,28 @@ A scheduled reaper deletes rows that are past their usefulness:
 
 ```
 DELETE FROM oauth_states   WHERE expires_at < now() - interval '1 day'
-DELETE FROM otp_challenges WHERE expires_at < now() - interval '30 days'
+DELETE FROM otp_challenges WHERE expires_at < now() - interval '7 days'
 ```
 
 - `OAuthState` rows are dead one day after expiry; nothing reads them.
 - `OtpChallenge` is included because it has the identical unbounded-growth
   problem, and `@@index([expiresAt])` (`schema.prisma:120`) was clearly added for
-  a reaper that was never written. Retention is longer because those rows carry
-  `ipAddress` and are the abuse-forensics record. **30 days is a placeholder
-  pending a data-retention decision** — see §12.
+  a reaper that was never written. Retention is longer than `OAuthState`'s
+  because those rows carry `ipAddress` and are the abuse-forensics record.
+
+> **Retention floor — 24 hours, non-negotiable.** `enforceRateLimits`
+> (`otp.service.ts:159-198`) derives all four OTP limits by *counting
+> `OtpChallenge` rows*, over a window of `OTP_LONG_WINDOW_MS` = 24h, and the
+> service-wide daily cap counts over the same window. Deleting a row inside that
+> window silently reduces someone's apparent request history and weakens the
+> rate limit — the abuse control would fail open with nothing in the logs to say
+> so. 7 days clears the floor by 7×. Any future change to this number must be
+> checked against `OTP_LONG_WINDOW_MS`, and the reaper's tests assert the
+> relationship rather than the literal.
+
 - Both statements are idempotent, so running on every API instance is harmless.
   No leader election needed.
-- Implementation adds `@nestjs/schedule` — the one new dependency in this design.
-  Alternative if that is unwelcome: prune opportunistically when issuing a new
-  state. Cheaper, but it stops running exactly when traffic stops, which is when
-  you would most like the table to shrink.
+- Implementation adds `@nestjs/schedule`, the one new dependency in this design.
 
 ---
 
@@ -434,10 +443,15 @@ invariant has been broken.
 
 ---
 
-## 12. Open items
+## 12. Items resolved at review
 
-- **OTP challenge retention (§9).** 30 days is a placeholder. The rows hold
-  `ipAddress`, which is personal data; the retention period is a privacy decision,
-  not an engineering one, and Thailand's PDPA applies.
-- **`@nestjs/schedule` dependency (§9).** Confirm it is acceptable, or take the
-  opportunistic-prune alternative.
+Kept as a record of what was deliberately decided rather than defaulted.
+
+- **OTP challenge retention → 7 days.** Those rows hold `ipAddress`, so this was
+  a privacy decision under Thailand's PDPA rather than an engineering one: long
+  enough for debugging and abuse mitigation, short enough to keep the footprint
+  minimal. Constrained from below by the 24h rate-limit window (§9).
+- **Pruning → `@nestjs/schedule`.** Predictable regardless of traffic. The
+  opportunistic alternative was considered and rejected.
+
+No open items remain. This spec is ready for an implementation plan.

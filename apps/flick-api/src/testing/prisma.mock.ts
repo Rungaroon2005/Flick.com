@@ -50,6 +50,18 @@ export interface PrismaMock {
     updateMany: jest.Mock;
     count: jest.Mock;
   };
+  identity: {
+    findUnique: jest.Mock;
+    findFirst: jest.Mock;
+    create: jest.Mock;
+    deleteMany: jest.Mock;
+  };
+  oAuthNonce: {
+    create: jest.Mock;
+    findUnique: jest.Mock;
+    updateMany: jest.Mock;
+    deleteMany: jest.Mock;
+  };
   paymentIntent: {
     create: jest.Mock;
     update: jest.Mock;
@@ -115,6 +127,18 @@ export const createPrismaMock = (): PrismaMock => {
       create: jest.fn(),
       updateMany: jest.fn(),
       count: jest.fn(),
+    },
+    identity: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    oAuthNonce: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      updateMany: jest.fn(),
+      deleteMany: jest.fn(),
     },
     paymentIntent: {
       create: jest.fn(),

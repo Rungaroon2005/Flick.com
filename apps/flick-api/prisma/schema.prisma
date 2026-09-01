@@ -43,6 +43,11 @@ enum OtpPurpose {
   VERIFY_EMAIL
 }
 
+enum IdentityProvider {
+  GOOGLE
+  APPLE
+}
+
 // -----------------------------------------------------------------------------
 // 1. USER & ACCESS MODULE
 // -----------------------------------------------------------------------------
@@ -59,10 +64,16 @@ model User {
   theme        String  @default("dark")
   isVerified   Boolean @default(false)
 
+  /// Set once ANY channel has proven control of User.email — OTP delivery, or a
+  /// provider asserting email_verified. Distinct from `isVerified`, which means
+  /// "proved control of their login destination", whatever that was.
+  emailVerifiedAt DateTime?
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
 
+  identities     Identity[]
   subscriptions  Subscription[]
   paymentEvents  PaymentEvent[]
   paymentIntents PaymentIntent[]
@@ -373,4 +384,52 @@ model Notification {
   @@index([userId, isRead])
   @@index([createdAt])
   @@map("notifications")
+}
+
+// -----------------------------------------------------------------------------
+// 5. SOCIAL LOGIN / IDENTITY MODULE
+// -----------------------------------------------------------------------------
+
+model Identity {
+  id       String           @id @default(uuid())
+  userId   String
+  provider IdentityProvider
+
+  /// The provider's stable, immutable subject id (OIDC `sub`). NEVER the email:
+  /// providers let users change their email, and Apple's may be a relay address.
+  providerAccountId String
+
+  /// What the provider asserted AT LINK TIME, kept for audit. Not a source of
+  /// truth for login — User.email is.
+  email         String?
+  emailVerified Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The login key, and the race guard: concurrent first verifications collide
+  /// here rather than creating two users. See Task 5.
+  @@unique([provider, providerAccountId])
+  /// One identity per provider per user; stops a retry accumulating duplicates.
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("identities")
+}
+
+model OAuthNonce {
+  id       String           @id @default(uuid())
+  /// Random, single-use. Handed to the SDK, echoed inside the signed id_token.
+  /// Server-issued on purpose: a client-invented nonce proves nothing, because
+  /// the server cannot tell a fresh one from one an attacker reused.
+  nonce    String           @unique
+  provider IdentityProvider
+
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  consumedAt DateTime?
+
+  @@index([expiresAt])
+  @@map("oauth_nonces")
 }

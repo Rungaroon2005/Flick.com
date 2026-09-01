@@ -405,7 +405,24 @@ DELETE FROM otp_challenges WHERE expires_at < now() - interval '7 days'
 
 - Both statements are idempotent, so running on every API instance is harmless.
   No leader election needed.
-- Implementation adds `@nestjs/schedule`, the one new dependency in this design.
+- Implementation adds `@nestjs/schedule`. See §9.1 for the full dependency count.
+
+### 9.1 New dependencies — two, not one
+
+Correcting an earlier claim in this document that `@nestjs/schedule` was the only
+one. Validating a Google ID token means fetching Google's JWKS and verifying an
+RS256 signature, and nothing currently in `apps/flick-api/package.json` does
+either — `@nestjs/jwt` signs and verifies our *own* HS256 tokens with a shared
+secret, which is a different problem.
+
+| Package | Why | Alternative rejected |
+|---|---|---|
+| `jose` | `createRemoteJWKSet` + `jwtVerify`: JWKS fetch, caching, key rotation and RS256/ES256 verification. Serves Google now and Apple later. | `google-auth-library` is official but Google-only, so Apple would need a second library — against §5's whole point. `jsonwebtoken` + `jwks-rsa` is two packages for the same job. |
+| `@nestjs/schedule` | Decision 8. | Opportunistic pruning; rejected. |
+
+Writing ID-token verification by hand against `node:crypto` is not a third
+option worth costing: JWKS caching, `kid` selection and key rotation are exactly
+the details that fail silently and only in production.
 
 ---
 

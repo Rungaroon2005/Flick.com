@@ -1,5 +1,5 @@
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
-import { IdentityProvider } from '@prisma/client';
+import { IdentityProvider, Prisma } from '@prisma/client';
 import { IdentityResolver } from './identity-resolver';
 import { PrismaService } from '../../prisma.service';
 import { createPrismaMock } from '../../testing/prisma.mock';
@@ -160,5 +160,57 @@ describe('IdentityResolver', () => {
     expect(identity.data.email).toBe('a@example.com');
     expect(identity.data.emailVerified).toBe(true);
     expect(identity.data.provider).toBe(IdentityProvider.GOOGLE);
+  });
+
+  // --- spec §7, concurrency ---------------------------------------------
+
+  const uniqueViolation = (target: string[]) =>
+    new Prisma.PrismaClientKnownRequestError('unique', {
+      code: 'P2002',
+      clientVersion: 'test',
+      meta: { target },
+    });
+
+  it('treats a concurrent first verification as a login, not an error', async () => {
+    // Both requests read "no identity"; the other one won the insert.
+    prisma.identity.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: 'i_1',
+        userId: 'u_winner',
+        user: { id: 'u_winner', deletedAt: null },
+      });
+    prisma.user.findFirst.mockResolvedValue(null);
+    prisma.$transaction.mockRejectedValueOnce(
+      uniqueViolation(['provider', 'providerAccountId']),
+    );
+
+    await expect(resolve()).resolves.toEqual({
+      userId: 'u_winner',
+      isNewUser: false,
+      linked: false,
+    });
+  });
+
+  it('rethrows a unique violation on a different constraint', async () => {
+    prisma.identity.findUnique.mockResolvedValue(null);
+    prisma.user.findFirst.mockResolvedValue(null);
+    // Two people, one email. Swallowing this as a "concurrent login" would
+    // resolve to whatever identity happened to exist.
+    prisma.$transaction.mockRejectedValueOnce(uniqueViolation(['email']));
+
+    await expect(resolve()).rejects.toThrow(
+      Prisma.PrismaClientKnownRequestError,
+    );
+  });
+
+  it('does not loop forever if the winner cannot be found', async () => {
+    prisma.identity.findUnique.mockResolvedValue(null); // never appears
+    prisma.user.findFirst.mockResolvedValue(null);
+    prisma.$transaction.mockRejectedValue(
+      uniqueViolation(['provider', 'providerAccountId']),
+    );
+
+    await expect(resolve()).rejects.toThrow();
   });
 });

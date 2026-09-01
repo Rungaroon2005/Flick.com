@@ -27,6 +27,32 @@ export const EMAIL_CLAIMED =
   'มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว กรุณาเข้าสู่ระบบด้วยวิธีเดิม (OTP) แล้วเชื่อมบัญชีโซเชียลในหน้าโปรไฟล์';
 
 /**
+ * Which unique constraint means "a concurrent verification for this same
+ * provider account beat us to it"? Only the identity key. Matched by substring
+ * because Prisma reports meta.target as either column names or a constraint
+ * name.
+ *
+ * Anything else -- a collision on users.email, say -- is a real failure. A
+ * blanket P2002 catch here would repeat the defect found in PaymentsService on
+ * 2026-09-01.
+ */
+function isIdentityRace(err: unknown): boolean {
+  if (
+    !(err instanceof Prisma.PrismaClientKnownRequestError) ||
+    err.code !== 'P2002'
+  ) {
+    return false;
+  }
+  const target = err.meta?.target;
+  const fields = Array.isArray(target)
+    ? target.map(String)
+    : typeof target === 'string'
+      ? [target]
+      : [];
+  return fields.some((field) => field.includes('providerAccountId'));
+}
+
+/**
  * Answers "which user is this provider account?" — the whole security surface of
  * social login, deliberately kept as a decision over a ProviderProfile with no
  * HTTP, no provider knowledge and no framework in sight.
@@ -85,10 +111,12 @@ export class IdentityResolver {
     }
 
     // 5. Both sides proved the same address. Link.
-    await this.prisma.identity.create({
-      data: this.identityData(provider, profile, claimant.id),
+    return this.raceTolerant(provider, profile, async () => {
+      await this.prisma.identity.create({
+        data: this.identityData(provider, profile, claimant.id),
+      });
+      return { userId: claimant.id, isNewUser: false, linked: true };
     });
-    return { userId: claimant.id, isNewUser: false, linked: true };
   }
 
   /** User and identity in ONE transaction: an account with no way to sign in is
@@ -98,24 +126,58 @@ export class IdentityResolver {
     profile: ProviderProfile,
     email: string | null,
   ): Promise<ResolvedIdentity> {
-    const userId = await this.prisma.$transaction(async (tx: Tx) => {
-      const user = await tx.user.create({
-        data: {
-          email,
-          // Never a timestamp without an email: the two must agree.
-          emailVerifiedAt: email ? new Date() : null,
-          displayName: displayNameFor(profile),
-          isVerified: true,
-        },
-        select: { id: true },
+    return this.raceTolerant(provider, profile, async () => {
+      const userId = await this.prisma.$transaction(async (tx: Tx) => {
+        const user = await tx.user.create({
+          data: {
+            email,
+            // Never a timestamp without an email: the two must agree.
+            emailVerifiedAt: email ? new Date() : null,
+            displayName: displayNameFor(profile),
+            isVerified: true,
+          },
+          select: { id: true },
+        });
+        await tx.identity.create({
+          data: this.identityData(provider, profile, user.id),
+        });
+        return user.id;
       });
-      await tx.identity.create({
-        data: this.identityData(provider, profile, user.id),
-      });
-      return user.id;
+      return { userId, isNewUser: true, linked: false };
     });
+  }
 
-    return { userId, isNewUser: true, linked: false };
+  /**
+   * Runs a write that may lose the race on [provider, providerAccountId]. The
+   * loser is not an error: the winner created exactly the identity we were
+   * about to, so re-read it and log in. A double-clicked button therefore
+   * yields two successful logins.
+   */
+  private async raceTolerant(
+    provider: IdentityProvider,
+    profile: ProviderProfile,
+    write: () => Promise<ResolvedIdentity>,
+  ): Promise<ResolvedIdentity> {
+    try {
+      return await write();
+    } catch (err) {
+      if (!isIdentityRace(err)) throw err;
+
+      const winner = await this.prisma.identity.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider,
+            providerAccountId: profile.providerAccountId,
+          },
+        },
+        include: { user: true },
+      });
+      // One retry, never a loop: if the row still is not there, the constraint
+      // that fired was not the one we think it was.
+      if (!winner) throw err;
+      if (winner.user.deletedAt) throw new UnauthorizedException();
+      return { userId: winner.userId, isNewUser: false, linked: false };
+    }
   }
 
   private identityData(

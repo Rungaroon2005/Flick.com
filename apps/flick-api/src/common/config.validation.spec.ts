@@ -142,4 +142,65 @@ describe('validateEnv', () => {
       /CORS_ORIGIN/,
     );
   });
+
+  const liveOmise = {
+    PAYMENT_GATEWAY: 'omise',
+    OMISE_SECRET_KEY: 'skey_live_x',
+    OMISE_WEBHOOK_SECRET: 'd2ViaG9vay1zZWNyZXQ=',
+  };
+
+  it('accepts oauth being switched off entirely', () => {
+    expect(() =>
+      validateEnv({
+        ...base,
+        NODE_ENV: 'development',
+        OTP_DELIVERY: 'console',
+      }),
+    ).not.toThrow();
+  });
+
+  it('refuses google listed without its client id', () => {
+    expect(() =>
+      validateEnv({
+        ...base,
+        NODE_ENV: 'development',
+        OTP_DELIVERY: 'console',
+        OAUTH_PROVIDERS: 'google',
+      }),
+    ).toThrow(/GOOGLE_CLIENT_ID/);
+  });
+
+  it('refuses apple listed without its client id', () => {
+    expect(() =>
+      validateEnv({
+        ...base,
+        NODE_ENV: 'development',
+        OTP_DELIVERY: 'console',
+        OAUTH_PROVIDERS: 'apple',
+      }),
+    ).toThrow(/APPLE_CLIENT_ID/);
+  });
+
+  it('refuses an unknown provider name', () => {
+    expect(() =>
+      validateEnv({
+        ...base,
+        NODE_ENV: 'development',
+        OTP_DELIVERY: 'console',
+        OAUTH_PROVIDERS: 'myspace',
+      }),
+    ).toThrow(/myspace/);
+  });
+
+  it('refuses the fake oauth provider in production', () => {
+    expect(() =>
+      validateEnv({
+        ...base,
+        ...liveOtp,
+        ...liveOmise,
+        NODE_ENV: 'production',
+        OAUTH_PROVIDERS: 'fake',
+      }),
+    ).toThrow(/fake/);
+  });
 });

@@ -169,6 +169,45 @@ describe('OtpService.request', () => {
     expect(delivery.send).toHaveBeenCalled();
   });
 
+  it('does not make the email response wait on the vendor', async () => {
+    noRateLimitHits();
+    prisma.user.findFirst.mockResolvedValue({ id: 'u1' }); // a deliverable address
+    let releaseVendor: () => void = () => undefined;
+    delivery.send.mockReturnValue(
+      new Promise<void>((resolve) => {
+        releaseVendor = resolve;
+      }),
+    );
+
+    // Resolves while the vendor call is still outstanding. A caller cannot
+    // time "we sent it" against "we did not" if the send is never awaited.
+    await expect(
+      service.request({
+        destination: 'owner@example.com',
+        channel: OtpChannel.EMAIL,
+        ipAddress: '1.2.3.4',
+      }),
+    ).resolves.toMatchObject({ ref: expect.any(String) });
+
+    releaseVendor();
+  });
+
+  it('does not turn an email vendor outage into an account oracle', async () => {
+    noRateLimitHits();
+    prisma.user.findFirst.mockResolvedValue({ id: 'u1' });
+    delivery.send.mockRejectedValue(new Error('email vendor down'));
+
+    // A 503 that can only ever fire for an address that has an account is an
+    // oracle. The failure is logged, never returned.
+    await expect(
+      service.request({
+        destination: 'owner@example.com',
+        channel: OtpChannel.EMAIL,
+        ipAddress: '1.2.3.4',
+      }),
+    ).resolves.toMatchObject({ ref: expect.any(String) });
+  });
+
   it('surfaces a delivery failure as 503 without leaking the code', async () => {
     noRateLimitHits();
     delivery.send.mockRejectedValue(new Error('sms vendor down'));

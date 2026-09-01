@@ -130,25 +130,48 @@ export class OtpService {
     });
 
     if (deliverable) {
-      try {
-        await this.delivery.send(normalized, channel, code, ref);
-      } catch (err) {
-        // The challenge row survives, but no code was ever delivered, so it is
-        // unusable. The cooldown still applies, which is what we want.
-        this.logger.error(
-          `OTP delivery failed for ${maskDestination(normalized)}: ${
-            err instanceof Error ? err.message : 'unknown error'
-          }`,
-        );
-        throw new ServiceUnavailableException(
-          'ไม่สามารถส่งรหัสยืนยันได้ กรุณาลองใหม่ภายหลัง (Could not send code)',
-        );
+      if (channel === OtpChannel.EMAIL) {
+        // Never awaited, on purpose. `deliverable` is false for an address no
+        // verified account owns, so awaiting the send would make a request for
+        // a known address take a vendor round-trip longer than one for an
+        // unknown address — restoring, in timing, exactly the enumeration the
+        // identical response below exists to prevent. The 503 leaks the same
+        // fact a second way: it can only ever fire for an address that does
+        // have an account, so a vendor outage would answer the question
+        // outright. Log the failure; never return it.
+        void this.delivery
+          .send(normalized, channel, code, ref)
+          .catch((err: unknown) => this.logDeliveryFailure(normalized, err));
+      } else {
+        try {
+          await this.delivery.send(normalized, channel, code, ref);
+        } catch (err) {
+          // The challenge row survives, but no code was ever delivered, so it
+          // is unusable. The cooldown still applies, which is what we want.
+          //
+          // Safe to surface on SMS, unlike email: delivery is attempted for
+          // every request on this channel (the phone IS the identity), so a
+          // failure here says nothing about whether an account exists.
+          this.logDeliveryFailure(normalized, err);
+          throw new ServiceUnavailableException(
+            'ไม่สามารถส่งรหัสยืนยันได้ กรุณาลองใหม่ภายหลัง (Could not send code)',
+          );
+        }
       }
     }
 
     // Identical shape on every path — this is what makes account enumeration
     // through this endpoint impossible.
     return { ref, expiresIn: Math.floor(OTP_TTL_MS / 1000) };
+  }
+
+  /** Log-safe: the destination is masked and the code never appears. */
+  private logDeliveryFailure(destination: string, err: unknown): void {
+    this.logger.error(
+      `OTP delivery failed for ${maskDestination(destination)}: ${
+        err instanceof Error ? err.message : 'unknown error'
+      }`,
+    );
   }
 
   /**

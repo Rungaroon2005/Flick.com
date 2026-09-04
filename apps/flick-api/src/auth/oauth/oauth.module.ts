@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { IdentityProvider } from '@prisma/client';
+import { UsersModule } from '../../users/users.module';
 import {
   OAUTH_PROVIDER_REGISTRY,
   type OAuthProviderRegistry,
@@ -10,6 +11,7 @@ import { AppleProviderAdapter } from './adapters/apple-provider.adapter';
 import { FakeOAuthProviderAdapter } from './adapters/fake-provider.adapter';
 import { OAuthNonceService } from './oauth-nonce.service';
 import { IdentityResolver } from './identity-resolver';
+import { OAuthController } from './oauth.controller';
 
 // Exported rather than inlined so it can be unit-tested with a stubbed
 // ConfigService, the same way createOtpDeliveryPort is (otp.module.ts:15).
@@ -45,7 +47,8 @@ export function createOAuthProviderRegistry(
 }
 
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, UsersModule],
+  controllers: [OAuthController],
   providers: [
     OAuthNonceService,
     IdentityResolver,

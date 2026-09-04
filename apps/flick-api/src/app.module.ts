@@ -9,6 +9,7 @@ import { EpisodesModule } from './episodes/episodes.module';
 import { PlansController } from './plans/plans.controller';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { OAuthModule } from './auth/oauth/oauth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
@@ -27,6 +28,7 @@ import { DatabaseModule } from './database/database.module';
     EpisodesModule,
     UsersModule,
     AuthModule,
+    OAuthModule,
     SubscriptionsModule,
     PaymentsModule,
     PlaybackModule,

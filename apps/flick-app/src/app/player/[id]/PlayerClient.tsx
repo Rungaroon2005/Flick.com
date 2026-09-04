@@ -8,7 +8,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { ReactionButton } from '@/components/ui/ReactionButton';
 import { Switch } from '@/components/ui/Switch';
-import { useEntitlement, useHlsPlayer, useMovieActions, useWatchProgress } from '@/features/playback';
+import { useEntitlement, useHlsPlayer, useMovieActions, useSleepTimer, useWatchProgress } from '@/features/playback';
 import { usePreferences } from '@/features/preferences';
 import { withNext } from '@/lib/nextParam';
 import type { Episode, Movie, PlaybackAuthorization, SubscriptionPlan } from '@/types';
@@ -85,6 +85,27 @@ export default function PlayerClient({
   const { progressSeconds, setProgress, handleTimeUpdate, reportProgress } =
     useWatchProgress(episodeId, router, videoRef);
 
+  // Separate React state, not a direct read of sleepPhase === 'expired':
+  // that phase becomes true the instant the wall clock crosses the
+  // deadline, before the flush below has even been issued. Gating the
+  // dim overlay on THIS state instead means it can only render once the
+  // flush has actually completed -- the ordering the design calls for,
+  // enforced by sequencing rather than by two values happening to update
+  // around the same time.
+  const [sleepDimmed, setSleepDimmed] = useState(false);
+  const handleSleepExpire = useCallback(async () => {
+    await reportProgress(Math.floor(videoRef.current?.currentTime ?? 0));
+    setSleepDimmed(true);
+  }, [reportProgress]);
+  const {
+    phase: sleepPhase,
+    mode: sleepMode,
+    startTimer: startSleepTimer,
+    startEndOfEpisode: startSleepEndOfEpisode,
+    cancel: cancelSleep,
+    notifyEpisodeEnded,
+  } = useSleepTimer(videoRef, handleSleepExpire);
+
   const movieId = movie?.id ?? null;
   const {
     liked,
@@ -115,6 +136,12 @@ export default function PlayerClient({
   }, [isPlaying, showSettings, isScrubbing]);
 
   const recallChrome = () => {
+    // Any interaction during the sleep warning cancels it outright, per
+    // the design: a tap here means "I'm still here," and the countdown
+    // has nothing further to prove.
+    if (sleepPhase === 'warning' || sleepPhase === 'fading') {
+      cancelSleep();
+    }
     if (chromeVisible && isPlaying) {
       setChromeVisible(false);
       window.clearTimeout(hideTimerRef.current);
@@ -201,6 +228,7 @@ export default function PlayerClient({
               onEnded={() => {
                 setIsPlaying(false);
                 void reportProgress(Math.floor(videoRef.current?.currentTime ?? 0));
+                notifyEpisodeEnded();
               }}
               onError={() => setPlaybackError('เกิดข้อผิดพลาดในการเล่นวิดีโอ')}
             />
@@ -361,6 +389,44 @@ export default function PlayerClient({
           </div>
           <Switch checked={prefs.night} onChange={setNight} label="โหมดกลางคืน" />
         </div>
+
+        <div className="mt-6 border-t border-hairline pt-6">
+          <h4 className="mb-2 text-xs font-medium text-fg-dim">ตั้งเวลาปิด</h4>
+          {sleepMode === null ? (
+            <div className="flex flex-wrap gap-2">
+              {[15, 30, 60].map((minutes) => (
+                <button
+                  type="button"
+                  key={minutes}
+                  onClick={() => startSleepTimer(minutes)}
+                  className="rounded-full bg-ink-2 px-4 py-2.5 text-sm font-medium text-fg-dim transition-all duration-surface ease-enter hover:bg-hairline active:scale-95"
+                >
+                  {minutes} นาที
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={startSleepEndOfEpisode}
+                className="rounded-full bg-ink-2 px-4 py-2.5 text-sm font-medium text-fg-dim transition-all duration-surface ease-enter hover:bg-hairline active:scale-95"
+              >
+                จบตอนนี้
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between rounded-xl border border-white/10 bg-ink-2 px-4 py-3">
+              <span className="text-sm text-fg">
+                {sleepMode === 'end-of-episode' ? 'จะหยุดเมื่อจบตอนนี้' : 'ตั้งเวลาปิดอยู่'}
+              </span>
+              <button
+                type="button"
+                onClick={cancelSleep}
+                className="focus-ring text-sm font-medium text-brand-ink"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          )}
+        </div>
       </Sheet>
 
       {/* Paywall gate — a sheet, not a centered modal: it reads as a drawer
@@ -406,6 +472,46 @@ export default function PlayerClient({
         >
           {playbackError}
         </p>
+      )}
+
+      {/* One card for both 'warning' and 'fading' -- the volume ramp inside
+          'fading' is audible on its own, so the card doesn't need a second
+          message to announce it. A tap anywhere on the stage (recallChrome)
+          also cancels; this is just the visible, focusable target that
+          names what's about to happen. */}
+      {!gate && (sleepPhase === 'warning' || sleepPhase === 'fading') && (
+        <button
+          type="button"
+          role="alert"
+          onClick={cancelSleep}
+          className="focus-ring absolute inset-x-4 bottom-20 z-30 rounded-2xl border border-white/10 bg-black/80 px-4 py-3 text-center text-sm text-fg backdrop-blur-xl"
+        >
+          จะหยุดใน 1 นาที · แตะเพื่อดูต่อ
+        </button>
+      )}
+
+      {/* The sleep timer's own expiry, separate from the paywall gate: dims
+          the whole player, not just the video box, and only once progress
+          has actually been flushed (sleepDimmed, not sleepPhase directly --
+          see where it's set above). */}
+      {sleepDimmed && (
+        <div
+          role="status"
+          className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-black/90 text-center"
+        >
+          <p className="text-sm text-fg-dim">หยุดชั่วคราวเพราะถึงเวลานอนแล้ว</p>
+          <button
+            type="button"
+            onClick={() => {
+              setSleepDimmed(false);
+              cancelSleep();
+              void togglePlayback();
+            }}
+            className="focus-ring rounded-full bg-brand px-6 py-3 text-sm font-medium text-ink"
+          >
+            แตะเพื่อดูต่อ
+          </button>
+        </div>
       )}
     </div>
   );

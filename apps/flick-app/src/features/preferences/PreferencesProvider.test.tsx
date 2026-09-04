@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PreferencesProvider, usePreferences } from './PreferencesProvider';
 import { PREFS_STORAGE_KEY } from './prefs';
@@ -58,8 +58,15 @@ describe('usePreferences', () => {
         <Consumer />
       </PreferencesProvider>,
     );
-    await screen.findByTestId('night');
-    expect(document.documentElement.getAttribute('data-night')).toBe('on');
+    // Waiting on the text content as a proxy for the DOM-mirror effect
+    // having ALSO run is unsound: they are two independent reactions to
+    // the same state update (one a DOM commit, the other a passive effect
+    // React schedules separately), and nothing orders one before the
+    // other is externally observable. waitFor polls the actual condition
+    // instead of a stand-in for it.
+    await waitFor(() => {
+      expect(document.documentElement.getAttribute('data-night')).toBe('on');
+    });
   });
 
   it('removes data-night rather than setting it to "off"', async () => {
@@ -70,8 +77,10 @@ describe('usePreferences', () => {
         <Consumer />
       </PreferencesProvider>,
     );
-    expect(await screen.findByTestId('night')).toHaveTextContent('false');
-    expect(document.documentElement.hasAttribute('data-night')).toBe(false);
+    await waitFor(() => {
+      expect(screen.getByTestId('night')).toHaveTextContent('false');
+      expect(document.documentElement.hasAttribute('data-night')).toBe(false);
+    });
   });
 
   it('a boot-script value that agrees with storage survives settling, unchanged', async () => {
@@ -85,8 +94,10 @@ describe('usePreferences', () => {
         <Consumer />
       </PreferencesProvider>,
     );
-    await screen.findByTestId('night');
-    expect(document.documentElement.getAttribute('data-night')).toBe('on');
+    await waitFor(() => {
+      expect(screen.getByTestId('night')).toHaveTextContent('true');
+      expect(document.documentElement.getAttribute('data-night')).toBe('on');
+    });
   });
 
   it('setNight updates state, persists, and mirrors to the DOM', async () => {

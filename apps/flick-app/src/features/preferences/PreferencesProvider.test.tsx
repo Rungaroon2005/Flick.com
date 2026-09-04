@@ -1,7 +1,15 @@
 import { act, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PreferencesProvider, usePreferences } from './PreferencesProvider';
 import { PREFS_STORAGE_KEY } from './prefs';
+
+// Cleared in both beforeEach and afterEach: this is ambient, global DOM
+// and storage state, and depending solely on the PREVIOUS test's cleanup
+// having already run leaves this suite fragile to run order across files.
+beforeEach(() => {
+  window.localStorage.clear();
+  document.documentElement.removeAttribute('data-night');
+});
 
 afterEach(() => {
   window.localStorage.clear();

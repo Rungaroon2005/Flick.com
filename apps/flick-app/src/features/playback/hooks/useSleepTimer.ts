@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { prefersReducedMotion } from '@/lib/prefersReducedMotion';
 import { FADE_START_MS, sleepPhase, type SleepPhase } from '../sleepPhase';
 import { loadSleepState, saveSleepState, type SleepState } from '../sleepStorage';
 import { canWriteVolume, fadeVolumeToZero } from '../volumeFade';
@@ -52,6 +53,11 @@ export function useSleepTimer(
   const hasExpiredRef = useRef(false);
   const volumeSnapshotRef = useRef<number | null>(null);
   const cancelFadeRef = useRef<(() => void) | null>(null);
+  // Separate from cancelFadeRef: the reduced-motion path sets volume to 0
+  // synchronously and has nothing to cancel, but still needs its own
+  // one-shot guard so this effect doesn't re-apply it on every tick while
+  // still in 'fading'.
+  const fadeStartedRef = useRef(false);
 
   const phase: SleepPhase =
     mode === 'timer' ? sleepPhase(now(), deadlineMs)
@@ -120,13 +126,21 @@ export function useSleepTimer(
   useEffect(() => {
     if (mode !== 'timer') return;
 
-    if (phase === 'fading' && !cancelFadeRef.current && !hasExpiredRef.current) {
+    if (phase === 'fading' && !fadeStartedRef.current && !hasExpiredRef.current) {
       const video = videoRef.current;
       if (video && canWriteVolume(video)) {
+        fadeStartedRef.current = true;
         volumeSnapshotRef.current = video.volume;
-        cancelFadeRef.current = fadeVolumeToZero(video, FADE_START_MS, () => {
-          cancelFadeRef.current = null;
-        });
+        if (prefersReducedMotion()) {
+          // Reduced motion removes the animation, never the information:
+          // the warning card still appears for the full minute, but the
+          // 20-second ramp collapses to an instant drop to silence.
+          video.volume = 0;
+        } else {
+          cancelFadeRef.current = fadeVolumeToZero(video, FADE_START_MS, () => {
+            cancelFadeRef.current = null;
+          });
+        }
       }
     }
 
@@ -140,6 +154,7 @@ export function useSleepTimer(
     volumeSnapshotRef.current = null;
     cancelFadeRef.current?.();
     cancelFadeRef.current = null;
+    fadeStartedRef.current = false;
     hasExpiredRef.current = false;
     setEndOfEpisodeExpired(false);
   };

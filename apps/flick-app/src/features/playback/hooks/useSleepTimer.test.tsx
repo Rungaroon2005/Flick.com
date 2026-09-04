@@ -180,6 +180,31 @@ describe('useSleepTimer', () => {
     expect(video.volume).toBeCloseTo(0.8);
   });
 
+  it('cuts straight to silence under prefers-reduced-motion, no ramp', async () => {
+    const original = window.matchMedia;
+    window.matchMedia = vi
+      .fn()
+      .mockReturnValue({ matches: true } as MediaQueryList);
+
+    const video = makeVideo();
+    video.volume = 0.8;
+    const videoRef = { current: video };
+    const { result } = renderHook(() => useSleepTimer(videoRef, vi.fn(), { now, tickMs: 1000 }));
+    await flushLoad();
+
+    act(() => result.current.startTimer(1));
+    nowMs += 41_000; // into fading
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(result.current.phase).toBe('fading');
+    expect(volumeFade.fadeVolumeToZero).not.toHaveBeenCalled();
+    expect(video.volume).toBe(0);
+
+    window.matchMedia = original;
+  });
+
   it('skips the fade entirely when the volume cannot be written (iOS)', async () => {
     vi.mocked(volumeFade.canWriteVolume).mockReturnValue(false);
     const video = makeVideo();

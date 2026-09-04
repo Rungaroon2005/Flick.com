@@ -478,16 +478,26 @@ export default function PlayerClient({
           'fading' is audible on its own, so the card doesn't need a second
           message to announce it. A tap anywhere on the stage (recallChrome)
           also cancels; this is just the visible, focusable target that
-          names what's about to happen. */}
+          names what's about to happen.
+
+          role="alert" sits on the wrapping div, not the button: ARIA roles
+          override an element's NATIVE accessible role, so putting it
+          directly on the <button> would replace its "button" semantics
+          with "alert" and could tell assistive tech this isn't
+          interactive, even though it still visually responds to clicks.
+          A live region announces on insertion regardless of which element
+          in the subtree carries the text, so the button keeps its real
+          role and the card still gets announced. */}
       {!gate && (sleepPhase === 'warning' || sleepPhase === 'fading') && (
-        <button
-          type="button"
-          role="alert"
-          onClick={cancelSleep}
-          className="focus-ring absolute inset-x-4 bottom-20 z-30 rounded-2xl border border-white/10 bg-black/80 px-4 py-3 text-center text-sm text-fg backdrop-blur-xl"
-        >
-          จะหยุดใน 1 นาที · แตะเพื่อดูต่อ
-        </button>
+        <div role="alert" className="absolute inset-x-4 bottom-20 z-30">
+          <button
+            type="button"
+            onClick={cancelSleep}
+            className="focus-ring w-full rounded-2xl border border-white/10 bg-black/80 px-4 py-3 text-center text-sm text-fg backdrop-blur-xl"
+          >
+            จะหยุดใน 1 นาที · แตะเพื่อดูต่อ
+          </button>
+        </div>
       )}
 
       {/* The sleep timer's own expiry, separate from the paywall gate: dims

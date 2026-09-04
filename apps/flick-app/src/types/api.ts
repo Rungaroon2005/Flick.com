@@ -24,6 +24,9 @@ export type ApiPath =
   | '/auth/otp/verify'
   | '/auth/logout'
   | '/auth/me'
+  | '/auth/oauth/providers'
+  | '/auth/oauth/nonce'
+  | '/auth/oauth/verify'
   | '/movies'
   | `/movies?q=${string}`
   | `/episodes/${string}`
@@ -44,6 +47,12 @@ export type ApiResponse<Path extends ApiPath> =
   : Path extends '/auth/otp/verify' ? OtpVerifyResponse
   : Path extends '/auth/logout' ? { success: boolean }
   : Path extends '/auth/me' ? AuthenticatedUser
+  : Path extends '/auth/oauth/providers' ? { providers: string[] }
+  : Path extends '/auth/oauth/nonce' ? { nonce: string; expiresIn: number }
+  // Deliberately the same type as /auth/otp/verify: both endpoints return the
+  // same { success, user, isNewUser } shape, and one type for one shape keeps
+  // them from drifting apart.
+  : Path extends '/auth/oauth/verify' ? OtpVerifyResponse
   : Path extends '/movies' | '/me/bookmarks' ? Movie[]
   : Path extends `/movies?q=${string}` ? Movie[]
   : Path extends `/episodes/${string}` ? EpisodeDetail
@@ -176,7 +185,27 @@ export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unkno
     requireNumber(otp, 'expiresIn');
     return otp as ApiResponse<Path>;
   }
-  if (path === '/auth/me' || path === '/auth/otp/verify') {
+  if (path === '/auth/oauth/providers') {
+    const listed = requireRecord(value, 'oauth providers');
+    if (
+      !Array.isArray(listed.providers) ||
+      listed.providers.some((id) => typeof id !== 'string')
+    ) {
+      throw new TypeError('Invalid oauth providers');
+    }
+    return listed as ApiResponse<Path>;
+  }
+  if (path === '/auth/oauth/nonce') {
+    const issued = requireRecord(value, 'oauth nonce');
+    if (typeof issued.nonce !== 'string') throw new TypeError('Invalid oauth nonce');
+    requireNumber(issued, 'expiresIn');
+    return issued as ApiResponse<Path>;
+  }
+  if (
+    path === '/auth/me' ||
+    path === '/auth/otp/verify' ||
+    path === '/auth/oauth/verify'
+  ) {
     const envelope = requireRecord(value, 'authentication');
     const user =
       path === '/auth/me' ? envelope : requireRecord(envelope.user, 'authentication user');

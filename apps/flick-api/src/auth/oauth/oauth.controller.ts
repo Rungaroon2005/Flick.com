@@ -21,11 +21,15 @@ import { DEFAULT_JWT_EXPIRES_IN } from '../jwt.config';
 import { UsersService } from '../../users/users.service';
 import {
   OAUTH_PROVIDER_REGISTRY,
+  OAuthTokenInvalidError,
   type OAuthProviderRegistry,
+  type ProviderProfile,
 } from './oauth-provider.port';
 import { OAuthNonceService } from './oauth-nonce.service';
 import { IdentityResolver } from './identity-resolver';
 import { VerifyOAuthDto } from './dto/verify-oauth.dto';
+
+const INVALID_TOKEN = 'เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่ (Invalid login token)';
 
 const PROVIDER_IDS: Record<string, IdentityProvider> = {
   google: IdentityProvider.GOOGLE,
@@ -87,7 +91,20 @@ export class OAuthController {
     // round would let an attacker probe token validity for free.
     await this.nonces.consume(dto.nonce, adapter.id);
 
-    const profile = await adapter.verifyIdToken(dto.idToken, dto.nonce);
+    let profile: ProviderProfile;
+    try {
+      profile = await adapter.verifyIdToken(dto.idToken, dto.nonce);
+    } catch (err) {
+      // A token we refuse is the caller's problem — 401, the same answer a
+      // wrong OTP code gets. Letting the adapter's error escape made every
+      // expired or malformed token a 500: an outage in the dashboards, caused
+      // by a user doing nothing unusual. Anything not classified as the
+      // token's fault keeps propagating and stays a 5xx.
+      if (err instanceof OAuthTokenInvalidError) {
+        throw new UnauthorizedException(INVALID_TOKEN);
+      }
+      throw err;
+    }
 
     // Apple sends the name beside the token, not inside it, so the client
     // passes it through. Unverified, and used only to fill a gap: it can never

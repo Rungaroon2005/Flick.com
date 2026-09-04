@@ -1,7 +1,8 @@
 import { IdentityProvider } from '@prisma/client';
-import type {
-  OAuthProviderPort,
-  ProviderProfile,
+import {
+  OAuthTokenInvalidError,
+  type OAuthProviderPort,
+  type ProviderProfile,
 } from '../oauth-provider.port';
 
 /**
@@ -32,14 +33,20 @@ export class FakeOAuthProviderAdapter implements OAuthProviderPort {
         Buffer.from(idToken, 'base64url').toString('utf8'),
       ) as { profile?: ProviderProfile; nonce?: string };
     } catch {
-      return Promise.reject(new Error('Fake provider: invalid token'));
+      return Promise.reject(
+        new OAuthTokenInvalidError('Fake provider: invalid token'),
+      );
     }
 
     if (!decoded?.profile?.providerAccountId) {
-      return Promise.reject(new Error('Fake provider: invalid token'));
+      return Promise.reject(
+        new OAuthTokenInvalidError('Fake provider: invalid token'),
+      );
     }
     if (decoded.nonce !== expectedNonce) {
-      return Promise.reject(new Error('Fake provider: nonce mismatch'));
+      return Promise.reject(
+        new OAuthTokenInvalidError('Fake provider: nonce mismatch'),
+      );
     }
     return Promise.resolve(decoded.profile);
   }

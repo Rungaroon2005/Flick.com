@@ -2,10 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IdentityProvider } from '@prisma/client';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
-import type {
-  OAuthProviderPort,
-  ProviderProfile,
+import {
+  OAuthTokenInvalidError,
+  type OAuthProviderPort,
+  type ProviderProfile,
 } from '../oauth-provider.port';
+import { asTokenError } from './token-errors';
 
 const JWKS_URI = 'https://www.googleapis.com/oauth2/v3/certs';
 const ISSUERS = ['https://accounts.google.com', 'accounts.google.com'];
@@ -28,14 +30,21 @@ export class GoogleProviderAdapter implements OAuthProviderPort {
   ): Promise<ProviderProfile> {
     // Signature, issuer, audience and expiry. A well-signed token issued for a
     // different client is not a login here.
-    const { payload } = await jwtVerify(idToken, this.jwks, {
-      issuer: ISSUERS,
-      audience: this.config.getOrThrow<string>('GOOGLE_CLIENT_ID'),
-    });
+    let payload: Record<string, unknown>;
+    try {
+      ({ payload } = await jwtVerify(idToken, this.jwks, {
+        issuer: ISSUERS,
+        audience: this.config.getOrThrow<string>('GOOGLE_CLIENT_ID'),
+      }));
+    } catch (err) {
+      throw asTokenError(err, 'Google');
+    }
 
     // The replay guard: this token was minted for one nonce we issued once.
     if (payload.nonce !== expectedNonce) {
-      throw new Error('Google id_token nonce did not match the issued nonce');
+      throw new OAuthTokenInvalidError(
+        'Google id_token nonce did not match the issued nonce',
+      );
     }
 
     return GoogleProviderAdapter.toProfile(payload);
@@ -45,7 +54,7 @@ export class GoogleProviderAdapter implements OAuthProviderPort {
   static toProfile(claims: Record<string, unknown>): ProviderProfile {
     const sub = claims.sub;
     if (typeof sub !== 'string' || sub.length === 0) {
-      throw new Error('Google id_token carried no sub');
+      throw new OAuthTokenInvalidError('Google id_token carried no sub');
     }
     const email = typeof claims.email === 'string' ? claims.email : null;
     return {

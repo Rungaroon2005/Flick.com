@@ -18,6 +18,24 @@ export interface ProviderProfile {
   avatarUrl: string | null;
 }
 
+/**
+ * The token is the caller's problem: malformed, expired, signed by the wrong
+ * key, minted for another audience, or carrying a nonce we did not issue. The
+ * controller answers 401 for these, so a user holding a stale token is told to
+ * sign in again.
+ *
+ * What an adapter does NOT wrap in this stays a 5xx — a JWKS fetch that timed
+ * out is our outage, and laundering it into a 401 would blame the user and
+ * hide it. Adapters decide which is which; they are the only layer that knows
+ * a provider's failure modes.
+ */
+export class OAuthTokenInvalidError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'OAuthTokenInvalidError';
+  }
+}
+
 export interface OAuthProviderPort {
   readonly id: IdentityProvider;
   /**

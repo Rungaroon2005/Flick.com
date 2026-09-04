@@ -4,24 +4,44 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import type { Response } from 'supertest';
 import { App } from 'supertest/types';
+import { IdentityProvider } from '@prisma/client';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma.service';
 import { FakeOAuthProviderAdapter } from './../src/auth/oauth/adapters/fake-provider.adapter';
+import {
+  OAUTH_PROVIDER_REGISTRY,
+  type OAuthProviderRegistry,
+} from './../src/auth/oauth/oauth-provider.port';
 
 describe('OAuth social login (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  beforeAll(async () => {
-    // Registered before the module tree compiles: OAuthModule's registry
-    // factory reads OAUTH_PROVIDERS off ConfigService at construction time.
-    // The fake adapter needs no credentials and is refused only in
-    // production (NODE_ENV=test here), so no other env var is required.
-    process.env.OAUTH_PROVIDERS = 'fake';
+  // Override the registry outright rather than setting OAUTH_PROVIDERS=fake
+  // and letting the module's factory build it. The env route looks equivalent
+  // and is not: ConfigModule gives the .env FILE precedence over a
+  // process.env assignment, so on a machine with real credentials in .env this
+  // suite silently ran against the real Google adapter and every sign-in
+  // failed. What the test exercises must not depend on what the developer
+  // happens to have configured locally.
+  const fakeRegistry: OAuthProviderRegistry = new Map([
+    [
+      IdentityProvider.GOOGLE,
+      new FakeOAuthProviderAdapter(IdentityProvider.GOOGLE),
+    ],
+    [
+      IdentityProvider.APPLE,
+      new FakeOAuthProviderAdapter(IdentityProvider.APPLE),
+    ],
+  ]);
 
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(OAUTH_PROVIDER_REGISTRY)
+      .useValue(fakeRegistry)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.use(cookieParser());
@@ -31,7 +51,6 @@ describe('OAuth social login (e2e)', () => {
   });
 
   afterAll(async () => {
-    delete process.env.OAUTH_PROVIDERS;
     await app.close();
   });
 
@@ -68,9 +87,11 @@ describe('OAuth social login (e2e)', () => {
   // the {status, body} pair keeps the response body in the failure output,
   // which a bare `expect(res.status)` would throw away.
   const expectStatus = (res: Response, status: number): Response => {
-    expect({ status: res.status, body: res.body as unknown }).toMatchObject({
-      status,
-    });
+    if (res.status !== status) {
+      throw new Error(
+        `Expected HTTP ${status}, got ${res.status}: ${JSON.stringify(res.body)}`,
+      );
+    }
     return res;
   };
 

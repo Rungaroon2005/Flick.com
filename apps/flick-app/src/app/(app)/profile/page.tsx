@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import LogoutButton from './LogoutButton';
+import NightModeToggle from './NightModeToggle';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { Container } from '@/components/ui/Container';
 import { PageShell } from '@/components/ui/PageShell';
@@ -81,10 +82,10 @@ export default async function ProfilePage() {
             </div>
           </div>
 
-          {error ? (
-            <p className="mt-6 text-sm text-fail">{error}</p>
-          ) : (
-            <div className="mt-8 flex flex-col gap-4">
+          <div className="mt-8 flex flex-col gap-4">
+            {error ? (
+              <p className="text-sm text-fail">{error}</p>
+            ) : (
               <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-ink-1 p-5">
                 <div>
                   <h3 className="text-xs font-medium text-fg-dim">สถานะสมาชิก</h3>
@@ -102,8 +103,15 @@ export default async function ProfilePage() {
                   จัดการ
                 </Link>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Independent of the subscription fetch above -- a failed
+                network call for entitlements has nothing to do with this
+                local preference, and hiding it alongside that error would
+                make an unrelated toggle disappear for no reason the user
+                could guess. */}
+            <NightModeToggle />
+          </div>
 
           <div className="mt-8 overflow-hidden rounded-2xl border border-white/5 bg-ink-1">
             {settingsRows.map((label, i) => (

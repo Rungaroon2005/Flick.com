@@ -7,7 +7,9 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { ReactionButton } from '@/components/ui/ReactionButton';
+import { Switch } from '@/components/ui/Switch';
 import { useEntitlement, useHlsPlayer, useMovieActions, useWatchProgress } from '@/features/playback';
+import { usePreferences } from '@/features/preferences';
 import { withNext } from '@/lib/nextParam';
 import type { Episode, Movie, PlaybackAuthorization, SubscriptionPlan } from '@/types';
 
@@ -47,6 +49,7 @@ export default function PlayerClient({
   plans: SubscriptionPlan[];
 }) {
   const router = useRouter();
+  const { prefs, setNight } = usePreferences();
   // Every escape from the gate sheet carries this, so paying or subscribing
   // returns to the episode being sold rather than to the lobby.
   const returnPath = `/player/${episodeId}`;
@@ -349,6 +352,14 @@ export default function PlayerClient({
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-between border-t border-hairline pt-6">
+          <div>
+            <h4 className="text-xs font-medium text-fg-dim">โหมดกลางคืน</h4>
+            <p className="mt-0.5 text-xs text-fg-mute">ลดความสว่างของหน้าจอ และปิดเล่นตอนถัดไปอัตโนมัติ</p>
+          </div>
+          <Switch checked={prefs.night} onChange={setNight} label="โหมดกลางคืน" />
         </div>
       </Sheet>
 

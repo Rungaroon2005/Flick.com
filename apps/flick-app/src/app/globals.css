@@ -33,6 +33,11 @@
   --color-fg: #FFFFFF;
   --color-fg-dim: #A9A099;
   --color-fg-mute: #7A716B;
+  /* Subtitle text specifically, not general foreground -- introduced so
+     Night Mode can lower subtitle brightness independently of --color-fg,
+     which most of the UI chrome still reads. Equal to --color-fg until a
+     subtitle renderer exists to consume it. */
+  --color-subtitle: #FFFFFF;
 
   --color-ok: #3FBF9A;
   --color-warn: #E8B84B;
@@ -341,4 +346,31 @@ html {
 @layer components {
   .animate-fade-in { animation: fadeIn var(--duration-ui) ease forwards; }
   .animate-fade-in-up { animation: fadeInUp var(--duration-surface) ease forwards; }
+}
+
+/* Night Mode (docs/superpowers/plans/2026-09-03-newplan-phase-a-b.md §3.3).
+   `data-night="on"` is set on <html> by the pre-paint boot script
+   (features/preferences/bootScript.ts) and kept in sync by
+   PreferencesProvider -- never by React rendering the attribute itself.
+
+   This overrides the EXISTING token names from the @theme block above, not
+   a parallel palette: every component already consuming var(--color-fg)
+   etc. dims for free, and nothing can be accidentally left bright because
+   there is no second class name to remember to apply.
+
+   MUST NOT declare filter, opacity, or backdrop-filter here -- enforced by
+   nightMode.css.test.ts. A page-level filter/opacity would dim the <video>
+   element too, and there is no clean way to punch a hole back through it
+   for just the film. A custom-property override cannot reach the video by
+   construction: it renders decoded frames, not CSS colors. That is the
+   entire reason this feature is implemented as token overrides rather than
+   a brightness filter on a wrapping element. */
+:root[data-night="on"] {
+  --color-fg: #C9C2BC;
+  --color-fg-dim: #857D77;
+  --color-fg-mute: #5C554F;
+  --color-brand: #C24512;
+  --color-brand-ink: #B4623F;
+  --color-subtitle: #C9C2BC;
+  --shadow-surface: 0 16px 40px -18px rgba(0, 0, 0, 0.9);
 }

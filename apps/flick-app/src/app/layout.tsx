@@ -1,7 +1,7 @@
 import { Metadata, Viewport } from 'next';
 import { Anuphan, IBM_Plex_Sans_Thai, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
-import { NIGHT_BOOT_SCRIPT, PreferencesProvider } from '@/features/preferences';
+import { NIGHT_BOOT_SCRIPT, NightSuggestion, PreferencesProvider } from '@/features/preferences';
 
 // Display face — loopless, variable, Thai+Latin. Used ≥20px only.
 const anuphan = Anuphan({
@@ -56,7 +56,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             anything below it paints -- see bootScript.ts for why this
             can't be a useEffect instead. */}
         <script dangerouslySetInnerHTML={{ __html: NIGHT_BOOT_SCRIPT }} />
-        <PreferencesProvider>{children}</PreferencesProvider>
+        <PreferencesProvider>
+          {children}
+          <NightSuggestion />
+        </PreferencesProvider>
       </body>
     </html>
   );

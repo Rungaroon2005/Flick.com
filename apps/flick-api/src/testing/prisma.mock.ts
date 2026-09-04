@@ -48,6 +48,7 @@ export interface PrismaMock {
     findFirst: jest.Mock;
     create: jest.Mock;
     updateMany: jest.Mock;
+    deleteMany: jest.Mock;
     count: jest.Mock;
   };
   identity: {
@@ -126,6 +127,7 @@ export const createPrismaMock = (): PrismaMock => {
       findFirst: jest.fn(),
       create: jest.fn(),
       updateMany: jest.fn(),
+      deleteMany: jest.fn(),
       count: jest.fn(),
     },
     identity: {

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MoviesModule } from './movies/movies.module';
@@ -18,12 +19,14 @@ import { PlaybackModule } from './playback/playback.module';
 import { EngagementModule } from './engagement/engagement.module';
 import { validateEnv } from './common/config.validation';
 import { DatabaseModule } from './database/database.module';
+import { MaintenanceModule } from './maintenance/maintenance.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     DatabaseModule,
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
+    ScheduleModule.forRoot(),
     MoviesModule,
     EpisodesModule,
     UsersModule,
@@ -33,6 +36,7 @@ import { DatabaseModule } from './database/database.module';
     PaymentsModule,
     PlaybackModule,
     EngagementModule,
+    MaintenanceModule,
   ],
   controllers: [AppController, PlansController],
   providers: [

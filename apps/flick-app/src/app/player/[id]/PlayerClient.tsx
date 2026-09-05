@@ -8,7 +8,15 @@ import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { ReactionButton } from '@/components/ui/ReactionButton';
 import { Switch } from '@/components/ui/Switch';
-import { useEntitlement, useHlsPlayer, useMovieActions, useSleepTimer, useWatchProgress } from '@/features/playback';
+import {
+  estimateFinishTime,
+  formatClockTime,
+  useEntitlement,
+  useHlsPlayer,
+  useMovieActions,
+  useSleepTimer,
+  useWatchProgress,
+} from '@/features/playback';
 import { usePreferences } from '@/features/preferences';
 import { withNext } from '@/lib/nextParam';
 import type { Episode, Movie, PlaybackAuthorization, SubscriptionPlan } from '@/types';
@@ -183,6 +191,24 @@ export default function PlayerClient({
   }
 
   const durationSeconds = mediaDuration || episode.durationMinutes * 60;
+  // Computed inline during render, never memoized: reading `new Date()`
+  // fresh on every render is what makes this correct across a pause --
+  // reopening the chrome after sitting paused for ten minutes must show a
+  // finish time ten minutes later, not the value calculated when playback
+  // began. estimateFinishTime's own behavior with respect to `now` is
+  // covered directly in finishTime.test.ts.
+  const skippableSeconds = episode.sceneMarkers.reduce(
+    (total, m) => total + (m.endSeconds - m.startSeconds),
+    0,
+  );
+  const { finishesAt, savedSeconds } = estimateFinishTime({
+    now: new Date(),
+    remainingSeconds: Math.max(0, durationSeconds - progressSeconds),
+    skippableSeconds,
+    autoSkip: prefs.autoSkip,
+    playbackRate,
+  });
+  const savedMinutes = Math.round(savedSeconds / 60);
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-ink">
@@ -310,6 +336,12 @@ export default function PlayerClient({
             <div className="min-w-0 flex-1 text-center">
               <div className="truncate text-sm font-semibold text-fg">{movie.title}</div>
               <div className="truncate text-xs text-fg-dim">{episode.title}</div>
+              <div className="truncate text-xs text-fg-mute">
+                จบ {formatClockTime(finishesAt)}
+                {prefs.autoSkip && savedMinutes > 0 && (
+                  <> · ข้าม intro/credits แล้วเร็วขึ้น {savedMinutes} นาที</>
+                )}
+              </div>
             </div>
             <button
               onClick={toggleFullscreen}

@@ -35,6 +35,6 @@ export class DiscoveryController {
   )
   @Get('fits')
   fits(@CurrentUser() user: AuthenticatedUser, @Query() query: FitsQueryDto) {
-    return this.discovery.fits(user.id, query.maxMinutes);
+    return this.discovery.fits(user.id, query.maxMinutes, query.mood);
   }
 }

@@ -54,6 +54,9 @@ async function main() {
           }
         }]
       },
+      moods: {
+        create: [{ mood: { connectOrCreate: { where: { slug: 'stressed' }, create: { slug: 'stressed', name: 'เครียด', emoji: '😣' } } } }, { mood: { connectOrCreate: { where: { slug: 'inspired' }, create: { slug: 'inspired', name: 'อยากได้แรงบันดาลใจ', emoji: '✨' } } } }]
+      },
       seasons: {
         create: [
           {
@@ -102,6 +105,9 @@ async function main() {
           }
         }]
       },
+      moods: {
+        create: [{ mood: { connectOrCreate: { where: { slug: 'thrill' }, create: { slug: 'thrill', name: 'อยากลุ้น', emoji: '😰' } } } }]
+      },
       seasons: {
         create: [
           {
@@ -138,6 +144,9 @@ async function main() {
             }
           }
         }]
+      },
+      moods: {
+        create: [{ mood: { connectOrCreate: { where: { slug: 'stressed' }, create: { slug: 'stressed', name: 'เครียด', emoji: '😣' } } } }]
       },
       seasons: {
         create: [
@@ -176,6 +185,9 @@ async function main() {
           }
         }]
       },
+      moods: {
+        create: [{ mood: { connectOrCreate: { where: { slug: 'thrill' }, create: { slug: 'thrill', name: 'อยากลุ้น', emoji: '😰' } } } }]
+      },
       seasons: {
         create: [
           {
@@ -213,6 +225,9 @@ async function main() {
           }
         }]
       },
+      moods: {
+        create: [{ mood: { connectOrCreate: { where: { slug: 'lonely' }, create: { slug: 'lonely', name: 'เหงา', emoji: '🌙' } } } }, { mood: { connectOrCreate: { where: { slug: 'cry' }, create: { slug: 'cry', name: 'อยากร้องไห้', emoji: '😢' } } } }]
+      },
       seasons: {
         create: [
           {
@@ -249,6 +264,9 @@ async function main() {
             }
           }
         }]
+      },
+      moods: {
+        create: [{ mood: { connectOrCreate: { where: { slug: 'thrill' }, create: { slug: 'thrill', name: 'อยากลุ้น', emoji: '😰' } } } }, { mood: { connectOrCreate: { where: { slug: 'laugh' }, create: { slug: 'laugh', name: 'อยากหัวเราะ', emoji: '😂' } } } }]
       },
       seasons: {
         create: [

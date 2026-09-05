@@ -98,7 +98,7 @@ describe('MoviesService', () => {
     prismaMock.movie.findMany.mockResolvedValue([{ id: 'm1', genres: [] }]);
 
     await expect(service.findAll()).resolves.toEqual([
-      { id: 'm1', genres: [] },
+      { id: 'm1', genres: [], moods: [] },
     ]);
     expect(prismaMock.movie.findMany).toHaveBeenCalled();
   });
@@ -109,7 +109,7 @@ describe('MoviesService', () => {
     prismaMock.movie.findMany.mockResolvedValue([{ id: 'm1', genres: [] }]);
 
     await expect(service.findAll()).resolves.toEqual([
-      { id: 'm1', genres: [] },
+      { id: 'm1', genres: [], moods: [] },
     ]);
   });
 
@@ -227,6 +227,7 @@ describe('MoviesService', () => {
       'updatedAt',
       'deletedAt',
       'genres',
+      'moods',
       'seasons',
     ].sort();
     const SEASON_KEYS = [
@@ -264,6 +265,7 @@ describe('MoviesService', () => {
       'updatedAt',
     ].sort();
     const GENRE_KEYS = ['id', 'name', 'slug'].sort();
+    const MOOD_KEYS = ['id', 'slug', 'name', 'emoji'].sort();
 
     it('exposes exactly the allowlisted keys at every nesting level', async () => {
       prismaMock.movie.findMany.mockResolvedValue([
@@ -282,6 +284,16 @@ describe('MoviesService', () => {
           updatedAt: new Date(),
           deletedAt: null,
           genres: [{ genre: { id: 'g1', name: 'Drama', slug: 'drama' } }],
+          moods: [
+            {
+              mood: {
+                id: 'md1',
+                slug: 'thrill',
+                name: 'อยากลุ้น',
+                emoji: '😰',
+              },
+            },
+          ],
           seasons: [
             {
               id: 's1',
@@ -328,6 +340,7 @@ describe('MoviesService', () => {
 
       expect(Object.keys(movie).sort()).toEqual(MOVIE_KEYS);
       expect(Object.keys(movie.genres[0]).sort()).toEqual(GENRE_KEYS);
+      expect(Object.keys(movie.moods[0]).sort()).toEqual(MOOD_KEYS);
       expect(Object.keys(movie.seasons[0]).sort()).toEqual(SEASON_KEYS);
       const [episode] = movie.seasons[0].episodes as unknown as Record<
         string,
@@ -367,6 +380,16 @@ describe('MoviesService', () => {
         {
           id: 'm2',
           genres: [{ genre: { id: 'g1', name: 'ดราม่า', slug: 'drama' } }],
+          moods: [
+            {
+              mood: {
+                id: 'md1',
+                slug: 'thrill',
+                name: 'อยากลุ้น',
+                emoji: '😰',
+              },
+            },
+          ],
         },
       ]);
 
@@ -381,10 +404,17 @@ describe('MoviesService', () => {
         },
         orderBy: { createdAt: 'desc' },
         take: 10,
-        include: { genres: { include: { genre: true } } },
+        include: {
+          genres: { include: { genre: true } },
+          moods: { include: { mood: true } },
+        },
       });
       expect(result).toEqual([
-        { id: 'm2', genres: [{ id: 'g1', name: 'ดราม่า', slug: 'drama' }] },
+        {
+          id: 'm2',
+          genres: [{ id: 'g1', name: 'ดราม่า', slug: 'drama' }],
+          moods: [{ id: 'md1', slug: 'thrill', name: 'อยากลุ้น', emoji: '😰' }],
+        },
       ]);
     });
 

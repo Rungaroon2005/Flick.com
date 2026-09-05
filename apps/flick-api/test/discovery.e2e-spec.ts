@@ -100,4 +100,32 @@ describe('GET /discovery/fits (e2e)', () => {
       expect(item.episode).not.toHaveProperty('videoUrl');
     }
   });
+
+  it('filters by a real seeded mood tag', async () => {
+    // dao-sindome, ngao and sena are seeded with mood "thrill"; sathu,
+    // neephee and rak are not -- against the real seeded database, not a
+    // mock, so this proves the join actually reaches Postgres.
+    const res = await request(app.getHttpServer())
+      .get('/discovery/fits?maxMinutes=90&mood=thrill')
+      .set('Cookie', userCookie)
+      .expect(200);
+
+    const items = res.body as Array<{ movie: { id: string } }>;
+    const movieIds = items.map((item) => item.movie.id);
+    expect(movieIds).toEqual(
+      expect.arrayContaining(['dao-sindome', 'ngao', 'sena']),
+    );
+    expect(movieIds).not.toEqual(
+      expect.arrayContaining(['sathu', 'neephee', 'rak']),
+    );
+  });
+
+  it('returns an empty list for a mood slug nobody has tagged, not an error', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/discovery/fits?maxMinutes=90&mood=nonexistent-slug')
+      .set('Cookie', userCookie)
+      .expect(200);
+
+    expect(res.body).toEqual([]);
+  });
 });

@@ -166,6 +166,7 @@ model Movie {
   bookmarks    Bookmark[]
   interactions Interaction[]
   genres       MovieGenre[]
+  moods        MovieMood[]
 
   @@index([status, createdAt])
   @@index([title])
@@ -190,6 +191,32 @@ model MovieGenre {
 
   @@id([movieId, genreId])
   @@map("movie_genres")
+}
+
+/// Mood is NOT derived from Genre, ever -- a drama can answer "อยากร้องไห้"
+/// and "อยากได้แรงบันดาลใจ" while another drama answers neither, so this
+/// table only ever gets populated by an explicit hand-tag (seed.ts first,
+/// an admin route later). See MovieMood.
+model Mood {
+  id    String @id @default(uuid())
+  slug  String @unique
+  name  String
+  emoji String
+
+  movies MovieMood[]
+
+  @@map("moods")
+}
+
+model MovieMood {
+  movieId String
+  moodId  String
+
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  mood  Mood  @relation(fields: [moodId], references: [id], onDelete: Cascade)
+
+  @@id([movieId, moodId])
+  @@map("movie_moods")
 }
 
 model Season {

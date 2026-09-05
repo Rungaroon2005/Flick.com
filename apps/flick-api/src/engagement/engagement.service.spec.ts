@@ -4,7 +4,7 @@ import { EngagementService } from './engagement.service';
 import { PrismaService } from '../prisma.service';
 import { PlaybackService } from '../playback/playback.service';
 import { createPrismaMock } from '../testing/prisma.mock';
-import { GENRES_INCLUDE } from '../movies/movies.service';
+import { GENRES_INCLUDE, MOODS_INCLUDE } from '../movies/movies.service';
 import { InteractionType } from '@prisma/client';
 
 describe('EngagementService', () => {
@@ -58,8 +58,8 @@ describe('EngagementService', () => {
       { movie: { id: 'm2', title: 'B', genres: [] } },
     ]);
     await expect(service.getBookmarks('u1')).resolves.toEqual([
-      { id: 'm1', title: 'A', genres: [] },
-      { id: 'm2', title: 'B', genres: [] },
+      { id: 'm1', title: 'A', genres: [], moods: [] },
+      { id: 'm2', title: 'B', genres: [], moods: [] },
     ]);
   });
 
@@ -85,6 +85,7 @@ describe('EngagementService', () => {
           { id: 'g1', slug: 'action', name: 'Action' },
           { id: 'g2', slug: 'drama', name: 'Drama' },
         ],
+        moods: [],
       },
     ]);
   });
@@ -228,6 +229,7 @@ describe('EngagementService', () => {
       id: 'm1',
       title: 'A',
       genres: [{ id: 'g1', slug: 'action', name: 'Action' }],
+      moods: [],
     });
   });
 
@@ -310,6 +312,7 @@ describe('EngagementService', () => {
       title: 'เรื่องหนึ่ง',
       posterUrl: '/poster.jpg',
       genres: [],
+      moods: [],
     });
     expect(JSON.stringify(download)).not.toContain('SECRET-URL');
     expect(prisma.download.findMany).toHaveBeenCalledWith({
@@ -319,7 +322,11 @@ describe('EngagementService', () => {
         episode: {
           include: {
             season: {
-              include: { movie: { include: { genres: GENRES_INCLUDE } } },
+              include: {
+                movie: {
+                  include: { genres: GENRES_INCLUDE, moods: MOODS_INCLUDE },
+                },
+              },
             },
           },
         },

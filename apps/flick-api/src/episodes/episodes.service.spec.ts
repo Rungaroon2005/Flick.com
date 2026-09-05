@@ -45,6 +45,11 @@ describe('EpisodesService', () => {
         year: 2026,
         contentRating: 'ทั่วไป',
         genres: [{ genre: { id: 'g1', name: 'ดราม่า', slug: 'drama' } }],
+        moods: [
+          {
+            mood: { id: 'md1', slug: 'thrill', name: 'อยากลุ้น', emoji: '😰' },
+          },
+        ],
       },
     },
     ...overrides,

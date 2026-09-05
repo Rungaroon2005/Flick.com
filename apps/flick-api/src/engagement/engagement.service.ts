@@ -3,10 +3,10 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { Genre, InteractionType, Prisma } from '@prisma/client';
+import { Genre, InteractionType, Mood, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { PlaybackService } from '../playback/playback.service';
-import { GENRES_INCLUDE } from '../movies/movies.service';
+import { GENRES_INCLUDE, MOODS_INCLUDE } from '../movies/movies.service';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const COMPLETION_THRESHOLD = 0.9;
@@ -25,7 +25,9 @@ const DOWNLOAD_INCLUDE = {
   episode: {
     include: {
       season: {
-        include: { movie: { include: { genres: GENRES_INCLUDE } } },
+        include: {
+          movie: { include: { genres: GENRES_INCLUDE, moods: MOODS_INCLUDE } },
+        },
       },
     },
   },
@@ -40,11 +42,15 @@ type DownloadWithRelations = Prisma.DownloadGetPayload<{
 // same transform `MoviesService.toDto` applies to every other movie-bearing
 // endpoint. Bookmarks and continue-watching return movies too, so they need
 // it as well or `movie.genres` is `undefined` on the wire.
-function flattenMovieGenres<T extends { genres: { genre: Genre }[] }>(
-  movie: T,
-) {
-  const { genres, ...rest } = movie;
-  return { ...rest, genres: genres.map((g) => g.genre) };
+function flattenMovieGenres<
+  T extends { genres: { genre: Genre }[]; moods?: { mood: Mood }[] },
+>(movie: T) {
+  const { genres, moods, ...rest } = movie;
+  return {
+    ...rest,
+    genres: genres.map((g) => g.genre),
+    moods: (moods ?? []).map((m) => m.mood),
+  };
 }
 
 /**
@@ -84,7 +90,9 @@ export class EngagementService {
   async getBookmarks(userId: string) {
     const bookmarks = await this.prisma.bookmark.findMany({
       where: { userId },
-      include: { movie: { include: { genres: GENRES_INCLUDE } } },
+      include: {
+        movie: { include: { genres: GENRES_INCLUDE, moods: MOODS_INCLUDE } },
+      },
     });
     return bookmarks.map((bookmark) => flattenMovieGenres(bookmark.movie));
   }
@@ -158,7 +166,11 @@ export class EngagementService {
           include: {
             sceneMarkers: true,
             season: {
-              include: { movie: { include: { genres: GENRES_INCLUDE } } },
+              include: {
+                movie: {
+                  include: { genres: GENRES_INCLUDE, moods: MOODS_INCLUDE },
+                },
+              },
             },
           },
         },

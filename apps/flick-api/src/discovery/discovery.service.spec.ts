@@ -42,6 +42,94 @@ describe('DiscoveryService', () => {
     await expect(service.fits('u1', 30)).resolves.toEqual([]);
   });
 
+  describe('mood filter', () => {
+    it('includes only catalogue movies tagged with the requested mood', async () => {
+      movies.findAll.mockResolvedValue([
+        movie({
+          id: 'm1',
+          moods: [{ id: 'md1', slug: 'thrill', name: 'อยากลุ้น', emoji: '😰' }],
+          seasons: [{ id: 's1', episodes: [episode()] }],
+        }),
+        movie({
+          id: 'm2',
+          moods: [{ id: 'md2', slug: 'cry', name: 'อยากร้องไห้', emoji: '😢' }],
+          seasons: [{ id: 's1', episodes: [episode()] }],
+        }),
+      ]);
+
+      const items = await service.fits('u1', 30, 'thrill');
+
+      expect(items).toHaveLength(1);
+      expect(items[0].movie).toMatchObject({ id: 'm1' });
+    });
+
+    it('excludes an untagged movie from a mood-filtered result', async () => {
+      movies.findAll.mockResolvedValue([
+        movie({
+          id: 'm1',
+          moods: [],
+          seasons: [{ id: 's1', episodes: [episode()] }],
+        }),
+      ]);
+
+      await expect(service.fits('u1', 30, 'thrill')).resolves.toEqual([]);
+    });
+
+    it('also filters in-progress (next_episode) items by mood', async () => {
+      const taggedMovie = movie({
+        id: 'm1',
+        moods: [{ id: 'md1', slug: 'thrill', name: 'อยากลุ้น', emoji: '😰' }],
+      });
+      const untaggedMovie = movie({ id: 'm2', moods: [] });
+      engagement.getContinueWatching.mockResolvedValue([
+        {
+          progressSeconds: 60,
+          episode: episode({ durationMinutes: 20 }),
+          movie: taggedMovie,
+        },
+        {
+          progressSeconds: 60,
+          episode: episode({ durationMinutes: 20 }),
+          movie: untaggedMovie,
+        },
+      ]);
+
+      const items = await service.fits('u1', 30, 'thrill');
+
+      expect(items).toHaveLength(1);
+      expect(items[0]).toMatchObject({
+        kind: 'next_episode',
+        movie: { id: 'm1' },
+      });
+    });
+
+    it('with no mood argument, applies no mood filter at all', async () => {
+      movies.findAll.mockResolvedValue([
+        movie({
+          id: 'm1',
+          moods: [],
+          seasons: [{ id: 's1', episodes: [episode()] }],
+        }),
+      ]);
+
+      const items = await service.fits('u1', 30);
+
+      expect(items).toHaveLength(1);
+    });
+
+    it('an unrecognized mood slug yields an empty result, not an error', async () => {
+      movies.findAll.mockResolvedValue([
+        movie({
+          id: 'm1',
+          moods: [{ id: 'md1', slug: 'thrill', name: 'อยากลุ้น', emoji: '😰' }],
+          seasons: [{ id: 's1', episodes: [episode()] }],
+        }),
+      ]);
+
+      await expect(service.fits('u1', 30, 'no-such-mood')).resolves.toEqual([]);
+    });
+  });
+
   describe('film / first_episode (from the catalogue)', () => {
     it("labels a single-episode movie 'film'", async () => {
       movies.findAll.mockResolvedValue([

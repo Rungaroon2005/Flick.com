@@ -1,7 +1,7 @@
 import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { ContentStatus, Genre, Prisma } from '@prisma/client';
+import { ContentStatus, Genre, Mood, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
 
@@ -26,9 +26,14 @@ const EPISODES_INCLUDE = {
 };
 
 export const GENRES_INCLUDE = { include: { genre: true as const } };
+// Mood is content-level metadata, identical for every viewer -- same Tier
+// 1 reasoning as genres and scene markers -- so it rides in this same
+// cached payload rather than needing its own endpoint.
+export const MOODS_INCLUDE = { include: { mood: true as const } };
 
 const MOVIE_LIST_INCLUDE = {
   genres: GENRES_INCLUDE,
+  moods: MOODS_INCLUDE,
   seasons: { include: { episodes: EPISODES_INCLUDE } },
 } satisfies Prisma.MovieInclude;
 
@@ -40,8 +45,12 @@ type EpisodeWithoutVideoUrl = Omit<
   SeasonWithEpisodes['episodes'][number],
   'videoUrl'
 >;
-export type MovieDto = Omit<MovieWithRelations, 'genres' | 'seasons'> & {
+export type MovieDto = Omit<
+  MovieWithRelations,
+  'genres' | 'moods' | 'seasons'
+> & {
   genres: Genre[];
+  moods: Mood[];
   seasons: (Omit<SeasonWithEpisodes, 'episodes'> & {
     episodes: EpisodeWithoutVideoUrl[];
   })[];
@@ -89,10 +98,24 @@ export class MoviesService {
   // returns a movie, via `findAll`/`findOne`/`findSimilar`/`create` all
   // routing through this one method.
   private toDto<
-    T extends { genres: { genre: Genre }[]; seasons?: SeasonWithEpisodes[] },
+    T extends {
+      genres: { genre: Genre }[];
+      // Optional, not required like genres: real Prisma queries (via
+      // MOVIE_LIST_INCLUDE) always provide this, but this method is also
+      // exercised by many pre-existing unit test fixtures written before
+      // moods existed. Defaulting to [] here keeps those passing without
+      // rewriting fixtures that have nothing to do with this feature,
+      // while real data is never actually missing the field.
+      moods?: { mood: Mood }[];
+      seasons?: SeasonWithEpisodes[];
+    },
   >(movie: T) {
-    const { genres, ...rest } = movie;
-    const base = { ...rest, genres: genres.map((g) => g.genre) };
+    const { genres, moods, ...rest } = movie;
+    const base = {
+      ...rest,
+      genres: genres.map((g) => g.genre),
+      moods: (moods ?? []).map((m) => m.mood),
+    };
     if (!Array.isArray(base.seasons)) {
       return base;
     }
@@ -239,7 +262,7 @@ export class MoviesService {
       },
       orderBy: { createdAt: 'desc' },
       take: SIMILAR_MOVIES_LIMIT,
-      include: { genres: GENRES_INCLUDE },
+      include: { genres: GENRES_INCLUDE, moods: MOODS_INCLUDE },
     });
 
     return similarMovies.map((m) => this.toDto(m));

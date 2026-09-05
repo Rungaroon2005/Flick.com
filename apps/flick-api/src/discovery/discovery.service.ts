@@ -7,6 +7,10 @@ interface SceneMarkerLike {
   endSeconds: number;
 }
 
+interface MoodLike {
+  slug: string;
+}
+
 export type FitsKind = 'film' | 'next_episode' | 'first_episode';
 
 export interface FitsItem {
@@ -62,11 +66,23 @@ export class DiscoveryService {
     private readonly engagement: EngagementService,
   ) {}
 
-  async fits(userId: string, maxMinutes: number): Promise<FitsItem[]> {
+  async fits(
+    userId: string,
+    maxMinutes: number,
+    moodSlug?: string,
+  ): Promise<FitsItem[]> {
     const [allMovies, continueWatching] = await Promise.all([
       this.movies.findAll(),
       this.engagement.getContinueWatching(userId),
     ]);
+
+    // An unrecognized slug (or one for a mood nobody has tagged yet) is
+    // not an error -- it's the same as "nothing matches," exactly like an
+    // empty search result. There is no admin UI to create moods yet (see
+    // the design doc's C1 -- seed.ts only, for this phase), so a typo or
+    // stale slug is a real, expected case, not exceptional.
+    const matchesMood = (moods: MoodLike[]): boolean =>
+      !moodSlug || moods.some((m) => m.slug === moodSlug);
 
     const items: FitsItem[] = [];
     const coveredMovieIds = new Set<string>();
@@ -74,9 +90,10 @@ export class DiscoveryService {
     for (const record of continueWatching as unknown as {
       progressSeconds: number;
       episode: { durationMinutes: number; sceneMarkers: SceneMarkerLike[] };
-      movie: { id: string };
+      movie: { id: string; moods: MoodLike[] };
     }[]) {
       coveredMovieIds.add(record.movie.id);
+      if (!matchesMood(record.movie.moods)) continue;
       const item = toItem(
         record.movie,
         record.episode,
@@ -88,6 +105,7 @@ export class DiscoveryService {
 
     for (const movie of allMovies) {
       if (coveredMovieIds.has(movie.id)) continue;
+      if (!matchesMood(movie.moods)) continue;
       const allEpisodes = movie.seasons.flatMap(
         (season) => season.episodes,
       ) as {

@@ -15,6 +15,7 @@ import {
   useHlsPlayer,
   useMovieActions,
   useSleepTimer,
+  useSmartSkip,
   useWatchProgress,
 } from '@/features/playback';
 import { usePreferences } from '@/features/preferences';
@@ -22,6 +23,12 @@ import { withNext } from '@/lib/nextParam';
 import type { Episode, Movie, PlaybackAuthorization, SubscriptionPlan } from '@/types';
 
 const CHROME_IDLE_MS = 2500;
+
+const SKIP_LABELS: Record<string, string> = {
+  INTRO: 'ข้ามอินโทร',
+  RECAP: 'ข้ามเรื่องย่อ',
+  CREDITS: 'ข้ามเครดิต',
+};
 
 function formatTime(totalSeconds: number): string {
   const seconds = Math.max(0, Math.floor(totalSeconds));
@@ -57,7 +64,7 @@ export default function PlayerClient({
   plans: SubscriptionPlan[];
 }) {
   const router = useRouter();
-  const { prefs, setNight } = usePreferences();
+  const { prefs, setNight, setAutoSkip } = usePreferences();
   // Every escape from the gate sheet carries this, so paying or subscribing
   // returns to the episode being sold rather than to the lobby.
   const returnPath = `/player/${episodeId}`;
@@ -113,6 +120,17 @@ export default function PlayerClient({
     cancel: cancelSleep,
     notifyEpisodeEnded,
   } = useSleepTimer(videoRef, handleSleepExpire);
+
+  // Hooks must run unconditionally on every render, including the ones
+  // before `episode` has loaded -- the early `if (!movie || !episode)`
+  // return below happens AFTER this, so it falls back to an empty list
+  // rather than being skipped.
+  const { activeMarker, skip: skipMarker } = useSmartSkip(
+    videoRef,
+    episode?.sceneMarkers ?? [],
+    progressSeconds,
+    prefs.autoSkip,
+  );
 
   const movieId = movie?.id ?? null;
   const {
@@ -422,6 +440,14 @@ export default function PlayerClient({
           <Switch checked={prefs.night} onChange={setNight} label="โหมดกลางคืน" />
         </div>
 
+        <div className="mt-6 flex items-center justify-between border-t border-hairline pt-6">
+          <div>
+            <h4 className="text-xs font-medium text-fg-dim">ข้ามอัตโนมัติ</h4>
+            <p className="mt-0.5 text-xs text-fg-mute">ข้ามอินโทร เรื่องย่อ และเครดิตให้เองทันทีที่เจอ</p>
+          </div>
+          <Switch checked={prefs.autoSkip} onChange={setAutoSkip} label="ข้ามอัตโนมัติ" />
+        </div>
+
         <div className="mt-6 border-t border-hairline pt-6">
           <h4 className="mb-2 text-xs font-medium text-fg-dim">ตั้งเวลาปิด</h4>
           {sleepMode === null ? (
@@ -504,6 +530,19 @@ export default function PlayerClient({
         >
           {playbackError}
         </p>
+      )}
+
+      {/* Hidden once autoSkip is on: the hook jumps past the marker on its
+          own a moment after this would render, so showing a button that's
+          about to become moot is confusing rather than helpful. */}
+      {!gate && activeMarker && !prefs.autoSkip && (
+        <button
+          type="button"
+          onClick={skipMarker}
+          className="focus-ring absolute right-4 bottom-24 z-20 rounded-full border border-white/20 bg-black/60 px-4 py-2.5 text-sm font-medium text-white backdrop-blur-xl transition-all duration-surface ease-enter active:scale-95"
+        >
+          {SKIP_LABELS[activeMarker.kind] ?? 'ข้าม'}
+        </button>
       )}
 
       {/* One card for both 'warning' and 'fading' -- the volume ramp inside

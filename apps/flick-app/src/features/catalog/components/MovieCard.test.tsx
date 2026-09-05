@@ -34,4 +34,31 @@ describe('MovieCard', () => {
     const { container } = render(<MovieCard movie={movie} size="fill" />);
     expect((container.firstElementChild as HTMLElement).className).toContain('w-full');
   });
+
+  it('shows nothing extra when watchStatus is omitted', () => {
+    const { container } = render(<MovieCard movie={movie} />);
+    expect(container.querySelectorAll('svg').length).toBe(0);
+  });
+
+  it('shows a checkmark badge for a fully watched movie', () => {
+    const { container } = render(
+      <MovieCard movie={movie} watchStatus={{ state: 'watched', percent: 100, lastWatchedAt: null }} />,
+    );
+    expect(container.querySelectorAll('svg').length).toBe(1);
+  });
+
+  it('shows a progress bar sized to the percent for a partially watched movie', () => {
+    const { container } = render(
+      <MovieCard movie={movie} watchStatus={{ state: 'partial', percent: 45, lastWatchedAt: null }} />,
+    );
+    const bar = container.querySelector('[data-testid="watch-progress"]') as HTMLElement;
+    expect(bar.style.width).toBe('45%');
+  });
+
+  it('shows nothing for a never-watched movie', () => {
+    const { container } = render(
+      <MovieCard movie={movie} watchStatus={{ state: 'none', percent: 0, lastWatchedAt: null }} />,
+    );
+    expect(container.querySelectorAll('svg').length).toBe(0);
+  });
 });

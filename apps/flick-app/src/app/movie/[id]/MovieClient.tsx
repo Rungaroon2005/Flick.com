@@ -10,6 +10,7 @@ import { ReactionButton } from '@/components/ui/ReactionButton';
 import { ApiError, apiFetch } from '@/lib/apiClient';
 import { estimateFinishTime, formatClockTime, formatDurationThai } from '@/features/playback';
 import { usePreferences } from '@/features/preferences';
+import { useWatchStatus } from '@/features/watchStatus';
 import { Movie } from '@/types';
 
 interface MovieClientProps {
@@ -31,6 +32,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
     () => new Set(),
   );
   const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
+  const watchStatus = useWatchStatus(similarMovies.slice(0, 5).map((m) => m.id));
 
   const { prefs } = usePreferences();
   const currentSeason = movie.seasons?.find(s => s.seasonNumber === selectedSeason);
@@ -253,7 +255,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
             <h3 className="px-5 md:px-8 lg:px-0 font-display text-lg font-bold text-fg">รายการที่คล้ายกัน</h3>
             <div className="scrollbar-hide mt-3 flex gap-3 overflow-x-auto px-5 md:px-8 lg:px-0 pb-2">
               {similarMovies.slice(0, 5).map((m) => (
-                <MovieCard key={m.id} movie={m} size="medium" />
+                <MovieCard key={m.id} movie={m} size="medium" watchStatus={watchStatus[m.id]} />
               ))}
             </div>
           </div>

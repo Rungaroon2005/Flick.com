@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
 
-import { Movie } from '@/types';
+import { Movie, WatchStatusEntry } from '@/types';
 
 interface MovieCardProps {
   movie: Movie;
@@ -11,6 +11,10 @@ interface MovieCardProps {
    *  the card. */
   size?: 'small' | 'medium' | 'large' | 'fill';
   showBookmark?: boolean;
+  /** From GET /me/watch-status, merged in client-side by the page (never
+   *  server-rendered alongside the shared /movies cache -- design doc
+   *  §2.1). Omitted entirely on pages that don't fetch it. */
+  watchStatus?: WatchStatusEntry;
 }
 
 // Cards grow with the viewport rather than multiplying into a hairline row:
@@ -24,7 +28,12 @@ const sizeClasses = {
   fill: 'w-full',
 };
 
-export default function MovieCard({ movie, size = 'medium', showBookmark = false }: MovieCardProps) {
+export default function MovieCard({
+  movie,
+  size = 'medium',
+  showBookmark = false,
+  watchStatus,
+}: MovieCardProps) {
   if (!movie) return null;
 
   return (
@@ -59,6 +68,20 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
         {showBookmark && (
           <div className="absolute top-2 right-2 z-[2] flex h-6 w-6 items-center justify-center rounded-full bg-brand text-ink shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
             <Icon name="bookmarkFilled" size={16} />
+          </div>
+        )}
+        {watchStatus?.state === 'watched' && (
+          <div className="absolute top-2 left-2 z-[2] flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-fg shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+            <Icon name="checkCircle" size={16} />
+          </div>
+        )}
+        {watchStatus?.state === 'partial' && (
+          <div className="absolute inset-x-0 bottom-0 z-[2] h-1 bg-black/40">
+            <div
+              data-testid="watch-progress"
+              className="h-full bg-brand"
+              style={{ width: `${watchStatus.percent}%` }}
+            />
           </div>
         )}
       </div>

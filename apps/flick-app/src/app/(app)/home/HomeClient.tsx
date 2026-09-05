@@ -7,6 +7,7 @@ import { MovieCard } from '@/features/catalog';
 import { Icon } from '@/components/ui/Icon';
 import { Shelf } from '@/components/ui/Shelf';
 import { TimeFilterSheet } from '@/features/discovery';
+import { useWatchStatus } from '@/features/watchStatus';
 import { ContinueWatchingItem, Movie } from '@/types';
 
 interface HomeClientProps {
@@ -38,6 +39,10 @@ export default function HomeClient({
   const featured = initialMovies[0];
   const recommendedMovies = initialMovies.slice(1, 7);
   const featuredEpisodeId = featured ? firstEpisodeId(featured) : null;
+  const watchStatus = useWatchStatus([
+    ...recommendedMovies.map((m) => m.id),
+    ...initialBookmarks.map((m) => m.id),
+  ]);
 
   // Hoisted so the "รายการของฉัน" action link isn't duplicated across the
   // two Shelf branches below (populated rail vs. empty-state body).
@@ -148,7 +153,7 @@ export default function HomeClient({
         >
           {recommendedMovies.map((movie) => (
             <div key={movie.id} className="snap-start">
-              <MovieCard movie={movie} size="medium" />
+              <MovieCard movie={movie} size="medium" watchStatus={watchStatus[movie.id]} />
             </div>
           ))}
         </Shelf>
@@ -205,7 +210,7 @@ export default function HomeClient({
                 badge reflects real state. */}
             {initialBookmarks.map((m) => (
               <div key={m.id} className="snap-start">
-                <MovieCard movie={m} size="medium" showBookmark />
+                <MovieCard movie={m} size="medium" showBookmark watchStatus={watchStatus[m.id]} />
               </div>
             ))}
           </Shelf>

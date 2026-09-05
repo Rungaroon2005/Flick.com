@@ -72,6 +72,17 @@ async function main() {
     },
   });
 
+  // Demonstrates smart-skip and finish-time estimation (NewPlan Phase B)
+  // against real fixture data. sathu-premium runs 10 minutes (600s); cascade
+  // from the movie deleteMany above already clears these on re-run, since
+  // scene_markers cascades from episodes, which cascades from movies.
+  await prisma.sceneMarker.createMany({
+    data: [
+      { episodeId: 'sathu-premium', kind: 'INTRO', startSeconds: 0, endSeconds: 30 },
+      { episodeId: 'sathu-premium', kind: 'CREDITS', startSeconds: 560, endSeconds: 600 },
+    ],
+  });
+
   const dao = await prisma.movie.create({
     data: {
       id: 'dao-sindome',

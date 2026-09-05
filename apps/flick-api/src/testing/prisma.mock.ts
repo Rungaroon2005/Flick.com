@@ -34,6 +34,7 @@ export interface PrismaMock {
     findUnique: jest.Mock;
     upsert: jest.Mock;
     deleteMany: jest.Mock;
+    count: jest.Mock;
   };
   watchHistory: {
     upsert: jest.Mock;
@@ -118,6 +119,7 @@ export const createPrismaMock = (): PrismaMock => {
       findUnique: jest.fn(),
       upsert: jest.fn(),
       deleteMany: jest.fn(),
+      count: jest.fn(),
     },
     watchHistory: {
       upsert: jest.fn(),

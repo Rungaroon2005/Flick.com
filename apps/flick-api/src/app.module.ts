@@ -19,6 +19,7 @@ import { PlaybackModule } from './playback/playback.module';
 import { EngagementModule } from './engagement/engagement.module';
 import { SceneMarkersModule } from './scene-markers/scene-markers.module';
 import { DiscoveryModule } from './discovery/discovery.module';
+import { PassportModule } from './passport/passport.module';
 import { validateEnv } from './common/config.validation';
 import { DatabaseModule } from './database/database.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
@@ -41,6 +42,7 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
     MaintenanceModule,
     SceneMarkersModule,
     DiscoveryModule,
+    PassportModule,
   ],
   controllers: [AppController, PlansController],
   providers: [

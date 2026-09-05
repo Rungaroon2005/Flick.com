@@ -143,6 +143,7 @@ export class EngagementService {
       include: {
         episode: {
           include: {
+            sceneMarkers: true,
             season: {
               include: { movie: { include: { genres: GENRES_INCLUDE } } },
             },

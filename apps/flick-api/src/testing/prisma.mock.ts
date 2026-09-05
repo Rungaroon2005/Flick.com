@@ -63,6 +63,11 @@ export interface PrismaMock {
     updateMany: jest.Mock;
     deleteMany: jest.Mock;
   };
+  sceneMarker: {
+    findMany: jest.Mock;
+    upsert: jest.Mock;
+    deleteMany: jest.Mock;
+  };
   paymentIntent: {
     create: jest.Mock;
     update: jest.Mock;
@@ -140,6 +145,11 @@ export const createPrismaMock = (): PrismaMock => {
       create: jest.fn(),
       findUnique: jest.fn(),
       updateMany: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    sceneMarker: {
+      findMany: jest.fn(),
+      upsert: jest.fn(),
       deleteMany: jest.fn(),
     },
     paymentIntent: {

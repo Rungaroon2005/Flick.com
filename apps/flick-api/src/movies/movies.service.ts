@@ -17,6 +17,12 @@ const PUBLISHED_FILTER = {
 const EPISODES_INCLUDE = {
   where: { deletedAt: null },
   orderBy: { episodeNumber: 'asc' as const },
+  // Timing metadata, not the video itself -- rides in this same cached
+  // payload rather than needing its own authenticated endpoint (Tier 1 in
+  // the design doc's cache invariant). toDto needs no change to pass this
+  // through: it spreads the rest of the episode after destructuring out
+  // videoUrl, so a new included relation flows through automatically.
+  include: { sceneMarkers: true },
 };
 
 export const GENRES_INCLUDE = { include: { genre: true as const } };
@@ -55,6 +61,20 @@ export class MoviesService {
     this.logger.warn(
       `Movie cache ${operation} failed; continuing without cache: ${message}`,
     );
+  }
+
+  /**
+   * Public so other modules that mutate content reachable through the
+   * cached movie payload -- SceneMarkersService, when an admin edits a
+   * marker -- can invalidate it too, through the exact same degrade-not-fail
+   * treatment `create()` uses below, rather than duplicating it.
+   */
+  async invalidateCache(): Promise<void> {
+    try {
+      await this.cacheManager.del(CACHE_KEY_ALL_MOVIES);
+    } catch (err) {
+      this.logCacheFailure('invalidation', err);
+    }
   }
 
   // Flattens the MovieGenre join-table shape (`{ genres: [{ genre: {...} }] }`)
@@ -107,11 +127,7 @@ export class MoviesService {
       },
       include: { genres: GENRES_INCLUDE },
     });
-    try {
-      await this.cacheManager.del(CACHE_KEY_ALL_MOVIES);
-    } catch (err) {
-      this.logCacheFailure('invalidation', err);
-    }
+    await this.invalidateCache();
     return this.toDto(movie);
   }
 

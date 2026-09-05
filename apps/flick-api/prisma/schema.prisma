@@ -48,6 +48,12 @@ enum IdentityProvider {
   APPLE
 }
 
+enum SceneMarkerKind {
+  INTRO
+  RECAP
+  CREDITS
+}
+
 // -----------------------------------------------------------------------------
 // 1. USER & ACCESS MODULE
 // -----------------------------------------------------------------------------
@@ -147,6 +153,11 @@ model Movie {
   status        ContentStatus @default(DRAFT)
   totalViews    Int           @default(0) // Denormalized counter
 
+  /// ISO 3166-1 alpha-2 (e.g. "KR"), not a display string. Nullable and
+  /// unbackfilled -- lands ahead of the Passport feature that reads it
+  /// (NewPlan Phase D) so that feature needs no migration of its own.
+  originCountry String?
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
@@ -217,10 +228,35 @@ model Episode {
   season       Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   watchHistory WatchHistory[]
   downloads    Download[]
+  sceneMarkers SceneMarker[]
 
   @@unique([seasonId, episodeNumber])
   @@index([releaseDate])
   @@map("episodes")
+}
+
+/// Timing metadata about content, identical for every viewer -- unlike
+/// videoUrl, which is the one field that actually grants viewing and is
+/// stripped by MoviesService.toDto. Markers ride in the same cached movie
+/// payload and need no separate, authenticated fetch (see Tier 1 in the
+/// design doc's cache invariant).
+model SceneMarker {
+  id           String          @id @default(uuid())
+  episodeId    String
+  kind         SceneMarkerKind
+  startSeconds Int
+  endSeconds   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  /// One intro per episode, deliberately narrow. The backing btree on
+  /// (episodeId, kind) already serves `WHERE episodeId = $1` lookups via
+  /// its leading column, so no separate @@index([episodeId]) is added.
+  @@unique([episodeId, kind])
+  @@map("scene_markers")
 }
 
 // -----------------------------------------------------------------------------

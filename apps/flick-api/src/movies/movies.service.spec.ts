@@ -167,6 +167,42 @@ describe('MoviesService', () => {
     expect(JSON.stringify(movie)).not.toContain('SHOULD-NOT-LEAK');
   });
 
+  it('passes scene markers through findAll, alongside the stripped videoUrl', async () => {
+    const markers = [
+      {
+        id: 'sm1',
+        episodeId: 'e1',
+        kind: 'INTRO',
+        startSeconds: 0,
+        endSeconds: 30,
+      },
+    ];
+    prismaMock.movie.findMany.mockResolvedValue([
+      {
+        id: 'm1',
+        genres: [],
+        seasons: [
+          {
+            id: 's1',
+            episodes: [
+              {
+                id: 'e1',
+                title: 'Ep 1',
+                videoUrl: 'SHOULD-NOT-LEAK',
+                sceneMarkers: markers,
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    const [movie] = await service.findAll();
+    const [episode] = movie.seasons[0].episodes as unknown as {
+      sceneMarkers: unknown;
+    }[];
+    expect(episode.sceneMarkers).toEqual(markers);
+  });
+
   it('excludes draft and soft-deleted movies from findAll', async () => {
     cacheManager.get.mockResolvedValue(undefined);
     prismaMock.movie.findMany.mockResolvedValue([]);

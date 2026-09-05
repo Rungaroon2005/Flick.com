@@ -181,6 +181,31 @@ describe('EngagementService', () => {
     expect(result[0].episode).not.toHaveProperty('videoUrl');
   });
 
+  it('passes scene markers through continue-watching, alongside the stripped videoUrl', async () => {
+    const markers = [
+      {
+        id: 'sm1',
+        episodeId: 'e1',
+        kind: 'INTRO',
+        startSeconds: 0,
+        endSeconds: 30,
+      },
+    ];
+    prisma.watchHistory.findMany.mockResolvedValue([
+      {
+        progressSeconds: 42,
+        episode: {
+          id: 'e1',
+          videoUrl: 'SECRET-URL',
+          sceneMarkers: markers,
+          season: { movie: { id: 'm1', title: 'A', genres: [] } },
+        },
+      },
+    ]);
+    const result = await service.getContinueWatching('u1');
+    expect(result[0].episode).toMatchObject({ sceneMarkers: markers });
+  });
+
   it('flattens the movie genre join table on continue-watching movies', async () => {
     prisma.watchHistory.findMany.mockResolvedValue([
       {

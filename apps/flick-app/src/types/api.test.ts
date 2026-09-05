@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { decodeApiResponse, decodeEpisodeDetail, decodeFits, decodeMovies, decodePlans } from './api';
+import {
+  decodeApiResponse,
+  decodeEpisodeDetail,
+  decodeFits,
+  decodeMovies,
+  decodePlans,
+  decodeWatchStatus,
+} from './api';
 
 const validMovie = {
   id: 'm1',
@@ -183,5 +190,40 @@ describe('API contract decoders', () => {
 
   it('rejects a non-array fits response', () => {
     expect(() => decodeFits({})).toThrow('Invalid fits response');
+  });
+
+  it('accepts a well-formed watch status response', () => {
+    const result = decodeWatchStatus({
+      m1: { state: 'partial', percent: 45, lastWatchedAt: '2026-01-01T00:00:00.000Z' },
+      m2: { state: 'none', percent: 0, lastWatchedAt: null },
+    });
+    expect(result.m1).toMatchObject({ state: 'partial', percent: 45 });
+    expect(result.m2.lastWatchedAt).toBeNull();
+  });
+
+  it('rejects a watch status entry with an unrecognized state', () => {
+    expect(() =>
+      decodeWatchStatus({ m1: { state: 'binged', percent: 100, lastWatchedAt: null } }),
+    ).toThrow('Invalid watch status state');
+  });
+
+  it('rejects a watch status entry with a non-numeric percent', () => {
+    expect(() =>
+      decodeWatchStatus({ m1: { state: 'watched', percent: '100', lastWatchedAt: null } }),
+    ).toThrow('percent');
+  });
+
+  it('rejects a watch status entry with an unparseable lastWatchedAt', () => {
+    expect(() =>
+      decodeWatchStatus({ m1: { state: 'watched', percent: 100, lastWatchedAt: 'not a date' } }),
+    ).toThrow('Invalid watch status lastWatchedAt');
+  });
+
+  it('accepts an empty watch status response', () => {
+    expect(decodeWatchStatus({})).toEqual({});
+  });
+
+  it('rejects a non-object watch status response', () => {
+    expect(() => decodeWatchStatus([])).toThrow('Invalid watch status response');
   });
 });

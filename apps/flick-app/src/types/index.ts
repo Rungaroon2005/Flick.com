@@ -97,6 +97,17 @@ export interface ContinueWatchingItem {
   movie: Movie;
 }
 
+export type WatchStatusState = 'none' | 'partial' | 'watched';
+
+/** GET /me/watch-status -- personal, never reachable through the shared
+ *  /movies cache. Keyed by movie id. */
+export interface WatchStatusEntry {
+  state: WatchStatusState;
+  percent: number;
+  lastWatchedAt: string | null;
+}
+export type WatchStatusResponse = Record<string, WatchStatusEntry>;
+
 export type FitsKind = 'film' | 'next_episode' | 'first_episode';
 
 /** GET /discovery/fits -- personal (kind can be 'next_episode'), never

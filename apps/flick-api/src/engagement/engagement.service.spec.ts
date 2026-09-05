@@ -326,4 +326,234 @@ describe('EngagementService', () => {
       },
     });
   });
+
+  // --- Watch status ----------------------------------------------------
+
+  describe('getWatchStatus', () => {
+    function movieWithEpisode(
+      movieId: string,
+      episodeId: string,
+      durationMinutes: number,
+    ) {
+      return {
+        id: movieId,
+        seasons: [
+          {
+            episodes: [{ id: episodeId, durationMinutes }],
+          },
+        ],
+      };
+    }
+
+    it("reports 'none' with 0 percent for a movie never watched", async () => {
+      prisma.movie.findMany.mockResolvedValue([
+        movieWithEpisode('m1', 'e1', 20),
+      ]);
+      prisma.watchHistory.findMany.mockResolvedValue([]);
+
+      const result = await service.getWatchStatus('u1', ['m1']);
+
+      expect(result.m1).toEqual({
+        state: 'none',
+        percent: 0,
+        lastWatchedAt: null,
+      });
+    });
+
+    it("reports 'partial' with the correct percent for an in-progress episode", async () => {
+      prisma.movie.findMany.mockResolvedValue([
+        movieWithEpisode('m1', 'e1', 20),
+      ]);
+      prisma.watchHistory.findMany.mockResolvedValue([
+        {
+          episodeId: 'e1',
+          progressSeconds: 600,
+          completed: false,
+          updatedAt: new Date('2026-01-01'),
+        },
+      ]);
+
+      const result = await service.getWatchStatus('u1', ['m1']);
+
+      // 600s of 1200s (20 min) = 50%.
+      expect(result.m1).toMatchObject({ state: 'partial', percent: 50 });
+    });
+
+    it('pins percent to 100 when completed is true, regardless of progressSeconds', async () => {
+      prisma.movie.findMany.mockResolvedValue([
+        movieWithEpisode('m1', 'e1', 20),
+      ]);
+      prisma.watchHistory.findMany.mockResolvedValue([
+        // 92% by raw progress, but the 90% completion threshold already
+        // marked this completed -- the response must not show 92%.
+        {
+          episodeId: 'e1',
+          progressSeconds: 1104,
+          completed: true,
+          updatedAt: new Date('2026-01-01'),
+        },
+      ]);
+
+      const result = await service.getWatchStatus('u1', ['m1']);
+
+      expect(result.m1).toMatchObject({ state: 'watched', percent: 100 });
+    });
+
+    it('excludes soft-deleted episodes from the percent denominator', async () => {
+      prisma.movie.findMany.mockResolvedValue([
+        {
+          id: 'm1',
+          seasons: [
+            {
+              // The query itself filters deletedAt: null; this test proves
+              // the denominator is built from what the query actually
+              // returned (one live episode), not from a stale total that
+              // still counts a takedown episode nobody can watch anymore.
+              episodes: [{ id: 'e1', durationMinutes: 20 }],
+            },
+          ],
+        },
+      ]);
+      prisma.watchHistory.findMany.mockResolvedValue([
+        {
+          episodeId: 'e1',
+          progressSeconds: 1200,
+          completed: true,
+          updatedAt: new Date('2026-01-01'),
+        },
+      ]);
+
+      const result = await service.getWatchStatus('u1', ['m1']);
+
+      expect(result.m1.percent).toBe(100);
+      expect(prisma.movie.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: { in: ['m1'] } },
+          include: expect.objectContaining({
+            seasons: expect.objectContaining({
+              include: expect.objectContaining({
+                episodes: expect.objectContaining({
+                  where: { deletedAt: null },
+                }),
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('averages across multiple episodes of the same movie', async () => {
+      prisma.movie.findMany.mockResolvedValue([
+        {
+          id: 'm1',
+          seasons: [
+            {
+              episodes: [
+                { id: 'e1', durationMinutes: 10 },
+                { id: 'e2', durationMinutes: 10 },
+              ],
+            },
+          ],
+        },
+      ]);
+      prisma.watchHistory.findMany.mockResolvedValue([
+        {
+          episodeId: 'e1',
+          progressSeconds: 600,
+          completed: true,
+          updatedAt: new Date('2026-01-01'),
+        },
+        // e2 untouched.
+      ]);
+
+      const result = await service.getWatchStatus('u1', ['m1']);
+
+      // e1 fully watched (600/600), e2 at 0/600 -> 50% overall.
+      expect(result.m1).toMatchObject({ state: 'partial', percent: 50 });
+    });
+
+    it('reports the latest updatedAt across episodes as lastWatchedAt', async () => {
+      prisma.movie.findMany.mockResolvedValue([
+        {
+          id: 'm1',
+          seasons: [
+            {
+              episodes: [
+                { id: 'e1', durationMinutes: 10 },
+                { id: 'e2', durationMinutes: 10 },
+              ],
+            },
+          ],
+        },
+      ]);
+      prisma.watchHistory.findMany.mockResolvedValue([
+        {
+          episodeId: 'e1',
+          progressSeconds: 60,
+          completed: false,
+          updatedAt: new Date('2026-01-01'),
+        },
+        {
+          episodeId: 'e2',
+          progressSeconds: 60,
+          completed: false,
+          updatedAt: new Date('2026-02-01'),
+        },
+      ]);
+
+      const result = await service.getWatchStatus('u1', ['m1']);
+
+      expect(result.m1.lastWatchedAt).toBe(
+        new Date('2026-02-01').toISOString(),
+      );
+    });
+
+    it("reports 'none' for a movieId that does not exist in the catalogue", async () => {
+      prisma.movie.findMany.mockResolvedValue([]);
+      prisma.watchHistory.findMany.mockResolvedValue([]);
+
+      const result = await service.getWatchStatus('u1', ['does-not-exist']);
+
+      expect(result['does-not-exist']).toEqual({
+        state: 'none',
+        percent: 0,
+        lastWatchedAt: null,
+      });
+    });
+
+    it('rejects more than 50 movieIds before ever querying the database', async () => {
+      const tooMany = Array.from({ length: 51 }, (_, i) => `m${i}`);
+
+      await expect(service.getWatchStatus('u1', tooMany)).rejects.toThrow();
+      expect(prisma.movie.findMany).not.toHaveBeenCalled();
+    });
+
+    it('accepts exactly 50 movieIds', async () => {
+      const fifty = Array.from({ length: 50 }, (_, i) => `m${i}`);
+      prisma.movie.findMany.mockResolvedValue([]);
+      prisma.watchHistory.findMany.mockResolvedValue([]);
+
+      await expect(service.getWatchStatus('u1', fifty)).resolves.not.toThrow();
+    });
+
+    it('never clamps progress to exceed 100 percent even if progressSeconds overshoots duration', async () => {
+      prisma.movie.findMany.mockResolvedValue([
+        movieWithEpisode('m1', 'e1', 10),
+      ]);
+      prisma.watchHistory.findMany.mockResolvedValue([
+        // A hypothetical client bug reporting more seconds than the
+        // episode is long -- must not push percent past 100.
+        {
+          episodeId: 'e1',
+          progressSeconds: 9999,
+          completed: false,
+          updatedAt: new Date('2026-01-01'),
+        },
+      ]);
+
+      const result = await service.getWatchStatus('u1', ['m1']);
+
+      expect(result.m1.percent).toBe(100);
+    });
+  });
 });

@@ -7,6 +7,7 @@ import type {
   EpisodeDetail,
   FitsItem,
   LikeResponse,
+  WatchStatusResponse,
   Movie,
   MovieActionsResponse,
   OtpRequestResponse,
@@ -42,7 +43,8 @@ export type ApiPath =
   | `/me/bookmarks/${string}`
   | `/me/downloads/${string}`
   | `/me/watch-history/${string}`
-  | `/discovery/fits?maxMinutes=${string}`;
+  | `/discovery/fits?maxMinutes=${string}`
+  | `/me/watch-status?movieIds=${string}`;
 
 export type ApiResponse<Path extends ApiPath> =
   Path extends '/auth/otp/request' ? OtpRequestResponse
@@ -67,6 +69,7 @@ export type ApiResponse<Path extends ApiPath> =
   : Path extends `/me/likes/${string}` ? LikeResponse
   : Path extends `/me/bookmarks/${string}` ? BookmarkResponse
   : Path extends `/discovery/fits?maxMinutes=${string}` ? FitsItem[]
+  : Path extends `/me/watch-status?movieIds=${string}` ? WatchStatusResponse
   : unknown;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -170,8 +173,31 @@ export function decodeFits(value: unknown): FitsItem[] {
   });
 }
 
+const WATCH_STATUS_STATES = new Set(['none', 'partial', 'watched']);
+
+export function decodeWatchStatus(value: unknown): WatchStatusResponse {
+  const record = requireRecord(value, 'watch status');
+  for (const [movieId, entry] of Object.entries(record)) {
+    const status = requireRecord(entry, `watch status for ${movieId}`);
+    if (typeof status.state !== 'string' || !WATCH_STATUS_STATES.has(status.state)) {
+      throw new TypeError('Invalid watch status state');
+    }
+    requireNumber(status, 'percent');
+    if (status.lastWatchedAt !== null) {
+      if (
+        typeof status.lastWatchedAt !== 'string' ||
+        Number.isNaN(Date.parse(status.lastWatchedAt))
+      ) {
+        throw new TypeError('Invalid watch status lastWatchedAt');
+      }
+    }
+  }
+  return record as unknown as WatchStatusResponse;
+}
+
 export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unknown): ApiResponse<Path> {
   if (path.startsWith('/discovery/fits')) return decodeFits(value) as ApiResponse<Path>;
+  if (path.startsWith('/me/watch-status')) return decodeWatchStatus(value) as ApiResponse<Path>;
   if (path.startsWith('/movies?q=')) return decodeMovies(value) as ApiResponse<Path>;
   if (path === '/movies' || path === '/me/bookmarks') return decodeMovies(value) as ApiResponse<Path>;
   if (path.startsWith('/episodes/')) return decodeEpisodeDetail(value) as ApiResponse<Path>;

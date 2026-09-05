@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,6 +7,7 @@ import {
   HttpCode,
   Param,
   Put,
+  Query,
 } from '@nestjs/common';
 import { EngagementService } from './engagement.service';
 import { UpdateProgressDto } from './dto/update-progress.dto';
@@ -76,6 +78,27 @@ export class EngagementController {
   @Get('continue-watching')
   getContinueWatching(@CurrentUser() user: AuthenticatedUser) {
     return this.engagementService.getContinueWatching(user.id);
+  }
+
+  /**
+   * Deliberately a plain @Query('movieIds') string, not a class-validator
+   * DTO: the only shape check this needs is "non-empty," and the real
+   * business rule (the 50-id cap) is enforced in the service, where the
+   * limit actually matters for the query it protects.
+   */
+  @Get('watch-status')
+  getWatchStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('movieIds') movieIds?: string,
+  ) {
+    const ids = (movieIds ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+    if (ids.length === 0) {
+      throw new BadRequestException('movieIds is required');
+    }
+    return this.engagementService.getWatchStatus(user.id, ids);
   }
 
   @Put('watch-history/:episodeId')

@@ -1,6 +1,9 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
+import { usePosterPreview } from '../hooks/usePosterPreview';
 
 import { Movie, WatchStatusEntry } from '@/types';
 
@@ -34,6 +37,7 @@ export default function MovieCard({
   showBookmark = false,
   watchStatus,
 }: MovieCardProps) {
+  const { previewing, stop, handlers } = usePosterPreview(movie?.trailerUrl);
   if (!movie) return null;
 
   return (
@@ -47,6 +51,7 @@ export default function MovieCard({
         focus-visible:z-10 focus-visible:[transform:var(--card-raise)] focus-visible:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.85)]
         active:scale-95
         ${sizeClasses[size]}`}
+      {...handlers}
     >
       <div className="relative h-full w-full">
         {/* No ViewTransition morph here: MovieCard is reused across rows
@@ -65,6 +70,19 @@ export default function MovieCard({
           sizes="(min-width: 1280px) 220px, (min-width: 1024px) 200px, (min-width: 768px) 184px, 160px"
           className="object-cover transition-[filter] duration-surface"
         />
+        {previewing && movie.trailerUrl && (
+          <video
+            key={movie.trailerUrl}
+            src={movie.trailerUrl}
+            poster={movie.posterUrl ?? undefined}
+            muted
+            playsInline
+            autoPlay
+            loop
+            onError={stop}
+            className="absolute inset-0 z-[1] h-full w-full object-cover"
+          />
+        )}
         {showBookmark && (
           <div className="absolute top-2 right-2 z-[2] flex h-6 w-6 items-center justify-center rounded-full bg-brand text-ink shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
             <Icon name="bookmarkFilled" size={16} />

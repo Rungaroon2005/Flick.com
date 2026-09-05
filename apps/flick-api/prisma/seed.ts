@@ -41,6 +41,9 @@ async function main() {
       title: 'สาธุ',
       description: 'ชีวิตของนักธุรกิจที่พังทลาย เมื่อภารกิจไม่สำเร็จ กลุ่มคนเหล่านี้ จึงรวมกลุ่มกันเพื่อหาเงินมาใช้หนี้',
       posterUrl: '/posters/sathu.jpg',
+      // NewPlan C2 (press-and-hold poster preview) fixture data -- reuses
+      // the same free-preview clip already serving as episode 1's video.
+      trailerUrl: '/videos/movie1-preview.m4v',
       year: 2025,
       contentRating: 'ผู้ใหญ่',
       status: ContentStatus.PUBLISHED,
@@ -92,6 +95,7 @@ async function main() {
       title: 'ดาวซินโดม',
       description: 'เรื่องราวของเด็กหนุ่มที่ค้นพบความลับของจักรวาลผ่านเทคโนโลยีล้ำสมัยในกรุงเทพมหานคร',
       posterUrl: '/posters/dao.jpg',
+      trailerUrl: '/videos/movie2-preview.m4v',
       year: 2025,
       contentRating: 'ทั่วไป',
       status: ContentStatus.PUBLISHED,

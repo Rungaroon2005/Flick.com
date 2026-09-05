@@ -44,6 +44,7 @@ export type ApiPath =
   | `/me/downloads/${string}`
   | `/me/watch-history/${string}`
   | `/discovery/fits?maxMinutes=${string}`
+  | `/discovery/fits?maxMinutes=${string}&mood=${string}`
   | `/me/watch-status?movieIds=${string}`;
 
 export type ApiResponse<Path extends ApiPath> =
@@ -68,7 +69,7 @@ export type ApiResponse<Path extends ApiPath> =
   : Path extends `/me/movies/${string}/actions` ? MovieActionsResponse
   : Path extends `/me/likes/${string}` ? LikeResponse
   : Path extends `/me/bookmarks/${string}` ? BookmarkResponse
-  : Path extends `/discovery/fits?maxMinutes=${string}` ? FitsItem[]
+  : Path extends `/discovery/fits?maxMinutes=${string}` | `/discovery/fits?maxMinutes=${string}&mood=${string}` ? FitsItem[]
   : Path extends `/me/watch-status?movieIds=${string}` ? WatchStatusResponse
   : unknown;
 

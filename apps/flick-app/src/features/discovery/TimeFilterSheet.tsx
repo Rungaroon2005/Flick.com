@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Sheet } from '@/components/ui/Sheet';
 import { formatClockTime } from '@/features/playback';
-import { FITS_MINUTES_OPTIONS, fetchFits, type FitsMinutes } from './api';
+import { FITS_MINUTES_OPTIONS, MOOD_OPTIONS, fetchFits, type FitsMinutes, type MoodSlug } from './api';
 import type { FitsItem } from '@/types';
 
 const KIND_LABELS: Record<FitsItem['kind'], string> = {
@@ -17,16 +17,16 @@ const KIND_LABELS: Record<FitsItem['kind'], string> = {
 export function TimeFilterSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
   const [minutes, setMinutes] = useState<FitsMinutes | null>(null);
+  const [mood, setMood] = useState<MoodSlug | null>(null);
   const [items, setItems] = useState<FitsItem[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const choose = async (value: FitsMinutes) => {
-    setMinutes(value);
+  const search = async (value: FitsMinutes, moodValue: MoodSlug | null) => {
     setLoading(true);
     setError(null);
     try {
-      setItems(await fetchFits(value));
+      setItems(await fetchFits(value, moodValue ?? undefined));
     } catch {
       setError('โหลดรายการไม่สำเร็จ กรุณาลองใหม่');
       setItems(null);
@@ -35,8 +35,22 @@ export function TimeFilterSheet({ open, onClose }: { open: boolean; onClose: () 
     }
   };
 
+  const choose = (value: FitsMinutes) => {
+    setMinutes(value);
+    void search(value, mood);
+  };
+
+  // Toggling a mood after a time is already chosen re-runs the search --
+  // mood and time are independent filters, not a two-step wizard.
+  const chooseMood = (slug: MoodSlug) => {
+    const next = mood === slug ? null : slug;
+    setMood(next);
+    if (minutes !== null) void search(minutes, next);
+  };
+
   const reset = () => {
     setMinutes(null);
+    setMood(null);
     setItems(null);
     setError(null);
   };
@@ -56,7 +70,7 @@ export function TimeFilterSheet({ open, onClose }: { open: boolean; onClose: () 
             type="button"
             key={option}
             aria-pressed={minutes === option}
-            onClick={() => void choose(option)}
+            onClick={() => choose(option)}
             className={`rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-surface ease-enter active:scale-95 ${
               minutes === option
                 ? 'bg-brand text-ink shadow-[0_0_16px_-3px_rgba(246,131,85,0.6)]'
@@ -68,13 +82,24 @@ export function TimeFilterSheet({ open, onClose }: { open: boolean; onClose: () 
         ))}
       </div>
 
-      {/* Mood row -- stubbed for Phase C (NewPlan Mood Match). Not
-          interactive yet, matching the "เร็ว ๆ นี้" placeholder pattern
-          already used on the profile page's settings rows. */}
       <div className="mt-6 border-t border-hairline pt-6">
-        <div className="flex items-center justify-between">
-          <h4 className="text-xs font-medium text-fg-dim">อารมณ์ไหน</h4>
-          <span className="rounded-full bg-ink-2 px-2.5 py-1 text-xs text-fg-mute">เร็ว ๆ นี้</span>
+        <h4 className="text-xs font-medium text-fg-dim">อารมณ์ไหน</h4>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {MOOD_OPTIONS.map((option) => (
+            <button
+              type="button"
+              key={option.slug}
+              aria-pressed={mood === option.slug}
+              onClick={() => chooseMood(option.slug)}
+              className={`rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-surface ease-enter active:scale-95 ${
+                mood === option.slug
+                  ? 'bg-brand text-ink shadow-[0_0_16px_-3px_rgba(246,131,85,0.6)]'
+                  : 'bg-ink-2 text-fg-dim hover:bg-hairline'
+              }`}
+            >
+              {option.emoji} {option.name}
+            </button>
+          ))}
         </div>
       </div>
 

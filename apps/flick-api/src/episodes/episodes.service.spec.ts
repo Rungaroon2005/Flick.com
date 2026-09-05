@@ -98,6 +98,25 @@ describe('EpisodesService', () => {
     ]);
   });
 
+  it('passes scene markers through, alongside the stripped videoUrl', async () => {
+    const markers = [
+      {
+        id: 'sm1',
+        episodeId: 'e1',
+        kind: 'INTRO',
+        startSeconds: 0,
+        endSeconds: 30,
+      },
+    ];
+    prisma.episode.findFirst.mockResolvedValue(
+      episodeRow({ sceneMarkers: markers }),
+    );
+
+    const result = await service.findOne('e1');
+
+    expect(result.episode).toMatchObject({ sceneMarkers: markers });
+  });
+
   it('throws NotFoundException when the episode does not exist', async () => {
     prisma.episode.findFirst.mockResolvedValue(null);
 

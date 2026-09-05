@@ -14,6 +14,7 @@ import { AVAILABLE_EPISODE_FILTER } from '../common/content-availability';
  * season back would re-create the payload problem in a new place.
  */
 const EPISODE_WITH_MOVIE_INCLUDE = {
+  sceneMarkers: true,
   season: {
     include: {
       movie: { include: { genres: { include: { genre: true } } } },

@@ -85,6 +85,24 @@ function requireNumber(record: Record<string, unknown>, key: string): void {
   }
 }
 
+const SCENE_MARKER_KINDS = new Set(['INTRO', 'RECAP', 'CREDITS']);
+
+/** Validates each entry field-by-field rather than trusting the array
+ *  shape: a malformed marker (e.g. a kind the frontend doesn't know
+ *  about yet) must not crash the player, only fail to render a skip
+ *  button for that one marker. */
+function decodeSceneMarkers(value: unknown): void {
+  if (!Array.isArray(value)) throw new TypeError('Invalid sceneMarkers');
+  for (const entry of value) {
+    const marker = requireRecord(entry, 'scene marker');
+    if (typeof marker.kind !== 'string' || !SCENE_MARKER_KINDS.has(marker.kind)) {
+      throw new TypeError('Invalid scene marker kind');
+    }
+    requireNumber(marker, 'startSeconds');
+    requireNumber(marker, 'endSeconds');
+  }
+}
+
 export function decodeMovie(value: unknown): Movie {
   const movie = requireRecord(value, 'movie');
   if (typeof movie.id !== 'string' || typeof movie.title !== 'string' || typeof movie.description !== 'string') {
@@ -108,6 +126,7 @@ export function decodeEpisodeDetail(value: unknown): EpisodeDetail {
   if (typeof episode.isPremium !== 'boolean') {
     throw new TypeError('Invalid episode isPremium');
   }
+  decodeSceneMarkers(episode.sceneMarkers);
   return { episode, movie: decodeMovie(detail.movie) } as unknown as EpisodeDetail;
 }
 

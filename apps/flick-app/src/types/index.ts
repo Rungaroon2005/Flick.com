@@ -48,6 +48,19 @@ export interface CheckoutResponse {
   intentId: string;
 }
 
+export type SceneMarkerKind = 'INTRO' | 'RECAP' | 'CREDITS';
+
+/** Timing metadata about content, identical for every viewer -- rides in
+ *  the same cached movie/episode payloads as everything else here, unlike
+ *  videoUrl (see below), which is personal-entitlement-gated. */
+export interface SceneMarkerDto {
+  id: string;
+  episodeId: string;
+  kind: SceneMarkerKind;
+  startSeconds: number;
+  endSeconds: number;
+}
+
 export interface Episode {
   id: string;
   seasonId: string;
@@ -60,6 +73,10 @@ export interface Episode {
   durationMinutes: number;
   isPremium: boolean;
   releaseDate: string; // ISO string from backend
+  /** Named to match the backend's Episode.sceneMarkers relation, not the
+   *  design doc's shorter "markers" sketch -- kept consistent with the
+   *  Prisma model name on the API side rather than renamed for brevity. */
+  sceneMarkers: SceneMarkerDto[];
 }
 
 export type PlaybackAuthorization =

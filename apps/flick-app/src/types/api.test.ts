@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { decodeApiResponse, decodeMovies, decodePlans } from './api';
+import { decodeApiResponse, decodeEpisodeDetail, decodeMovies, decodePlans } from './api';
+
+const validMovie = {
+  id: 'm1',
+  title: 'Movie',
+  description: 'A movie',
+  genres: [],
+};
+
+const validEpisode = {
+  id: 'e1',
+  title: 'Episode',
+  isPremium: false,
+  sceneMarkers: [],
+};
 
 describe('API contract decoders', () => {
   it('accepts a valid playback authorization', () => {
@@ -43,5 +57,57 @@ describe('API contract decoders', () => {
     expect(() =>
       decodeApiResponse('/payments/checkout', { checkoutUrl: 'https://fake-gateway.local' }),
     ).toThrow('Invalid checkout response');
+  });
+
+  it('accepts an episode detail with an empty sceneMarkers array', () => {
+    expect(() =>
+      decodeEpisodeDetail({ episode: validEpisode, movie: validMovie }),
+    ).not.toThrow();
+  });
+
+  it('accepts an episode detail with well-formed markers', () => {
+    const detail = decodeEpisodeDetail({
+      episode: {
+        ...validEpisode,
+        sceneMarkers: [
+          { id: 'sm1', episodeId: 'e1', kind: 'INTRO', startSeconds: 0, endSeconds: 30 },
+        ],
+      },
+      movie: validMovie,
+    });
+    expect(detail.episode).toMatchObject({
+      sceneMarkers: [{ kind: 'INTRO', startSeconds: 0, endSeconds: 30 }],
+    });
+  });
+
+  it('rejects an episode detail with a scene marker kind it does not recognize', () => {
+    expect(() =>
+      decodeEpisodeDetail({
+        episode: {
+          ...validEpisode,
+          sceneMarkers: [{ kind: 'BLOOPER', startSeconds: 0, endSeconds: 30 }],
+        },
+        movie: validMovie,
+      }),
+    ).toThrow('Invalid scene marker kind');
+  });
+
+  it('rejects an episode detail with a non-numeric marker boundary', () => {
+    expect(() =>
+      decodeEpisodeDetail({
+        episode: {
+          ...validEpisode,
+          sceneMarkers: [{ kind: 'INTRO', startSeconds: '0', endSeconds: 30 }],
+        },
+        movie: validMovie,
+      }),
+    ).toThrow('startSeconds');
+  });
+
+  it('rejects an episode detail whose sceneMarkers is missing entirely', () => {
+    const { sceneMarkers: _omitted, ...episodeWithoutMarkers } = validEpisode;
+    expect(() =>
+      decodeEpisodeDetail({ episode: episodeWithoutMarkers, movie: validMovie }),
+    ).toThrow('Invalid sceneMarkers');
   });
 });

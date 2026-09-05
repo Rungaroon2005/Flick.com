@@ -5,6 +5,7 @@ import type {
   ContinueWatchingItem,
   DownloadRecord,
   EpisodeDetail,
+  FitsItem,
   LikeResponse,
   Movie,
   MovieActionsResponse,
@@ -40,7 +41,8 @@ export type ApiPath =
   | `/me/likes/${string}`
   | `/me/bookmarks/${string}`
   | `/me/downloads/${string}`
-  | `/me/watch-history/${string}`;
+  | `/me/watch-history/${string}`
+  | `/discovery/fits?maxMinutes=${string}`;
 
 export type ApiResponse<Path extends ApiPath> =
   Path extends '/auth/otp/request' ? OtpRequestResponse
@@ -64,6 +66,7 @@ export type ApiResponse<Path extends ApiPath> =
   : Path extends `/me/movies/${string}/actions` ? MovieActionsResponse
   : Path extends `/me/likes/${string}` ? LikeResponse
   : Path extends `/me/bookmarks/${string}` ? BookmarkResponse
+  : Path extends `/discovery/fits?maxMinutes=${string}` ? FitsItem[]
   : unknown;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -144,7 +147,31 @@ export function decodePlans(value: unknown): PlansResponse {
   return plans as unknown as PlansResponse;
 }
 
+const FITS_KINDS = new Set(['film', 'next_episode', 'first_episode']);
+
+/** Reuses decodeMovie and decodeSceneMarkers rather than duplicating their
+ *  field checks -- an item here is a (movie, episode) pair from the exact
+ *  same catalogue shape /movies and /episodes/:id already validate. */
+export function decodeFits(value: unknown): FitsItem[] {
+  if (!Array.isArray(value)) throw new TypeError('Invalid fits response');
+  return value.map((entry) => {
+    const item = requireRecord(entry, 'fits item');
+    if (typeof item.kind !== 'string' || !FITS_KINDS.has(item.kind)) {
+      throw new TypeError('Invalid fits item kind');
+    }
+    requireNumber(item, 'runtimeMinutes');
+    if (typeof item.finishesAtHint !== 'string' || Number.isNaN(Date.parse(item.finishesAtHint))) {
+      throw new TypeError('Invalid fits item finishesAtHint');
+    }
+    const episode = requireRecord(item.episode, 'fits episode');
+    decodeSceneMarkers(episode.sceneMarkers);
+    decodeMovie(item.movie);
+    return item as unknown as FitsItem;
+  });
+}
+
 export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unknown): ApiResponse<Path> {
+  if (path.startsWith('/discovery/fits')) return decodeFits(value) as ApiResponse<Path>;
   if (path.startsWith('/movies?q=')) return decodeMovies(value) as ApiResponse<Path>;
   if (path === '/movies' || path === '/me/bookmarks') return decodeMovies(value) as ApiResponse<Path>;
   if (path.startsWith('/episodes/')) return decodeEpisodeDetail(value) as ApiResponse<Path>;

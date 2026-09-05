@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeApiResponse, decodeEpisodeDetail, decodeMovies, decodePlans } from './api';
+import { decodeApiResponse, decodeEpisodeDetail, decodeFits, decodeMovies, decodePlans } from './api';
 
 const validMovie = {
   id: 'm1',
@@ -109,5 +109,79 @@ describe('API contract decoders', () => {
     expect(() =>
       decodeEpisodeDetail({ episode: episodeWithoutMarkers, movie: validMovie }),
     ).toThrow('Invalid sceneMarkers');
+  });
+
+  it('accepts a well-formed fits response', () => {
+    const items = decodeFits([
+      {
+        movie: validMovie,
+        episode: validEpisode,
+        kind: 'first_episode',
+        runtimeMinutes: 20,
+        finishesAtHint: '2026-09-05T22:07:00.000Z',
+      },
+    ]);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ kind: 'first_episode', runtimeMinutes: 20 });
+  });
+
+  it('rejects a fits item with an unrecognized kind', () => {
+    expect(() =>
+      decodeFits([
+        {
+          movie: validMovie,
+          episode: validEpisode,
+          kind: 'director_cut',
+          runtimeMinutes: 20,
+          finishesAtHint: '2026-09-05T22:07:00.000Z',
+        },
+      ]),
+    ).toThrow('Invalid fits item kind');
+  });
+
+  it('rejects a fits item with a non-numeric runtimeMinutes', () => {
+    expect(() =>
+      decodeFits([
+        {
+          movie: validMovie,
+          episode: validEpisode,
+          kind: 'film',
+          runtimeMinutes: '20',
+          finishesAtHint: '2026-09-05T22:07:00.000Z',
+        },
+      ]),
+    ).toThrow('runtimeMinutes');
+  });
+
+  it('rejects a fits item with an unparseable finishesAtHint', () => {
+    expect(() =>
+      decodeFits([
+        {
+          movie: validMovie,
+          episode: validEpisode,
+          kind: 'film',
+          runtimeMinutes: 20,
+          finishesAtHint: 'not a date',
+        },
+      ]),
+    ).toThrow('finishesAtHint');
+  });
+
+  it('rejects a fits item whose episode carries a bad scene marker', () => {
+    expect(() =>
+      decodeFits([
+        {
+          movie: validMovie,
+          episode: { ...validEpisode, sceneMarkers: [{ kind: 'BLOOPER', startSeconds: 0, endSeconds: 1 }] },
+          kind: 'film',
+          runtimeMinutes: 20,
+          finishesAtHint: '2026-09-05T22:07:00.000Z',
+        },
+      ]),
+    ).toThrow('Invalid scene marker kind');
+  });
+
+  it('rejects a non-array fits response', () => {
+    expect(() => decodeFits({})).toThrow('Invalid fits response');
   });
 });

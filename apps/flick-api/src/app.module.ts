@@ -18,6 +18,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { PlaybackModule } from './playback/playback.module';
 import { EngagementModule } from './engagement/engagement.module';
 import { SceneMarkersModule } from './scene-markers/scene-markers.module';
+import { DiscoveryModule } from './discovery/discovery.module';
 import { validateEnv } from './common/config.validation';
 import { DatabaseModule } from './database/database.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
@@ -39,6 +40,7 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
     EngagementModule,
     MaintenanceModule,
     SceneMarkersModule,
+    DiscoveryModule,
   ],
   controllers: [AppController, PlansController],
   providers: [

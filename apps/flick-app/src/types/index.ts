@@ -97,6 +97,19 @@ export interface ContinueWatchingItem {
   movie: Movie;
 }
 
+export type FitsKind = 'film' | 'next_episode' | 'first_episode';
+
+/** GET /discovery/fits -- personal (kind can be 'next_episode'), never
+ *  reachable through the shared /movies cache. */
+export interface FitsItem {
+  movie: Movie;
+  episode: Episode;
+  kind: FitsKind;
+  runtimeMinutes: number;
+  /** ISO timestamp; format client-side with formatClockTime. */
+  finishesAtHint: string;
+}
+
 export interface DownloadRecord {
   id: string;
   episodeId: string;

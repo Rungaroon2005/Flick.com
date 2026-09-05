@@ -7,5 +7,6 @@ import { PlaybackModule } from '../playback/playback.module';
   imports: [PlaybackModule],
   controllers: [EngagementController],
   providers: [EngagementService],
+  exports: [EngagementService],
 })
 export class EngagementModule {}

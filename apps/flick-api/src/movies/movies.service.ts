@@ -40,7 +40,7 @@ type EpisodeWithoutVideoUrl = Omit<
   SeasonWithEpisodes['episodes'][number],
   'videoUrl'
 >;
-type MovieDto = Omit<MovieWithRelations, 'genres' | 'seasons'> & {
+export type MovieDto = Omit<MovieWithRelations, 'genres' | 'seasons'> & {
   genres: Genre[];
   seasons: (Omit<SeasonWithEpisodes, 'episodes'> & {
     episodes: EpisodeWithoutVideoUrl[];

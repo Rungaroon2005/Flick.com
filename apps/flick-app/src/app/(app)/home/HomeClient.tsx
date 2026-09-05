@@ -2,10 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ViewTransition } from 'react';
+import { useState, ViewTransition } from 'react';
 import { MovieCard } from '@/features/catalog';
 import { Icon } from '@/components/ui/Icon';
 import { Shelf } from '@/components/ui/Shelf';
+import { TimeFilterSheet } from '@/features/discovery';
 import { ContinueWatchingItem, Movie } from '@/types';
 
 interface HomeClientProps {
@@ -31,6 +32,7 @@ export default function HomeClient({
   initialBookmarks,
   initialContinueWatching,
 }: HomeClientProps) {
+  const [showTimeFilter, setShowTimeFilter] = useState(false);
   // The catalogue's first entry anchors the hero; the recommended row picks
   // up right after it so nothing appears twice in the same screen.
   const featured = initialMovies[0];
@@ -122,6 +124,17 @@ export default function HomeClient({
           </div>
         </section>
       )}
+
+      <div className="mx-auto w-full max-w-page px-5 lg:px-10">
+        <button
+          type="button"
+          onClick={() => setShowTimeFilter(true)}
+          className="focus-ring flex w-full items-center justify-center gap-2 rounded-2xl border border-white/5 bg-ink-1 py-3 text-sm font-medium text-fg-dim transition-all duration-surface ease-enter hover:bg-ink-2 active:scale-[0.98]"
+        >
+          ⏱ มีเวลาเท่าไหร่? ให้เราแนะนำเรื่องที่พอดี
+        </button>
+      </div>
+      <TimeFilterSheet open={showTimeFilter} onClose={() => setShowTimeFilter(false)} />
 
       <div className="mx-auto flex w-full max-w-page flex-col gap-(--spacing-shelf-stack)">
         {/* Recommended Section */}

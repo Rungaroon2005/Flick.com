@@ -4,6 +4,7 @@ import {
   decodeEpisodeDetail,
   decodeFits,
   decodeMovies,
+  decodePassport,
   decodePlans,
   decodeWatchStatus,
 } from './api';
@@ -225,5 +226,56 @@ describe('API contract decoders', () => {
 
   it('rejects a non-object watch status response', () => {
     expect(() => decodeWatchStatus([])).toThrow('Invalid watch status response');
+  });
+
+  it('accepts a well-formed passport response with a topGenre', () => {
+    const result = decodePassport({
+      completedMoviesCount: 3,
+      totalWatchedHours: 12.5,
+      topGenre: { id: 'g1', name: 'ดราม่า', slug: 'drama' },
+      likedMoviesCount: 7,
+    });
+    expect(result).toEqual({
+      completedMoviesCount: 3,
+      totalWatchedHours: 12.5,
+      topGenre: { id: 'g1', name: 'ดราม่า', slug: 'drama' },
+      likedMoviesCount: 7,
+    });
+  });
+
+  it('accepts a passport response with a null topGenre', () => {
+    const result = decodePassport({
+      completedMoviesCount: 0,
+      totalWatchedHours: 0,
+      topGenre: null,
+      likedMoviesCount: 0,
+    });
+    expect(result.topGenre).toBeNull();
+  });
+
+  it('rejects a passport response with a non-numeric field', () => {
+    expect(() =>
+      decodePassport({
+        completedMoviesCount: '3',
+        totalWatchedHours: 0,
+        topGenre: null,
+        likedMoviesCount: 0,
+      }),
+    ).toThrow('Invalid API field: completedMoviesCount');
+  });
+
+  it('rejects a passport response with a malformed topGenre', () => {
+    expect(() =>
+      decodePassport({
+        completedMoviesCount: 0,
+        totalWatchedHours: 0,
+        topGenre: { id: 'g1', name: 'ดราม่า' },
+        likedMoviesCount: 0,
+      }),
+    ).toThrow('Invalid passport topGenre');
+  });
+
+  it('rejects a non-object passport response', () => {
+    expect(() => decodePassport([])).toThrow('Invalid passport response');
   });
 });

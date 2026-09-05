@@ -108,6 +108,16 @@ export interface WatchStatusEntry {
 }
 export type WatchStatusResponse = Record<string, WatchStatusEntry>;
 
+/** GET /me/passport (NewPlan Part D, phase 1) -- a read-only rollup over
+ *  data the user already generated. Personal, never reachable through the
+ *  shared /movies cache. */
+export interface PassportDto {
+  completedMoviesCount: number;
+  totalWatchedHours: number;
+  topGenre: Genre | null;
+  likedMoviesCount: number;
+}
+
 export type FitsKind = 'film' | 'next_episode' | 'first_episode';
 
 /** GET /discovery/fits -- personal (kind can be 'next_episode'), never

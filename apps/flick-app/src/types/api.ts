@@ -7,6 +7,7 @@ import type {
   EpisodeDetail,
   FitsItem,
   LikeResponse,
+  PassportDto,
   WatchStatusResponse,
   Movie,
   MovieActionsResponse,
@@ -45,7 +46,8 @@ export type ApiPath =
   | `/me/watch-history/${string}`
   | `/discovery/fits?maxMinutes=${string}`
   | `/discovery/fits?maxMinutes=${string}&mood=${string}`
-  | `/me/watch-status?movieIds=${string}`;
+  | `/me/watch-status?movieIds=${string}`
+  | '/me/passport';
 
 export type ApiResponse<Path extends ApiPath> =
   Path extends '/auth/otp/request' ? OtpRequestResponse
@@ -71,6 +73,7 @@ export type ApiResponse<Path extends ApiPath> =
   : Path extends `/me/bookmarks/${string}` ? BookmarkResponse
   : Path extends `/discovery/fits?maxMinutes=${string}` | `/discovery/fits?maxMinutes=${string}&mood=${string}` ? FitsItem[]
   : Path extends `/me/watch-status?movieIds=${string}` ? WatchStatusResponse
+  : Path extends '/me/passport' ? PassportDto
   : unknown;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -196,9 +199,24 @@ export function decodeWatchStatus(value: unknown): WatchStatusResponse {
   return record as unknown as WatchStatusResponse;
 }
 
+export function decodePassport(value: unknown): PassportDto {
+  const record = requireRecord(value, 'passport');
+  requireNumber(record, 'completedMoviesCount');
+  requireNumber(record, 'totalWatchedHours');
+  requireNumber(record, 'likedMoviesCount');
+  if (record.topGenre !== null) {
+    const genre = requireRecord(record.topGenre, 'passport topGenre');
+    if (typeof genre.id !== 'string' || typeof genre.name !== 'string' || typeof genre.slug !== 'string') {
+      throw new TypeError('Invalid passport topGenre');
+    }
+  }
+  return record as unknown as PassportDto;
+}
+
 export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unknown): ApiResponse<Path> {
   if (path.startsWith('/discovery/fits')) return decodeFits(value) as ApiResponse<Path>;
   if (path.startsWith('/me/watch-status')) return decodeWatchStatus(value) as ApiResponse<Path>;
+  if (path === '/me/passport') return decodePassport(value) as ApiResponse<Path>;
   if (path.startsWith('/movies?q=')) return decodeMovies(value) as ApiResponse<Path>;
   if (path === '/movies' || path === '/me/bookmarks') return decodeMovies(value) as ApiResponse<Path>;
   if (path.startsWith('/episodes/')) return decodeEpisodeDetail(value) as ApiResponse<Path>;

@@ -8,7 +8,7 @@ import { PageShell } from '@/components/ui/PageShell';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
 import { withNext } from '@/lib/nextParam';
-import { Subscription } from '@/types';
+import { PassportDto, Subscription } from '@/types';
 
 /** Display-only label for a plan id. Falls back to the raw planType, so an id
  *  this map has not heard of degrades to something truthful rather than
@@ -59,6 +59,26 @@ export default async function ProfilePage() {
   // redirect() throws, so it must be called outside the try/catch above or the
   // catch would swallow its NEXT_REDIRECT control-flow signal.
   if (sessionExpired) redirect(withNext('/login', '/profile'));
+
+  // Independent of the subscription fetch above -- a failed passport
+  // lookup has nothing to do with entitlements, and folding it into that
+  // try/catch would blank out an unrelated card over an unrelated error.
+  let passport: PassportDto | null = null;
+  try {
+    passport = await apiFetchServer('/me/passport');
+  } catch (err) {
+    if (!(err instanceof ApiError && err.status === 401)) {
+      console.error('Error fetching passport on server:', err);
+    }
+  }
+  // A passport showing "0 เรื่อง · 0 ชั่วโมง" reads worse than no card at
+  // all (design doc Part D) -- it only appears once there's something
+  // real to show.
+  const hasPassportData =
+    passport &&
+    (passport.completedMoviesCount > 0 ||
+      passport.totalWatchedHours > 0 ||
+      passport.likedMoviesCount > 0);
 
   return (
     <PageShell>
@@ -112,6 +132,30 @@ export default async function ProfilePage() {
                 could guess. */}
             <NightModeToggle />
           </div>
+
+          {hasPassportData && passport && (
+            <div className="mt-8 rounded-2xl border border-white/5 bg-ink-1 p-5">
+              <h3 className="text-sm font-semibold text-fg">🛂 Flicer Passport</h3>
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-2xl font-bold text-fg">{passport.completedMoviesCount}</p>
+                  <p className="text-xs text-fg-mute">เรื่องที่ดูจบ</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-fg">{passport.totalWatchedHours}</p>
+                  <p className="text-xs text-fg-mute">ชั่วโมงที่ดู</p>
+                </div>
+                <div>
+                  <p className="truncate text-2xl font-bold text-fg">{passport.topGenre?.name ?? '—'}</p>
+                  <p className="text-xs text-fg-mute">แนวที่ดูมากที่สุด</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-fg">{passport.likedMoviesCount}</p>
+                  <p className="text-xs text-fg-mute">เรื่องที่ถูกใจ</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="mt-8 overflow-hidden rounded-2xl border border-white/5 bg-ink-1">
             {settingsRows.map((label, i) => (

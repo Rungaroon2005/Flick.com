@@ -203,6 +203,142 @@ describe('MoviesService', () => {
     expect(episode.sceneMarkers).toEqual(markers);
   });
 
+  describe('the /movies cache invariant', () => {
+    // Anything reachable through this @Public(), shared-cache response
+    // must be a pure function of content state -- nothing that can differ
+    // between two users. This test is the enforcement mechanism: a field
+    // added anywhere in this payload without also being added to an
+    // allowlist here fails the test, forcing whoever added it to
+    // consciously decide "is this content, safe for every viewer, or
+    // personal, and therefore wrong here" rather than have it slip in via
+    // an innocuous-looking Prisma include.
+    const MOVIE_KEYS = [
+      'id',
+      'title',
+      'description',
+      'posterUrl',
+      'trailerUrl',
+      'year',
+      'contentRating',
+      'status',
+      'totalViews',
+      'originCountry',
+      'createdAt',
+      'updatedAt',
+      'deletedAt',
+      'genres',
+      'seasons',
+    ].sort();
+    const SEASON_KEYS = [
+      'id',
+      'movieId',
+      'seasonNumber',
+      'title',
+      'episodeCount',
+      'createdAt',
+      'updatedAt',
+      'episodes',
+    ].sort();
+    const EPISODE_KEYS = [
+      'id',
+      'seasonId',
+      'episodeNumber',
+      'title',
+      'description',
+      'thumbnailUrl',
+      'durationMinutes',
+      'isPremium',
+      'releaseDate',
+      'createdAt',
+      'updatedAt',
+      'deletedAt',
+      'sceneMarkers',
+    ].sort();
+    const SCENE_MARKER_KEYS = [
+      'id',
+      'episodeId',
+      'kind',
+      'startSeconds',
+      'endSeconds',
+      'createdAt',
+      'updatedAt',
+    ].sort();
+    const GENRE_KEYS = ['id', 'name', 'slug'].sort();
+
+    it('exposes exactly the allowlisted keys at every nesting level', async () => {
+      prismaMock.movie.findMany.mockResolvedValue([
+        {
+          id: 'm1',
+          title: 'T',
+          description: 'D',
+          posterUrl: 'p',
+          trailerUrl: null,
+          year: 2025,
+          contentRating: 'ทั่วไป',
+          status: 'PUBLISHED',
+          totalViews: 0,
+          originCountry: 'KR',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null,
+          genres: [{ genre: { id: 'g1', name: 'Drama', slug: 'drama' } }],
+          seasons: [
+            {
+              id: 's1',
+              movieId: 'm1',
+              seasonNumber: 1,
+              title: 'S1',
+              episodeCount: 1,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              episodes: [
+                {
+                  id: 'e1',
+                  seasonId: 's1',
+                  episodeNumber: 1,
+                  title: 'E1',
+                  description: 'D',
+                  videoUrl: 'SHOULD-BE-STRIPPED',
+                  thumbnailUrl: 't',
+                  durationMinutes: 10,
+                  isPremium: false,
+                  releaseDate: new Date(),
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                  deletedAt: null,
+                  sceneMarkers: [
+                    {
+                      id: 'sm1',
+                      episodeId: 'e1',
+                      kind: 'INTRO',
+                      startSeconds: 0,
+                      endSeconds: 30,
+                      createdAt: new Date(),
+                      updatedAt: new Date(),
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      const [movie] = await service.findAll();
+
+      expect(Object.keys(movie).sort()).toEqual(MOVIE_KEYS);
+      expect(Object.keys(movie.genres[0]).sort()).toEqual(GENRE_KEYS);
+      expect(Object.keys(movie.seasons[0]).sort()).toEqual(SEASON_KEYS);
+      const [episode] = movie.seasons[0].episodes as unknown as Record<
+        string,
+        unknown
+      >[];
+      expect(Object.keys(episode).sort()).toEqual(EPISODE_KEYS);
+      const [marker] = episode.sceneMarkers as Record<string, unknown>[];
+      expect(Object.keys(marker).sort()).toEqual(SCENE_MARKER_KEYS);
+    });
+  });
+
   it('excludes draft and soft-deleted movies from findAll', async () => {
     cacheManager.get.mockResolvedValue(undefined);
     prismaMock.movie.findMany.mockResolvedValue([]);

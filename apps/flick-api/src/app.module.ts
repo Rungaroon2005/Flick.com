@@ -23,10 +23,16 @@ import { PassportModule } from './passport/passport.module';
 import { validateEnv } from './common/config.validation';
 import { DatabaseModule } from './database/database.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'public'),
+      serveRoot: '/static/',
+    }),
     DatabaseModule,
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
     ScheduleModule.forRoot(),

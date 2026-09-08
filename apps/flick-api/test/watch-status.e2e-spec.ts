@@ -82,11 +82,12 @@ describe('GET /me/watch-status (e2e)', () => {
   });
 
   it('reflects real recorded progress against the real database', async () => {
-    // sathu has TWO episodes (free, 1 min, and sathu-premium, 10 min) --
-    // percent is a whole-movie average, not just this one episode's own
-    // fraction. 300s of sathu-premium's 600s, against a movie-wide total
-    // of 660s (1 + 10 minutes), is 300/660 -- 45%, not the 50% this one
-    // episode alone would suggest.
+    // sathu has FIVE episodes (1 + 2 + 2 + 1 minutes, plus sathu-premium at
+    // 10) -- percent is a whole-movie average, not just this one episode's
+    // own fraction. 300s of sathu-premium's 600s, against a movie-wide total
+    // of 960s, is 300/960 -- 31%, not the 50% this one episode alone would
+    // suggest. The number tracks seed.ts's episode list: add an episode
+    // there and this expectation moves.
     await request(app.getHttpServer())
       .put(`/me/watch-history/${EPISODE_ID}`)
       .set('Cookie', userCookie)
@@ -102,7 +103,7 @@ describe('GET /me/watch-status (e2e)', () => {
       string,
       { state: string; percent: number; lastWatchedAt: string | null }
     >;
-    expect(body.sathu).toMatchObject({ state: 'partial', percent: 45 });
+    expect(body.sathu).toMatchObject({ state: 'partial', percent: 31 });
     expect(body.sathu.lastWatchedAt).not.toBeNull();
   });
 });

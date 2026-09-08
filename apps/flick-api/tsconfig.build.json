@@ -1,4 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+  // `exclude` overrides the base config's rather than merging with it, so
+  // `public` has to be repeated here — see the note in tsconfig.json.
+  "exclude": ["node_modules", "test", "dist", "public", "**/*spec.ts"]
 }

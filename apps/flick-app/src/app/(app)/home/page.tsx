@@ -1,9 +1,11 @@
 import { redirect } from 'next/navigation';
 import HomeClient from './HomeClient';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { PageShell } from '@/components/ui/PageShell';
 import API_BASE_URL from '@/lib/api';
 import { ApiError } from '@/lib/apiClient';
 import { apiFetchServer, getSession } from '@/lib/session';
+import { withNext } from '@/lib/nextParam';
 import { ContinueWatchingItem, Movie } from '@/types';
 import { decodeMovies } from '@/types/api';
 
@@ -24,7 +26,7 @@ export default async function HomePage() {
   // Authorisation happens here, on the server, before any of this page is sent.
   // redirect() throws, so nothing below runs for an unauthenticated request.
   const session = await getSession();
-  if (!session) redirect('/login');
+  if (!session) redirect(withNext('/login', '/home'));
 
   const [moviesResult, bookmarksResult, continueResult] = await Promise.allSettled([
     getMovies(),
@@ -36,7 +38,7 @@ export default async function HomePage() {
     (result): result is PromiseRejectedResult => result.status === 'rejected',
   );
   if (privateFailures.some(({ reason }) => reason instanceof ApiError && reason.status === 401)) {
-    redirect('/login');
+    redirect(withNext('/login', '/home'));
   }
 
   const movies = moviesResult.status === 'fulfilled' ? moviesResult.value : [];
@@ -49,8 +51,8 @@ export default async function HomePage() {
   if (continueResult.status === 'rejected') console.error('Error fetching continue-watching on server:', continueResult.reason);
 
   return (
-    <div className="min-h-dvh bg-ink pb-[calc(96px+env(safe-area-inset-bottom))]">
-      <AppHeader greeting={session.displayName} coinBalance={session.coinBalance} variant="overlay" />
+    <PageShell>
+      <AppHeader greeting={session.displayName} variant="overlay" />
 
       {error ? (
         <div className="flex h-[calc(100dvh-64px)] items-center justify-center text-fg">
@@ -63,6 +65,6 @@ export default async function HomePage() {
           initialContinueWatching={continueWatching}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

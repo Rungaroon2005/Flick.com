@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { ReactionButton } from '@/components/ui/ReactionButton';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
+import { AppHeader } from '@/components/ui/AppHeader';
 import {
   useHlsPlayer,
   useMovieActions,
@@ -92,11 +93,23 @@ export default function DiscoverClient({ initialMovies }: DiscoverClientProps) {
 
   return (
     <div className="relative h-dvh w-full bg-ink">
+      {/* Desktop nav — /discover's own chrome (the filter trigger below) is
+          deliberately minimal at every width, but that left zero way back to
+          other tabs once BottomNav hides at lg (lg:hidden, added when
+          HeaderNav was introduced — every other tab route renders AppHeader
+          as that replacement, but this one never did). AppHeader's overlay
+          variant already exists for exactly this over-video case (see
+          HomeClient's hero) — reusing it rather than hand-rolling a second
+          header bar. */}
+      <div className="absolute inset-x-0 top-0 z-40 hidden lg:block">
+        <AppHeader variant="overlay" />
+      </div>
+
       {/* One small trigger, not a bar across the video — the whole
           complaint about the old chip row was that it stayed on screen
           permanently and competed with the content. Tapping it opens the
           genre list as a sheet; nothing sits over the video by default. */}
-      <div className="absolute inset-x-0 top-0 z-30 pt-safe">
+      <div className="absolute inset-x-0 top-0 z-30 pt-safe lg:top-16">
         <button
           onClick={() => setFilterOpen(true)}
           className="mt-3 ml-4 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/35 py-2 pr-3.5 pl-3 text-sm font-medium text-white backdrop-blur-xl transition-all duration-surface ease-enter active:scale-95"
@@ -259,7 +272,7 @@ function FeedSlide({
           fill
           sizes="100vw"
           fetchPriority={isActive ? 'high' : 'auto'}
-          className="object-cover"
+          className="object-cover lg:scale-110 lg:blur-2xl lg:brightness-[0.4]"
           aria-hidden="true"
         />
       )}
@@ -267,7 +280,7 @@ function FeedSlide({
       {isActive && videoUrl && (
         <video
           ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover lg:object-contain"
           playsInline
           loop
           muted={isMuted}
@@ -285,12 +298,8 @@ function FeedSlide({
 
       {gate && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/70 px-8 text-center">
-          <Icon name="bookmarkFilled" size={28} className="text-coin" />
-          <p className="text-sm text-fg-dim">
-            {gate.reason === 'coins_required'
-              ? `ตอนนี้ใช้ ${gate.coinCost} เหรียญ`
-              : 'เนื้อหานี้สงวนไว้สำหรับสมาชิกพรีเมียมเท่านั้น'}
-          </p>
+          <Icon name="bookmarkFilled" size={28} className="text-gold" />
+          <p className="text-sm text-fg-dim">เนื้อหานี้สงวนไว้สำหรับสมาชิกพรีเมียมเท่านั้น</p>
           <Button variant="primary" onClick={() => router.push(`/movie/${movie.id}`)}>
             ดูรายละเอียด
           </Button>
@@ -331,7 +340,7 @@ function FeedSlide({
       </div>
 
       {/* Caption + rail */}
-      <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-4 px-4 pb-24">
+      <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-4 px-4 pb-24 lg:mx-auto lg:max-w-3xl lg:pb-8">
         <button onClick={openDetails} className="min-w-0 flex-1 text-left">
           <h2 className="truncate text-lg font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
             {movie.title}

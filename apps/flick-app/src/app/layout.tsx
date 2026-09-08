@@ -1,6 +1,7 @@
 import { Metadata, Viewport } from 'next';
 import { Anuphan, IBM_Plex_Sans_Thai, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
+import { NIGHT_BOOT_SCRIPT, NightSuggestion, PreferencesProvider } from '@/features/preferences';
 
 // Display face — loopless, variable, Thai+Latin. Used ≥20px only.
 const anuphan = Anuphan({
@@ -18,7 +19,7 @@ const plexThai = IBM_Plex_Sans_Thai({
   display: 'swap',
 });
 
-// Data face — tabular figures for timecodes, coin balances, episode numbers.
+// Data face — tabular figures for timecodes, prices, episode numbers.
 const plexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
@@ -50,7 +51,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="th"
       className={`${anuphan.variable} ${plexThai.variable} ${plexMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {/* Blocking, first child of body, runs before hydration and before
+            anything below it paints -- see bootScript.ts for why this
+            can't be a useEffect instead. */}
+        <script dangerouslySetInnerHTML={{ __html: NIGHT_BOOT_SCRIPT }} />
+        <PreferencesProvider>
+          {children}
+          <NightSuggestion />
+        </PreferencesProvider>
+      </body>
     </html>
   );
 }

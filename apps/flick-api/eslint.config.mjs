@@ -43,4 +43,67 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-member-access': 'off',
     },
   },
+  {
+    files: ['src/auth/otp/otp.service.spec.ts'],
+    rules: {
+      // Same rationale as engagement.service.spec.ts above: `jest.fn().mock.calls`
+      // is untyped by design in the shared PrismaMock, so indexing into a call's
+      // arguments to inspect a persisted/delivered value is inherently `any`.
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      // The `as unknown as string` cast on an asymmetric matcher keeps the
+      // surrounding object literal's inferred type as `string`, even though
+      // the assertion looks redundant to the linter in isolation.
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+    },
+  },
+  {
+    files: ['src/auth/otp/adapters/sms-delivery.adapter.spec.ts'],
+    rules: {
+      // Same rationale as otp.service.spec.ts above: the `as unknown as
+      // string` cast on an asymmetric matcher keeps the surrounding object
+      // literal's inferred type as `string`, even though the assertion
+      // looks redundant to the linter in isolation.
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+    },
+  },
+  {
+    files: ['src/payments/adapters/omise-gateway.adapter.spec.ts'],
+    rules: {
+      // Same rationale as sms-delivery.adapter.spec.ts above: the `as
+      // unknown as string` cast on an asymmetric matcher keeps the
+      // surrounding object literal's inferred type as `string`, even though
+      // the assertion looks redundant to the linter in isolation.
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+    },
+  },
+  {
+    files: ['src/payments/payments.service.spec.ts'],
+    rules: {
+      // Same rationale as otp.service.spec.ts above: `jest.fn().mock.calls`
+      // is untyped by design in the shared PrismaMock and the local fake
+      // gateway mock, so indexing into a call's arguments to inspect a
+      // persisted/dispatched value is inherently `any`.
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
+  {
+    files: ['src/auth/oauth/oauth-nonce.service.spec.ts'],
+    rules: {
+      // Same rationale as payments.service.spec.ts above: prisma.oAuthNonce.create
+      // is an untyped jest.Mock in the shared PrismaMock, so indexing into
+      // .mock.calls to inspect what was persisted is inherently `any`.
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
+  {
+    files: ['src/auth/oauth/identity-resolver.spec.ts'],
+    rules: {
+      // Same rationale as oauth-nonce.service.spec.ts above: prisma.user.create
+      // and prisma.identity.create are untyped jest.Mocks in the shared
+      // PrismaMock, so indexing into .mock.calls to inspect a persisted value
+      // is inherently `any`.
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
 );

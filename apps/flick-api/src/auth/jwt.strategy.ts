@@ -31,7 +31,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       email: user.email,
       displayName: user.displayName,
       role: user.role,
-      coinBalance: user.coinBalance,
     };
   }
 }

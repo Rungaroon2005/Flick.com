@@ -10,33 +10,66 @@
 }
 
 /* Tailwind v4 theme — generates bg-, text- and border- utilities from these.
-   Cinnabar system: see docs/FRONTEND_PLAN.md Part 1. */
+   Vermilion-orange system: see docs/FRONTEND_PLAN.md Part 1. */
 @theme {
   --color-ink: #0B0908;
   --color-ink-1: #171310;
   --color-ink-2: #241D18;
   --color-hairline: #2C241E;
 
-  /* bg-brand is a FILL (5.20:1 with white on top); text-brand-ink is an INK
-     (6.33:1 on --color-ink). Never use bg-brand's hex as a text color on dark. */
-  --color-brand: #CC3300;
-  --color-brand-ink: #FF4D1A;
-  --color-brand-deep: #991F00;
-  --color-coin: #E8B84B;
+  /* bg-brand is a FILL (6.44:1 with --color-ink text on top; white text only
+     reaches 3.09:1, which fails normal-text AA, so still pair bg-brand with
+     text-ink everywhere, icons included, for one consistent rule regardless
+     of fill brightness). text-brand-ink is an INK (7.85:1 on --color-ink)
+     for the brand hue used directly as text/icon color. Distinct from
+     --color-gold (vivid orange-red vs. gold's paler yellow) so brand
+     actions and gold accents (badges, premium markers) stay visually
+     separable. */
+  --color-brand: #FF5C1A;
+  --color-brand-ink: #F68355;
+  --color-brand-deep: #C23700;
+  --color-gold: #E8B84B;
 
   --color-fg: #FFFFFF;
   --color-fg-dim: #A9A099;
   --color-fg-mute: #7A716B;
+  /* Subtitle text specifically, not general foreground -- introduced so
+     Night Mode can lower subtitle brightness independently of --color-fg,
+     which most of the UI chrome still reads. Equal to --color-fg until a
+     subtitle renderer exists to consume it. */
+  --color-subtitle: #FFFFFF;
 
   --color-ok: #3FBF9A;
   --color-warn: #E8B84B;
   --color-fail: #FF8A7A;
+
+  /* Page width. --container-* is Tailwind v4's namespace for max-w-/w-/min-w-
+     utilities (node_modules/tailwindcss/theme.css:333), so these generate
+     max-w-page and max-w-reading. Two values on purpose: a poster wall wants
+     1400px, but a 13-row settings list stretched that wide is a worse
+     settings list — the eye loses the row it is on.
+     See docs/superpowers/specs/2026-08-17-responsive-layout-design.md Part 2. */
+  --container-page: 87.5rem;
+  --container-reading: 45rem;
 
   /* Type scale — docs/FRONTEND_PLAN.md Part 1. Thai needs more vertical
      room than Tailwind's defaults, hence the taller line-heights below. */
   --text-display: 2rem;
   --text-display--line-height: 1.25;
   --text-display--font-weight: 700;
+  /* Two rungs above --text-display, added because the scale previously
+     stopped at 2rem and every headline past it reached for a raw Tailwind
+     size (LandingClient's text-[4rem]/[5rem]/[6rem], HomeClient's text-2xl).
+     Anuphan is the app's distinctive asset and it is most distinctive large,
+     so the system should govern these sizes rather than abdicate them.
+     Tight leading is deliberate: Thai ascenders/descenders at display size
+     read as loose at the 1.25 the body scale uses. */
+  --text-display-lg: 2.75rem;
+  --text-display-lg--line-height: 1.12;
+  --text-display-lg--font-weight: 800;
+  --text-hero: 4rem;
+  --text-hero--line-height: 0.92;
+  --text-hero--font-weight: 800;
   --text-title: 1.375rem;
   --text-title--line-height: 1.35;
   --text-title--font-weight: 600;
@@ -53,6 +86,38 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
 
+  /* The app's 3D depth constant. Was a lone inline `perspective: 900px` on
+     LandingClient's fan — the only one in the codebase. A rotate without
+     perspective renders as a flat squash rather than depth, so a token makes
+     the value shared instead of a thing to remember.
+
+     Note the two ways to apply it, because they are not interchangeable and
+     picking the wrong one silently produces a flat result. The `perspective`
+     PROPERTY governs a element's CHILDREN — that is the fan (Task 3), whose
+     posters are children of the container. The `perspective()` transform
+     FUNCTION governs the element's OWN transform — that is MovieCard
+     (Task 4), which rotates itself. A card with the perspective property set
+     on itself gets no depth at all. */
+  --perspective-depth: 900px;
+
+  /* MovieCard's raised state, as a complete transform list rather than
+     separate translate/scale/rotate utilities. Two reasons.
+
+     One: hover and focus-visible must not drift apart. The previous treatment
+     lived only behind [@media(hover:hover)], so a keyboard user got the focus
+     ring and none of the depth; a single value is hard to half-apply.
+
+     Two: perspective() here is the transform FUNCTION, not the property. The
+     `perspective` property applies to an element's CHILDREN, and the card
+     rotates ITSELF — setting the property on the card produces a perfectly
+     flat result. It must also come first in the list, because transform
+     functions apply left to right and a perspective placed after the rotate
+     has nothing left to project.
+
+     rotateX is small on purpose: enough to read as a physical card catching
+     light, not enough to distort the poster art. */
+  --card-raise: perspective(var(--perspective-depth)) translateY(-4px) scale(1.05) rotateX(4deg);
+
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   --ease-enter: cubic-bezier(0, 0, 0.2, 1);
 
@@ -63,6 +128,27 @@
   --duration-exit: 140ms;
 
   --shadow-surface: 0 16px 40px -18px rgba(0, 0, 0, 0.75);
+
+  /* AppHeader's height. Load-bearing in three places: the header itself,
+     search's filter bar sticking beneath it, and the scroll-padding below
+     that keeps keyboard focus out from under both. */
+  --spacing-header: 4rem;
+
+  /* Shelf rhythm. Previously one value (gap-3) separated BOTH a heading from
+     its rail AND two sibling cards, which is why the page reads as evenly
+     spaced rather than composed. These are a 12/20/56px progression: cards
+     sit closest (they are one object), the heading stands off its rail, and
+     shelves clear each other by a full step. --spacing-shelf-inset is the
+     rail's horizontal padding, previously repeated verbatim at six call
+     sites in HomeClient. --spacing-shelf-stack is a flat 56px at every
+     breakpoint, including mobile, where the old `gap-10` gave 40px — shelves
+     now sit 16px further apart on a phone than before. That's an intended
+     consequence of stating one rhythm instead of a `sm:` step, not an
+     oversight. */
+  --spacing-shelf-gap: 0.75rem;
+  --spacing-shelf-head: 1.25rem;
+  --spacing-shelf-stack: 3.5rem;
+  --spacing-shelf-inset: 1.25rem;
 }
 
 /* Safe-area utilities — Tailwind v4 ships none, and the portrait player and
@@ -94,6 +180,27 @@
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* An explicit opt-in, not a reset: the base-layer :focus-visible rule
+   (@layer base, below) is already the floor most elements had before this
+   existed; this decouples components from that global rule and lets tests
+   assert the ring directly. The two auth inputs were the real gap — their
+   outline-none utility shares the base rule's cascade layer and beat it. */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--color-brand-ink);
+    outline-offset: 2px;
+  }
+}
+
+html {
+  /* Two bars stack on /search (header + filter bar) and one everywhere
+     else. This is the worst case rather than a per-route value, because
+     the scroll container is html and a route cannot restyle its own
+     ancestor. It only affects programmatic scroll-into-view on focus —
+     exactly the moment the clearance is wanted. */
+  scroll-padding-top: calc(var(--spacing-header) * 2);
 }
 
 /* Landing page hero — a slow, small bob on the front card of the poster
@@ -239,4 +346,31 @@
 @layer components {
   .animate-fade-in { animation: fadeIn var(--duration-ui) ease forwards; }
   .animate-fade-in-up { animation: fadeInUp var(--duration-surface) ease forwards; }
+}
+
+/* Night Mode (docs/superpowers/plans/2026-09-03-newplan-phase-a-b.md §3.3).
+   `data-night="on"` is set on <html> by the pre-paint boot script
+   (features/preferences/bootScript.ts) and kept in sync by
+   PreferencesProvider -- never by React rendering the attribute itself.
+
+   This overrides the EXISTING token names from the @theme block above, not
+   a parallel palette: every component already consuming var(--color-fg)
+   etc. dims for free, and nothing can be accidentally left bright because
+   there is no second class name to remember to apply.
+
+   MUST NOT declare filter, opacity, or backdrop-filter here -- enforced by
+   nightMode.css.test.ts. A page-level filter/opacity would dim the <video>
+   element too, and there is no clean way to punch a hole back through it
+   for just the film. A custom-property override cannot reach the video by
+   construction: it renders decoded frames, not CSS colors. That is the
+   entire reason this feature is implemented as token overrides rather than
+   a brightness filter on a wrapping element. */
+:root[data-night="on"] {
+  --color-fg: #C9C2BC;
+  --color-fg-dim: #857D77;
+  --color-fg-mute: #5C554F;
+  --color-brand: #C24512;
+  --color-brand-ink: #B4623F;
+  --color-subtitle: #C9C2BC;
+  --shadow-surface: 0 16px 40px -18px rgba(0, 0, 0, 0.9);
 }

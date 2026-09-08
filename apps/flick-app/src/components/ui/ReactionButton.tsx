@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { Icon, IconName } from './Icon';
+import { useBurst } from './useBurst';
 
 interface ReactionButtonProps {
   active: boolean;
@@ -36,18 +36,7 @@ export function ReactionButton({
   showLabel = false,
   size = 44,
 }: ReactionButtonProps) {
-  const [burst, setBurst] = useState(false);
-  const wasActive = useRef(active);
-
-  useEffect(() => {
-    if (active && !wasActive.current) {
-      setBurst(true);
-      const timer = window.setTimeout(() => setBurst(false), 550);
-      wasActive.current = active;
-      return () => window.clearTimeout(timer);
-    }
-    wasActive.current = active;
-  }, [active]);
+  const burst = useBurst(active);
 
   return (
     <div className="flex flex-col items-center gap-1">
@@ -57,10 +46,10 @@ export function ReactionButton({
         aria-label={active ? (activeLabel ?? label) : label}
         aria-pressed={active}
         style={{ width: size, height: size }}
-        className={`relative flex items-center justify-center rounded-full border backdrop-blur-md transition-[background-color,border-color,box-shadow] duration-ui active:scale-90 disabled:opacity-50
+        className={`focus-ring relative flex items-center justify-center rounded-full border backdrop-blur-md transition-[background-color,border-color,box-shadow] duration-ui active:scale-90 disabled:opacity-50
           ${
             active
-              ? 'border-brand-ink/40 bg-brand text-white shadow-[0_0_18px_-2px_rgba(204,51,0,0.7)]'
+              ? 'border-brand-ink/40 bg-brand text-ink shadow-[0_0_18px_-2px_rgba(255,92,26,0.7)]'
               : 'border-white/15 bg-black/45 text-white hover:bg-black/60'
           }`}
       >

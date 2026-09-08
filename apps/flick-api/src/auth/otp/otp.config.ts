@@ -8,12 +8,12 @@ export const OTP_MAX_ATTEMPTS = 5;
 /**
  * Lower than the password cost (12) on purpose. The code space is only 10^6
  * and the TTL is 5 minutes, so offline-brute-force resistance is bounded by
- * expiry, not by hash cost; this hash is computed inside the verify
+ * expiry, not by hash cost — and this hash is computed inside the verify
  * transaction, where latency holds a database connection open.
  */
 export const OTP_BCRYPT_ROUNDS = 10;
 
-// Per-destination rate limits (financial-DoS and SMS-bombing controls).
+// --- Per-destination rate limits (financial-DoS and SMS-bombing controls) ---
 export const OTP_COOLDOWN_MS = 60 * 1000;
 export const OTP_SHORT_WINDOW_MS = 15 * 60 * 1000;
 export const OTP_SHORT_WINDOW_MAX = 3;
@@ -27,6 +27,6 @@ export const OTP_LONG_WINDOW_MAX = 10;
  */
 export const DEFAULT_OTP_GLOBAL_DAILY_CAP = 5000;
 
-/** Unambiguous characters only: no I/O/0/1, which users mistype off a screen. */
+/** Unambiguous characters only — no I/O/0/1, which users mistype off a screen. */
 export const OTP_REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const OTP_REF_LENGTH = 4;

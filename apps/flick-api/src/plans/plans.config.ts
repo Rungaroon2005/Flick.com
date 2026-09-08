@@ -1,4 +1,4 @@
-// Subscription plans and coin pack configuration
+// Subscription plan configuration
 // Extracted from plans.controller.ts to allow updates without code changes
 
 /**
@@ -14,11 +14,25 @@
  * activation remains disabled until that integration exists.
  */
 export const PLAN_DURATIONS_MS = {
-  weekly: 7 * 24 * 60 * 60 * 1000,
   monthly: 30 * 24 * 60 * 60 * 1000,
 } as const;
 
 export type PaidPlanId = keyof typeof PLAN_DURATIONS_MS;
+
+/**
+ * Plan accent colours are server-owned — the client renders whatever
+ * `GET /plans` hands it — so they are stated as hex here rather than as CSS
+ * custom properties, which would not survive the JSON boundary. They must
+ * still be the design system's values: these mirror the tokens in
+ * `apps/flick-app/src/app/globals.css`, and changing one without the other
+ * is the drift this naming exists to make visible.
+ */
+const DESIGN_TOKENS = {
+  /** `--color-gold` — badges and premium markers. */
+  gold: '#E8B84B',
+  /** `--color-fg-mute` — the system's warm neutral. */
+  fgMute: '#7A716B',
+} as const;
 
 export const SUBSCRIPTION_PLANS = [
   {
@@ -35,24 +49,13 @@ export const SUBSCRIPTION_PLANS = [
       '1 device',
     ],
     badge: null,
-    color: '#666',
-  },
-  {
-    id: 'weekly',
-    name: 'VIP รายสัปดาห์',
-    nameEn: 'Weekly VIP',
-    price: 49,
-    period: '/สัปดาห์',
-    features: ['ไม่มีโฆษณา', 'คุณภาพ 1080p', 'ดูทุกตอน', '2 อุปกรณ์'],
-    featuresEn: ['Ad-free', '1080p quality', 'All episodes', '2 devices'],
-    badge: null,
-    color: '#CC3300',
+    color: DESIGN_TOKENS.fgMute,
   },
   {
     id: 'monthly',
     name: 'VIP รายเดือน',
     nameEn: 'Monthly VIP',
-    price: 149,
+    price: 249,
     period: '/เดือน',
     features: [
       'ไม่มีโฆษณา',
@@ -71,26 +74,6 @@ export const SUBSCRIPTION_PLANS = [
       'Early access',
     ],
     badge: 'คุ้มที่สุด',
-    color: '#FFD700',
-  },
-];
-
-export const COIN_PACKS = [
-  { id: 'starter', name: 'Starter', coins: 100, price: 35, unlocks: '~10 ตอน' },
-  {
-    id: 'popular',
-    name: 'Popular',
-    coins: 320,
-    price: 99,
-    unlocks: '~32 ตอน',
-    badge: 'ยอดนิยม',
-  },
-  {
-    id: 'bestvalue',
-    name: 'Best Value',
-    coins: 1100,
-    price: 299,
-    unlocks: '~110 ตอน',
-    badge: 'คุ้มที่สุด',
+    color: DESIGN_TOKENS.gold,
   },
 ];

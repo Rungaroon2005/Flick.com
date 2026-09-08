@@ -1,18 +1,33 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
-import { Genre, InteractionType, Prisma } from '@prisma/client';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { Genre, InteractionType, Mood, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { PlaybackService } from '../playback/playback.service';
-import { GENRES_INCLUDE } from '../movies/movies.service';
+import { GENRES_INCLUDE, MOODS_INCLUDE } from '../movies/movies.service';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const COMPLETION_THRESHOLD = 0.9;
 const CONTINUE_WATCHING_LIMIT = 10;
+const WATCH_STATUS_MAX_MOVIE_IDS = 50;
+
+export type WatchStatusState = 'none' | 'partial' | 'watched';
+
+export interface WatchStatusEntry {
+  state: WatchStatusState;
+  percent: number;
+  lastWatchedAt: string | null;
+}
 
 const DOWNLOAD_INCLUDE = {
   episode: {
     include: {
       season: {
-        include: { movie: { include: { genres: GENRES_INCLUDE } } },
+        include: {
+          movie: { include: { genres: GENRES_INCLUDE, moods: MOODS_INCLUDE } },
+        },
       },
     },
   },
@@ -27,11 +42,15 @@ type DownloadWithRelations = Prisma.DownloadGetPayload<{
 // same transform `MoviesService.toDto` applies to every other movie-bearing
 // endpoint. Bookmarks and continue-watching return movies too, so they need
 // it as well or `movie.genres` is `undefined` on the wire.
-function flattenMovieGenres<T extends { genres: { genre: Genre }[] }>(
-  movie: T,
-) {
-  const { genres, ...rest } = movie;
-  return { ...rest, genres: genres.map((g) => g.genre) };
+function flattenMovieGenres<
+  T extends { genres: { genre: Genre }[]; moods?: { mood: Mood }[] },
+>(movie: T) {
+  const { genres, moods, ...rest } = movie;
+  return {
+    ...rest,
+    genres: genres.map((g) => g.genre),
+    moods: (moods ?? []).map((m) => m.mood),
+  };
 }
 
 /**
@@ -71,7 +90,9 @@ export class EngagementService {
   async getBookmarks(userId: string) {
     const bookmarks = await this.prisma.bookmark.findMany({
       where: { userId },
-      include: { movie: { include: { genres: GENRES_INCLUDE } } },
+      include: {
+        movie: { include: { genres: GENRES_INCLUDE, moods: MOODS_INCLUDE } },
+      },
     });
     return bookmarks.map((bookmark) => flattenMovieGenres(bookmark.movie));
   }
@@ -143,8 +164,13 @@ export class EngagementService {
       include: {
         episode: {
           include: {
+            sceneMarkers: true,
             season: {
-              include: { movie: { include: { genres: GENRES_INCLUDE } } },
+              include: {
+                movie: {
+                  include: { genres: GENRES_INCLUDE, moods: MOODS_INCLUDE },
+                },
+              },
             },
           },
         },
@@ -182,8 +208,7 @@ export class EngagementService {
 
   async addDownload(userId: string, episodeId: string) {
     // Entitlement-checked via the same authorization path playback uses —
-    // otherwise downloads become a side door around coin/subscription
-    // gating.
+    // otherwise downloads become a side door around subscription gating.
     const authorization = await this.playback.authorize(userId, episodeId);
     if (!authorization.allowed) {
       throw new ForbiddenException(
@@ -225,5 +250,103 @@ export class EngagementService {
       episode: episodeRest,
       movie: flattenMovieGenres(season.movie),
     };
+  }
+
+  /**
+   * Deliberately not folded into /movies: this differs per caller, and
+   * /movies is one cache slot shared by every caller regardless of auth
+   * state (see the design doc's cache invariant). movieIds is capped
+   * BEFORE the query runs -- an unbounded `IN (...)` built from a query
+   * string is a trivially abusable scan.
+   */
+  async getWatchStatus(
+    userId: string,
+    movieIds: string[],
+  ): Promise<Record<string, WatchStatusEntry>> {
+    if (movieIds.length > WATCH_STATUS_MAX_MOVIE_IDS) {
+      throw new BadRequestException(
+        `At most ${WATCH_STATUS_MAX_MOVIE_IDS} movieIds are allowed per request`,
+      );
+    }
+
+    const movies = await this.prisma.movie.findMany({
+      where: { id: { in: movieIds } },
+      include: {
+        seasons: {
+          include: {
+            // Excludes a takedown episode from the denominator: nobody can
+            // watch it anymore, so it must not silently cap what "100%"
+            // means for this movie.
+            episodes: {
+              where: { deletedAt: null },
+              select: { id: true, durationMinutes: true },
+            },
+          },
+        },
+      },
+    });
+
+    const episodesByMovie = new Map<
+      string,
+      { id: string; durationMinutes: number }[]
+    >();
+    for (const movie of movies) {
+      episodesByMovie.set(
+        movie.id,
+        movie.seasons.flatMap((season) => season.episodes),
+      );
+    }
+
+    const allEpisodeIds = [...episodesByMovie.values()].flatMap((episodes) =>
+      episodes.map((e) => e.id),
+    );
+    const histories = await this.prisma.watchHistory.findMany({
+      where: { userId, episodeId: { in: allEpisodeIds } },
+    });
+    const historyByEpisode = new Map(histories.map((h) => [h.episodeId, h]));
+
+    const result: Record<string, WatchStatusEntry> = {};
+    for (const movieId of movieIds) {
+      const episodes = episodesByMovie.get(movieId) ?? [];
+      const totalSeconds = episodes.reduce(
+        (sum, e) => sum + e.durationMinutes * 60,
+        0,
+      );
+
+      let watchedSeconds = 0;
+      let lastWatchedAt: Date | null = null;
+      for (const episode of episodes) {
+        const history = historyByEpisode.get(episode.id);
+        if (!history) continue;
+        const durationSeconds = episode.durationMinutes * 60;
+        // `completed` pins the contribution to the full duration
+        // regardless of progressSeconds: the 90% completion threshold
+        // (see updateProgress) can mark an episode done well before its
+        // raw progress figure reaches the end, and a Math.min guards the
+        // opposite case -- a client reporting more seconds than the
+        // episode is actually long.
+        watchedSeconds += history.completed
+          ? durationSeconds
+          : Math.min(history.progressSeconds, durationSeconds);
+        if (!lastWatchedAt || history.updatedAt > lastWatchedAt) {
+          lastWatchedAt = history.updatedAt;
+        }
+      }
+
+      const percent =
+        totalSeconds > 0
+          ? Math.min(100, Math.round((watchedSeconds / totalSeconds) * 100))
+          : 0;
+      const state: WatchStatusState =
+        percent >= 100 ? 'watched' : percent > 0 ? 'partial' : 'none';
+
+      result[movieId] = {
+        state,
+        percent,
+        lastWatchedAt: lastWatchedAt ? lastWatchedAt.toISOString() : null,
+      };
+    }
+
+    return result;
   }
 }

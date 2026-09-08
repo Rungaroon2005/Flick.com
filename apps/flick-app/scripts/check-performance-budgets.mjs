@@ -1,64 +1,35 @@
-import { readFile, readdir, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const budgets = JSON.parse(await readFile(path.join(appRoot, 'performance-budgets.json'), 'utf8'));
-const failures = [];
+import {
+  CheckError,
+  evaluateBudgets,
+  formatReport,
+  measureBuildOutput,
+  readBudgets,
+  scanMediaPolicy,
+} from './performance-budgets.mjs';
 
-async function filesUnder(directory) {
-  const entries = await readdir(directory, { withFileTypes: true });
-  const nested = await Promise.all(
-    entries.map((entry) => {
-      const target = path.join(directory, entry.name);
-      return entry.isDirectory() ? filesUnder(target) : [target];
-    }),
-  );
-  return nested.flat();
-}
+// Defaults to the app this script ships in; an explicit root keeps the whole
+// pipeline exercisable against a fixture build.
+const appRoot = process.argv[2]
+  ? path.resolve(process.argv[2])
+  : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-async function measure(files) {
-  return Promise.all(files.map(async (file) => ({ file, bytes: (await stat(file)).size })));
-}
-
-function enforce(label, actual, maximum) {
-  const passed = actual <= maximum;
-  console.log(`${passed ? 'PASS' : 'FAIL'} ${label}: ${actual} bytes (budget ${maximum})`);
-  if (!passed) failures.push(`${label} exceeded by ${actual - maximum} bytes`);
-}
-
-let builtFiles;
 try {
-  builtFiles = await filesUnder(path.join(appRoot, '.next', 'static', 'chunks'));
-} catch {
-  throw new Error('Missing .next build output. Run npm run build before the performance check.');
-}
+  const budgets = await readBudgets(appRoot);
+  const results = evaluateBudgets(await measureBuildOutput(appRoot), budgets);
+  const { lines, errors, failed } = formatReport(results, await scanMediaPolicy(appRoot));
 
-const javascript = await measure(builtFiles.filter((file) => file.endsWith('.js')));
-const css = await measure(builtFiles.filter((file) => file.endsWith('.css')));
-const posters = await measure(await filesUnder(path.join(appRoot, 'public', 'posters')));
-
-enforce('largest JavaScript chunk', Math.max(...javascript.map(({ bytes }) => bytes)), budgets.maxJavaScriptChunkBytes);
-enforce('total emitted JavaScript', javascript.reduce((total, { bytes }) => total + bytes, 0), budgets.maxTotalJavaScriptBytes);
-enforce('total emitted CSS', css.reduce((total, { bytes }) => total + bytes, 0), budgets.maxTotalCssBytes);
-enforce('largest source poster', Math.max(...posters.map(({ bytes }) => bytes)), budgets.maxPosterBytes);
-
-const sourceFiles = (await filesUnder(path.join(appRoot, 'src'))).filter((file) => /\.(tsx?|jsx?)$/.test(file));
-const allowedVideoComponents = new Set([
-  path.join(appRoot, 'src', 'app', 'player', '[id]', 'PlayerClient.tsx'),
-  path.join(appRoot, 'src', 'app', '(app)', 'discover', 'DiscoverClient.tsx'),
-]);
-
-for (const file of sourceFiles) {
-  const source = await readFile(file, 'utf8');
-  if (/\bautoPlay\b/.test(source)) failures.push(`autoplay media is forbidden: ${path.relative(appRoot, file)}`);
-  if (/<video\b/.test(source) && !allowedVideoComponents.has(file)) {
-    failures.push(`video element outside playback surfaces: ${path.relative(appRoot, file)}`);
+  for (const line of lines) console.log(line);
+  if (failed) {
+    for (const error of errors) console.error(`- ${error}`);
+    process.exitCode = 1;
   }
-}
-
-console.log(`${failures.length === 0 ? 'PASS' : 'FAIL'} playback-only media policy`);
-if (failures.length > 0) {
-  for (const failure of failures) console.error(`- ${failure}`);
+} catch (failure) {
+  // Anything we did not classify is a defect in this script, not an operator
+  // error: let it keep its stack rather than masquerading as a budget failure.
+  if (!(failure instanceof CheckError)) throw failure;
+  console.error(failure.message);
   process.exitCode = 1;
 }

@@ -11,14 +11,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 /**
- * Encodes the Cinnabar contrast rule so it can't be reached for wrong:
- * `primary` fills with --color-brand (5.20:1 with white text on top);
- * it never sets brand as a text color on a dark ground, which measures
- * 4.04:1 and fails AA (docs/FRONTEND_PLAN.md Part 1).
+ * Encodes the brand contrast rule so it can't be reached for wrong:
+ * `primary` fills with --color-brand (6.44:1 with ink text on top; white
+ * text only reaches 3.09:1 and fails normal-text AA); it never sets brand
+ * as a text color on a dark ground (docs/FRONTEND_PLAN.md Part 1).
  */
 const variantClasses: Record<Variant, string> = {
   primary:
-    'bg-brand text-white shadow-lg shadow-black/25 hover:bg-brand-deep hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brand-ink/20 active:translate-y-0 active:scale-95',
+    'bg-brand text-ink shadow-lg shadow-black/25 hover:bg-brand-deep hover:text-white hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brand-ink/20 active:translate-y-0 active:scale-95',
   secondary:
     'bg-ink-2 text-fg shadow-md shadow-black/20 hover:bg-hairline hover:-translate-y-0.5 active:translate-y-0 active:scale-95',
   ghost: 'bg-transparent text-fg-dim hover:text-fg active:scale-95',
@@ -39,10 +39,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || loading}
-        className={`inline-flex items-center justify-center gap-2 rounded-full font-medium
+        className={`focus-ring inline-flex items-center justify-center gap-2 rounded-full font-medium
           transition-all duration-surface ease-enter
           disabled:opacity-45 disabled:pointer-events-none disabled:hover:translate-y-0
-          focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ink
           ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
         {...rest}
       >

@@ -1,56 +1,79 @@
 import type {
   AuthenticatedUser,
-  AuthMutationResponse,
   BookmarkResponse,
-  CoinPack,
+  CheckoutResponse,
   ContinueWatchingItem,
   DownloadRecord,
+  EpisodeDetail,
+  FitsItem,
   LikeResponse,
+  PassportDto,
+  WatchStatusResponse,
   Movie,
   MovieActionsResponse,
+  OtpRequestResponse,
+  OtpVerifyResponse,
   PlaybackAuthorization,
   Subscription,
   SubscriptionPlan,
-  WalletResponse,
 } from './index';
 
 export interface PlansResponse {
   subscriptions: SubscriptionPlan[];
-  coins: CoinPack[];
 }
 
 export type ApiPath =
-  | '/auth/login'
-  | '/auth/register'
+  | '/auth/otp/request'
+  | '/auth/otp/verify'
   | '/auth/logout'
   | '/auth/me'
+  | '/auth/oauth/providers'
+  | '/auth/oauth/nonce'
+  | '/auth/oauth/verify'
   | '/movies'
+  | `/movies?q=${string}`
+  | `/episodes/${string}`
   | '/me/bookmarks'
   | '/me/continue-watching'
   | '/me/downloads'
   | '/subscriptions/me'
-  | '/wallet'
-  | '/wallet/spend'
+  | '/payments/checkout'
   | `/playback/${string}/authorize`
   | `/me/movies/${string}/actions`
   | `/me/likes/${string}`
   | `/me/bookmarks/${string}`
   | `/me/downloads/${string}`
-  | `/me/watch-history/${string}`;
+  | `/me/watch-history/${string}`
+  | `/discovery/fits?maxMinutes=${string}`
+  | `/discovery/fits?maxMinutes=${string}&mood=${string}`
+  | `/me/watch-status?movieIds=${string}`
+  | '/me/passport';
 
 export type ApiResponse<Path extends ApiPath> =
-  Path extends '/auth/login' | '/auth/register' ? AuthMutationResponse
+  Path extends '/auth/otp/request' ? OtpRequestResponse
+  : Path extends '/auth/otp/verify' ? OtpVerifyResponse
   : Path extends '/auth/logout' ? { success: boolean }
   : Path extends '/auth/me' ? AuthenticatedUser
+  : Path extends '/auth/oauth/providers' ? { providers: string[] }
+  : Path extends '/auth/oauth/nonce' ? { nonce: string; expiresIn: number }
+  // Deliberately the same type as /auth/otp/verify: both endpoints return the
+  // same { success, user, isNewUser } shape, and one type for one shape keeps
+  // them from drifting apart.
+  : Path extends '/auth/oauth/verify' ? OtpVerifyResponse
   : Path extends '/movies' | '/me/bookmarks' ? Movie[]
+  : Path extends `/movies?q=${string}` ? Movie[]
+  : Path extends `/episodes/${string}` ? EpisodeDetail
   : Path extends '/me/continue-watching' ? ContinueWatchingItem[]
   : Path extends '/me/downloads' ? DownloadRecord[]
   : Path extends '/subscriptions/me' ? Subscription | null | undefined
-  : Path extends '/wallet' ? WalletResponse
+  : Path extends '/payments/checkout' ? CheckoutResponse
   : Path extends `/playback/${string}/authorize` ? PlaybackAuthorization
   : Path extends `/me/movies/${string}/actions` ? MovieActionsResponse
   : Path extends `/me/likes/${string}` ? LikeResponse
   : Path extends `/me/bookmarks/${string}` ? BookmarkResponse
+  : Path extends `/discovery/fits?maxMinutes=${string}` | `/discovery/fits?maxMinutes=${string}&mood=${string}` ? FitsItem[]
+  : Path extends `/me/watch-status?movieIds=${string}` ? WatchStatusResponse
+  : Path extends '/me/passport' ? PassportDto
   : unknown;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -72,6 +95,24 @@ function requireNumber(record: Record<string, unknown>, key: string): void {
   }
 }
 
+const SCENE_MARKER_KINDS = new Set(['INTRO', 'RECAP', 'CREDITS']);
+
+/** Validates each entry field-by-field rather than trusting the array
+ *  shape: a malformed marker (e.g. a kind the frontend doesn't know
+ *  about yet) must not crash the player, only fail to render a skip
+ *  button for that one marker. */
+function decodeSceneMarkers(value: unknown): void {
+  if (!Array.isArray(value)) throw new TypeError('Invalid sceneMarkers');
+  for (const entry of value) {
+    const marker = requireRecord(entry, 'scene marker');
+    if (typeof marker.kind !== 'string' || !SCENE_MARKER_KINDS.has(marker.kind)) {
+      throw new TypeError('Invalid scene marker kind');
+    }
+    requireNumber(marker, 'startSeconds');
+    requireNumber(marker, 'endSeconds');
+  }
+}
+
 export function decodeMovie(value: unknown): Movie {
   const movie = requireRecord(value, 'movie');
   if (typeof movie.id !== 'string' || typeof movie.title !== 'string' || typeof movie.description !== 'string') {
@@ -86,9 +127,22 @@ export function decodeMovies(value: unknown): Movie[] {
   return value.map(decodeMovie);
 }
 
+export function decodeEpisodeDetail(value: unknown): EpisodeDetail {
+  const detail = requireRecord(value, 'episode detail');
+  const episode = requireRecord(detail.episode, 'episode');
+  if (typeof episode.id !== 'string' || typeof episode.title !== 'string') {
+    throw new TypeError('Invalid episode identity');
+  }
+  if (typeof episode.isPremium !== 'boolean') {
+    throw new TypeError('Invalid episode isPremium');
+  }
+  decodeSceneMarkers(episode.sceneMarkers);
+  return { episode, movie: decodeMovie(detail.movie) } as unknown as EpisodeDetail;
+}
+
 export function decodePlans(value: unknown): PlansResponse {
   const plans = requireRecord(value, 'plans');
-  if (!Array.isArray(plans.subscriptions) || !Array.isArray(plans.coins)) {
+  if (!Array.isArray(plans.subscriptions)) {
     throw new TypeError('Invalid plans collections');
   }
   for (const planValue of plans.subscriptions) {
@@ -97,17 +151,81 @@ export function decodePlans(value: unknown): PlansResponse {
       throw new TypeError('Invalid subscription plan');
     }
   }
-  for (const packValue of plans.coins) {
-    const pack = requireRecord(packValue, 'coin pack');
-    if (typeof pack.id !== 'string' || typeof pack.coins !== 'number' || typeof pack.price !== 'number') {
-      throw new TypeError('Invalid coin pack');
-    }
-  }
   return plans as unknown as PlansResponse;
 }
 
+const FITS_KINDS = new Set(['film', 'next_episode', 'first_episode']);
+
+/** Reuses decodeMovie and decodeSceneMarkers rather than duplicating their
+ *  field checks -- an item here is a (movie, episode) pair from the exact
+ *  same catalogue shape /movies and /episodes/:id already validate. */
+export function decodeFits(value: unknown): FitsItem[] {
+  if (!Array.isArray(value)) throw new TypeError('Invalid fits response');
+  return value.map((entry) => {
+    const item = requireRecord(entry, 'fits item');
+    if (typeof item.kind !== 'string' || !FITS_KINDS.has(item.kind)) {
+      throw new TypeError('Invalid fits item kind');
+    }
+    requireNumber(item, 'runtimeMinutes');
+    if (typeof item.finishesAtHint !== 'string' || Number.isNaN(Date.parse(item.finishesAtHint))) {
+      throw new TypeError('Invalid fits item finishesAtHint');
+    }
+    const episode = requireRecord(item.episode, 'fits episode');
+    decodeSceneMarkers(episode.sceneMarkers);
+    decodeMovie(item.movie);
+    return item as unknown as FitsItem;
+  });
+}
+
+const WATCH_STATUS_STATES = new Set(['none', 'partial', 'watched']);
+
+export function decodeWatchStatus(value: unknown): WatchStatusResponse {
+  const record = requireRecord(value, 'watch status');
+  for (const [movieId, entry] of Object.entries(record)) {
+    const status = requireRecord(entry, `watch status for ${movieId}`);
+    if (typeof status.state !== 'string' || !WATCH_STATUS_STATES.has(status.state)) {
+      throw new TypeError('Invalid watch status state');
+    }
+    requireNumber(status, 'percent');
+    if (status.lastWatchedAt !== null) {
+      if (
+        typeof status.lastWatchedAt !== 'string' ||
+        Number.isNaN(Date.parse(status.lastWatchedAt))
+      ) {
+        throw new TypeError('Invalid watch status lastWatchedAt');
+      }
+    }
+  }
+  return record as unknown as WatchStatusResponse;
+}
+
+export function decodePassport(value: unknown): PassportDto {
+  const record = requireRecord(value, 'passport');
+  requireNumber(record, 'completedMoviesCount');
+  requireNumber(record, 'totalWatchedHours');
+  requireNumber(record, 'likedMoviesCount');
+  if (record.topGenre !== null) {
+    const genre = requireRecord(record.topGenre, 'passport topGenre');
+    if (typeof genre.id !== 'string' || typeof genre.name !== 'string' || typeof genre.slug !== 'string') {
+      throw new TypeError('Invalid passport topGenre');
+    }
+  }
+  if (record.topCountry !== null) {
+    const country = requireRecord(record.topCountry, 'passport topCountry');
+    if (typeof country.code !== 'string' || typeof country.count !== 'number') {
+      throw new TypeError('Invalid passport topCountry');
+    }
+  }
+  return record as unknown as PassportDto;
+}
+
 export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unknown): ApiResponse<Path> {
+  if (path.startsWith('/discovery/fits')) return decodeFits(value) as ApiResponse<Path>;
+  if (path.startsWith('/me/watch-status')) return decodeWatchStatus(value) as ApiResponse<Path>;
+  if (path === '/me/passport') return decodePassport(value) as ApiResponse<Path>;
+  if (path.startsWith('/movies?q=')) return decodeMovies(value) as ApiResponse<Path>;
   if (path === '/movies' || path === '/me/bookmarks') return decodeMovies(value) as ApiResponse<Path>;
+  if (path.startsWith('/episodes/')) return decodeEpisodeDetail(value) as ApiResponse<Path>;
   if (path === '/me/continue-watching' || path === '/me/downloads') {
     if (!Array.isArray(value)) throw new TypeError(`Invalid ${path} response`);
     return value as ApiResponse<Path>;
@@ -128,8 +246,6 @@ export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unkno
     requireBoolean(authorization, 'allowed');
     if (authorization.allowed) {
       if (typeof authorization.videoUrl !== 'string') throw new TypeError('Invalid playback videoUrl');
-    } else {
-      requireNumber(authorization, 'coinCost');
     }
     return authorization as ApiResponse<Path>;
   }
@@ -150,14 +266,46 @@ export function decodeApiResponse<Path extends ApiPath>(path: Path, value: unkno
     requireBoolean(result, 'bookmarked');
     return result as ApiResponse<Path>;
   }
-  if (path === '/wallet') {
-    const wallet = requireRecord(value, 'wallet');
-    requireNumber(wallet, 'balance');
-    return wallet as ApiResponse<Path>;
+  if (path === '/payments/checkout') {
+    const checkout = requireRecord(value, 'checkout');
+    if (
+      typeof checkout.checkoutUrl !== 'string' ||
+      typeof checkout.intentId !== 'string'
+    ) {
+      throw new TypeError('Invalid checkout response');
+    }
+    return checkout as ApiResponse<Path>;
   }
-  if (path === '/auth/me' || path === '/auth/login' || path === '/auth/register') {
+  if (path === '/auth/otp/request') {
+    const otp = requireRecord(value, 'otp request');
+    if (typeof otp.ref !== 'string') throw new TypeError('Invalid otp ref');
+    requireNumber(otp, 'expiresIn');
+    return otp as ApiResponse<Path>;
+  }
+  if (path === '/auth/oauth/providers') {
+    const listed = requireRecord(value, 'oauth providers');
+    if (
+      !Array.isArray(listed.providers) ||
+      listed.providers.some((id) => typeof id !== 'string')
+    ) {
+      throw new TypeError('Invalid oauth providers');
+    }
+    return listed as ApiResponse<Path>;
+  }
+  if (path === '/auth/oauth/nonce') {
+    const issued = requireRecord(value, 'oauth nonce');
+    if (typeof issued.nonce !== 'string') throw new TypeError('Invalid oauth nonce');
+    requireNumber(issued, 'expiresIn');
+    return issued as ApiResponse<Path>;
+  }
+  if (
+    path === '/auth/me' ||
+    path === '/auth/otp/verify' ||
+    path === '/auth/oauth/verify'
+  ) {
     const envelope = requireRecord(value, 'authentication');
-    const user = path === '/auth/me' ? envelope : requireRecord(envelope.user, 'authentication user');
+    const user =
+      path === '/auth/me' ? envelope : requireRecord(envelope.user, 'authentication user');
     if (typeof user.id !== 'string' || typeof user.displayName !== 'string') {
       throw new TypeError('Invalid authentication user');
     }

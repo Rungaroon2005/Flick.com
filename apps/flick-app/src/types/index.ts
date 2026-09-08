@@ -5,12 +5,26 @@ export interface AuthenticatedUser {
   email: string | null;
   displayName: string;
   role: 'USER' | 'ADMIN';
-  coinBalance: number;
 }
 
 export interface AuthMutationResponse {
   success: boolean;
   user: Pick<AuthenticatedUser, 'id' | 'email' | 'displayName'>;
+}
+
+/** Body of POST /auth/otp/request. Identical whether or not an account exists. */
+export interface OtpRequestResponse {
+  ref: string;
+  expiresIn: number;
+}
+
+/** Body of POST /auth/otp/verify. The token itself is in an HttpOnly cookie. */
+export interface OtpVerifyResponse {
+  success: boolean;
+  user: Pick<AuthenticatedUser, 'id' | 'email' | 'displayName'> & {
+    phone: string | null;
+  };
+  isNewUser: boolean;
 }
 
 export interface MovieActionsResponse {
@@ -26,8 +40,25 @@ export interface BookmarkResponse {
   bookmarked: boolean;
 }
 
-export interface WalletResponse {
-  balance: number;
+/** Body of POST /payments/checkout. Deliberately carries no price — the
+ *  server resolves the amount from its own catalog (see
+ *  apps/flick-api/src/payments/catalog.ts). */
+export interface CheckoutResponse {
+  checkoutUrl: string;
+  intentId: string;
+}
+
+export type SceneMarkerKind = 'INTRO' | 'RECAP' | 'CREDITS';
+
+/** Timing metadata about content, identical for every viewer -- rides in
+ *  the same cached movie/episode payloads as everything else here, unlike
+ *  videoUrl (see below), which is personal-entitlement-gated. */
+export interface SceneMarkerDto {
+  id: string;
+  episodeId: string;
+  kind: SceneMarkerKind;
+  startSeconds: number;
+  endSeconds: number;
 }
 
 export interface Episode {
@@ -40,20 +71,23 @@ export interface Episode {
   videoUrl?: string | null;
   thumbnailUrl: string | null;
   durationMinutes: number;
-  coinCost: number;
+  isPremium: boolean;
   releaseDate: string; // ISO string from backend
+  /** Named to match the backend's Episode.sceneMarkers relation, not the
+   *  design doc's shorter "markers" sketch -- kept consistent with the
+   *  Prisma model name on the API side rather than renamed for brevity. */
+  sceneMarkers: SceneMarkerDto[];
 }
 
 export type PlaybackAuthorization =
   | {
       allowed: true;
-      reason: 'free' | 'subscription' | 'unlocked';
+      reason: 'free' | 'subscription';
       videoUrl: string;
     }
   | {
       allowed: false;
-      reason: 'subscription_required' | 'coins_required';
-      coinCost: number;
+      reason: 'subscription_required';
     };
 
 export interface ContinueWatchingItem {
@@ -63,11 +97,56 @@ export interface ContinueWatchingItem {
   movie: Movie;
 }
 
+export type WatchStatusState = 'none' | 'partial' | 'watched';
+
+/** GET /me/watch-status -- personal, never reachable through the shared
+ *  /movies cache. Keyed by movie id. */
+export interface WatchStatusEntry {
+  state: WatchStatusState;
+  percent: number;
+  lastWatchedAt: string | null;
+}
+export type WatchStatusResponse = Record<string, WatchStatusEntry>;
+
+/** GET /me/passport (NewPlan Part D, phase 1) -- a read-only rollup over
+ *  data the user already generated. Personal, never reachable through the
+ *  shared /movies cache. */
+export interface PassportDto {
+  completedMoviesCount: number;
+  totalWatchedHours: number;
+  topGenre: Genre | null;
+  /** ISO 3166-1 alpha-2 code, e.g. "KR" -- no display name from the API;
+   *  the client maps it to a Thai label (see profile page). */
+  topCountry: { code: string; count: number } | null;
+  likedMoviesCount: number;
+}
+
+export type FitsKind = 'film' | 'next_episode' | 'first_episode';
+
+/** GET /discovery/fits -- personal (kind can be 'next_episode'), never
+ *  reachable through the shared /movies cache. */
+export interface FitsItem {
+  movie: Movie;
+  episode: Episode;
+  kind: FitsKind;
+  runtimeMinutes: number;
+  /** ISO timestamp; format client-side with formatClockTime. */
+  finishesAtHint: string;
+}
+
 export interface DownloadRecord {
   id: string;
   episodeId: string;
   expiresAt: string;
   downloadedAt: string;
+  episode: Episode;
+  movie: Movie;
+}
+
+/** Body of GET /episodes/:id — one episode plus the movie it belongs to.
+ *  The movie deliberately carries no `seasons`: the player's only use for
+ *  that was the catalogue walk this endpoint replaces. */
+export interface EpisodeDetail {
   episode: Episode;
   movie: Movie;
 }
@@ -104,7 +183,7 @@ export interface Movie {
 export interface Subscription {
   id: string;
   userId: string;
-  planType: string; // 'weekly' | 'monthly' in practice
+  planType: string; // 'monthly' in practice
   status: 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'EXPIRED';
   autoRenew: boolean;
   startDate: string; // ISO string from backend
@@ -130,11 +209,3 @@ export interface SubscriptionPlan {
   color: string;
 }
 
-export interface CoinPack {
-  id: string;
-  name: string;
-  coins: number;
-  price: number;
-  unlocks?: string;
-  badge?: string;
-}

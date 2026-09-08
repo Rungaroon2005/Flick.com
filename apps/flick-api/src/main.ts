@@ -8,7 +8,11 @@ import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody keeps the ORIGINAL request bytes on req.rawBody alongside the
+  // parsed body. The payment webhook's HMAC is computed over exactly what the
+  // gateway sent; verifying a re-serialized JSON.stringify of the parsed body
+  // would mismatch on key order and whitespace and reject every real webhook.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   const config = app.get(ConfigService);
   const trustProxyHops = Number(
     config.get<string | number>('TRUST_PROXY_HOPS', 0),
@@ -17,7 +21,18 @@ async function bootstrap() {
     const expressApp = app.getHttpAdapter().getInstance() as Application;
     expressApp.set('trust proxy', trustProxyHops);
   }
-  app.use(helmet());
+  // The relaxed cross-origin resource policy exists only so the dev web app on
+  // another port can load the HLS fixtures ServeStaticModule mounts at
+  // /static/. In production the video is served from a CDN, not from here, so
+  // the default same-origin policy applies and nothing needs the exception.
+  app.use(
+    helmet({
+      crossOriginResourcePolicy:
+        process.env.NODE_ENV === 'production'
+          ? { policy: 'same-origin' }
+          : { policy: 'cross-origin' },
+    }),
+  );
   app.use(cookieParser());
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalPipes(

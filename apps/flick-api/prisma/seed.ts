@@ -1,7 +1,6 @@
 import { PrismaClient, ContentStatus } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import * as bcrypt from 'bcrypt';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://macintosh@localhost:5432/flickdb?schema=public';
 const pool = new Pool({ connectionString });
@@ -11,6 +10,30 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('Seeding database...');
 
+  // Idempotency: this script always used bare `.create()`, so re-running it
+  // against a database that already has these fixture rows (e.g. after
+  // switching the seeded user from password to OTP auth) fails on the
+  // primary-key unique constraint. Clear only the known fixture rows this
+  // script owns — by id — before recreating them. Movie deletion cascades to
+  // its seasons/episodes/movie_genres rows (see schema.prisma onDelete:
+  // Cascade); genres themselves are shared and left alone via
+  // connectOrCreate below.
+  //
+  // The User row is handled differently, below (upsert, not delete-then-
+  // create): PaymentEvent.user is onDelete: Restrict, so deleting
+  // 'e2e-free-user' would fail with a foreign-key violation (P2003) the
+  // moment a later e2e suite has recorded a payment event against it.
+  const seedMovieIds = [
+    'sathu',
+    'dao-sindome',
+    'neephee',
+    'ngao',
+    'rak',
+    'sena',
+    'e2e-draft',
+  ];
+  await prisma.movie.deleteMany({ where: { id: { in: seedMovieIds } } });
+
   // Create Movies
   const sathu = await prisma.movie.create({
     data: {
@@ -18,6 +41,9 @@ async function main() {
       title: 'สาธุ',
       description: 'ชีวิตของนักธุรกิจที่พังทลาย เมื่อภารกิจไม่สำเร็จ กลุ่มคนเหล่านี้ จึงรวมกลุ่มกันเพื่อหาเงินมาใช้หนี้',
       posterUrl: '/posters/sathu.jpg',
+      // NewPlan C2 (press-and-hold poster preview) fixture data -- reuses
+      // the same free-preview clip already serving as episode 1's video.
+      trailerUrl: '/videos/movie1-preview.m4v',
       year: 2025,
       contentRating: 'ผู้ใหญ่',
       status: ContentStatus.PUBLISHED,
@@ -31,6 +57,9 @@ async function main() {
           }
         }]
       },
+      moods: {
+        create: [{ mood: { connectOrCreate: { where: { slug: 'stressed' }, create: { slug: 'stressed', name: 'เครียด', emoji: '😣' } } } }, { mood: { connectOrCreate: { where: { slug: 'inspired' }, create: { slug: 'inspired', name: 'อยากได้แรงบันดาลใจ', emoji: '✨' } } } }]
+      },
       seasons: {
         create: [
           {
@@ -38,9 +67,24 @@ async function main() {
             title: 'ซีซั่น 1',
             episodeCount: 5,
             episodes: {
+              // ep1-4 stream from the local HLS fixtures under
+              // apps/flick-api/public/videos (git-ignored -- see .gitignore).
+              // They are absent on a fresh clone, so nothing may depend on
+              // them playing; they exist to exercise the player by hand.
               create: [
-                { episodeNumber: 1, title: 'อยู่อย่างยาก', description: 'คลิปตัวอย่างจาก movie1.MOV', durationMinutes: 1, thumbnailUrl: '/posters/sathu.jpg', videoUrl: '/videos/movie1-preview.m4v', coinCost: 0, releaseDate: new Date() },
-                { id: 'sathu-premium', episodeNumber: 2, title: 'อยู่อย่างง่าย', description: 'ตอนที่ 2', durationMinutes: 10, thumbnailUrl: '/posters/sathu.jpg', videoUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', isPremium: true, coinCost: 10, releaseDate: new Date() },
+                { id: 'sathu-ep1', episodeNumber: 1, title: 'อยู่อย่างยาก', description: 'ตอนที่ 1', durationMinutes: 1, thumbnailUrl: '/posters/sathu.jpg', videoUrl: 'http://localhost:3001/static/videos/ep1/index.m3u8', releaseDate: new Date() },
+                { id: 'sathu-ep2', episodeNumber: 2, title: 'อยู่อย่างง่าย', description: 'ตอนที่ 2', durationMinutes: 2, thumbnailUrl: '/posters/sathu.jpg', videoUrl: 'http://localhost:3001/static/videos/ep2/index.m3u8', releaseDate: new Date() },
+                { id: 'sathu-ep3', episodeNumber: 3, title: 'บททดสอบ', description: 'ตอนที่ 3', durationMinutes: 2, thumbnailUrl: '/posters/sathu.jpg', videoUrl: 'http://localhost:3001/static/videos/ep3/index.m3u8', releaseDate: new Date() },
+                { id: 'sathu-ep4', episodeNumber: 4, title: 'จุดจบ', description: 'ตอนที่ 4', durationMinutes: 1, thumbnailUrl: '/posters/sathu.jpg', videoUrl: 'http://localhost:3001/static/videos/ep4/index.m3u8', releaseDate: new Date() },
+                // sathu-premium is load-bearing for four e2e suites
+                // (entitlement, passport, watch-status, movies): it is the
+                // only isPremium episode in the seed, and the only one long
+                // enough for their percent arithmetic. Its id, 10-minute
+                // duration, and isPremium flag are all asserted against --
+                // change any of them and update those specs in the same
+                // commit. It keeps a remote videoUrl deliberately, so the
+                // entitlement path stays testable without local fixtures.
+                { id: 'sathu-premium', episodeNumber: 5, title: 'บทสรุป', description: 'ตอนที่ 5 (พรีเมียม)', durationMinutes: 10, thumbnailUrl: '/posters/sathu.jpg', videoUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', isPremium: true, releaseDate: new Date() },
               ],
             },
           },
@@ -49,12 +93,26 @@ async function main() {
     },
   });
 
+  // Demonstrates smart-skip and finish-time estimation (NewPlan Phase B)
+  // against real fixture data. sathu-premium runs 10 minutes (600s); cascade
+  // from the movie deleteMany above already clears these on re-run, since
+  // scene_markers cascades from episodes, which cascades from movies.
+  await prisma.sceneMarker.createMany({
+    data: [
+      { episodeId: 'sathu-ep1', kind: 'INTRO', startSeconds: 0, endSeconds: 8 },
+      { episodeId: 'sathu-ep1', kind: 'CREDITS', startSeconds: 38, endSeconds: 45 },
+      { episodeId: 'sathu-premium', kind: 'INTRO', startSeconds: 0, endSeconds: 30 },
+      { episodeId: 'sathu-premium', kind: 'CREDITS', startSeconds: 560, endSeconds: 600 },
+    ],
+  });
+
   const dao = await prisma.movie.create({
     data: {
       id: 'dao-sindome',
       title: 'ดาวซินโดม',
       description: 'เรื่องราวของเด็กหนุ่มที่ค้นพบความลับของจักรวาลผ่านเทคโนโลยีล้ำสมัยในกรุงเทพมหานคร',
       posterUrl: '/posters/dao.jpg',
+      trailerUrl: '/videos/movie2-preview.m4v',
       year: 2025,
       contentRating: 'ทั่วไป',
       status: ContentStatus.PUBLISHED,
@@ -68,6 +126,9 @@ async function main() {
           }
         }]
       },
+      moods: {
+        create: [{ mood: { connectOrCreate: { where: { slug: 'thrill' }, create: { slug: 'thrill', name: 'อยากลุ้น', emoji: '😰' } } } }]
+      },
       seasons: {
         create: [
           {
@@ -76,8 +137,8 @@ async function main() {
             episodeCount: 2,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'เพื่อนไม่คบ', description: 'คลิปตัวอย่างจาก movie2.MOV', durationMinutes: 1, thumbnailUrl: '/posters/dao.jpg', videoUrl: '/videos/movie2-preview.m4v', coinCost: 0, releaseDate: new Date() },
-                { episodeNumber: 2, title: 'ดาวตก', description: 'ตอนที่ 2', durationMinutes: 14, thumbnailUrl: '/posters/dao.jpg', coinCost: 10, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'เพื่อนไม่คบ', description: 'คลิปตัวอย่างจาก movie2.MOV', durationMinutes: 1, thumbnailUrl: '/posters/dao.jpg', videoUrl: '/videos/movie2-preview.m4v', releaseDate: new Date() },
+                { episodeNumber: 2, title: 'ดาวตก', description: 'ตอนที่ 2', durationMinutes: 14, thumbnailUrl: '/posters/dao.jpg', isPremium: true, releaseDate: new Date() },
               ],
             },
           },
@@ -105,6 +166,9 @@ async function main() {
           }
         }]
       },
+      moods: {
+        create: [{ mood: { connectOrCreate: { where: { slug: 'stressed' }, create: { slug: 'stressed', name: 'เครียด', emoji: '😣' } } } }]
+      },
       seasons: {
         create: [
           {
@@ -113,8 +177,8 @@ async function main() {
             episodeCount: 2,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'คืนแรก', description: 'ตอนที่ 1', durationMinutes: 12, thumbnailUrl: '/posters/neephee.jpg', coinCost: 0, releaseDate: new Date() },
-                { episodeNumber: 2, title: 'เสียงเรียก', description: 'ตอนที่ 2', durationMinutes: 12, thumbnailUrl: '/posters/neephee.jpg', coinCost: 10, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'คืนแรก', description: 'ตอนที่ 1', durationMinutes: 12, thumbnailUrl: '/posters/neephee.jpg', releaseDate: new Date() },
+                { episodeNumber: 2, title: 'เสียงเรียก', description: 'ตอนที่ 2', durationMinutes: 12, thumbnailUrl: '/posters/neephee.jpg', isPremium: true, releaseDate: new Date() },
               ],
             },
           },
@@ -142,6 +206,9 @@ async function main() {
           }
         }]
       },
+      moods: {
+        create: [{ mood: { connectOrCreate: { where: { slug: 'thrill' }, create: { slug: 'thrill', name: 'อยากลุ้น', emoji: '😰' } } } }]
+      },
       seasons: {
         create: [
           {
@@ -150,8 +217,8 @@ async function main() {
             episodeCount: 2,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'ร่องรอย', description: 'ตอนที่ 1', durationMinutes: 15, thumbnailUrl: '/posters/ngao.jpg', coinCost: 0, releaseDate: new Date() },
-                { episodeNumber: 2, title: 'ผู้ต้องสงสัย', description: 'ตอนที่ 2', durationMinutes: 15, thumbnailUrl: '/posters/ngao.jpg', coinCost: 10, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'ร่องรอย', description: 'ตอนที่ 1', durationMinutes: 15, thumbnailUrl: '/posters/ngao.jpg', releaseDate: new Date() },
+                { episodeNumber: 2, title: 'ผู้ต้องสงสัย', description: 'ตอนที่ 2', durationMinutes: 15, thumbnailUrl: '/posters/ngao.jpg', isPremium: true, releaseDate: new Date() },
               ],
             },
           },
@@ -179,6 +246,9 @@ async function main() {
           }
         }]
       },
+      moods: {
+        create: [{ mood: { connectOrCreate: { where: { slug: 'lonely' }, create: { slug: 'lonely', name: 'เหงา', emoji: '🌙' } } } }, { mood: { connectOrCreate: { where: { slug: 'cry' }, create: { slug: 'cry', name: 'อยากร้องไห้', emoji: '😢' } } } }]
+      },
       seasons: {
         create: [
           {
@@ -187,8 +257,8 @@ async function main() {
             episodeCount: 2,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'พบกันครั้งแรก', description: 'ตอนที่ 1', durationMinutes: 13, thumbnailUrl: '/posters/rak.jpg', coinCost: 0, releaseDate: new Date() },
-                { episodeNumber: 2, title: 'สัญญาใจ', description: 'ตอนที่ 2', durationMinutes: 13, thumbnailUrl: '/posters/rak.jpg', coinCost: 10, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'พบกันครั้งแรก', description: 'ตอนที่ 1', durationMinutes: 13, thumbnailUrl: '/posters/rak.jpg', releaseDate: new Date() },
+                { episodeNumber: 2, title: 'สัญญาใจ', description: 'ตอนที่ 2', durationMinutes: 13, thumbnailUrl: '/posters/rak.jpg', isPremium: true, releaseDate: new Date() },
               ],
             },
           },
@@ -216,6 +286,9 @@ async function main() {
           }
         }]
       },
+      moods: {
+        create: [{ mood: { connectOrCreate: { where: { slug: 'thrill' }, create: { slug: 'thrill', name: 'อยากลุ้น', emoji: '😰' } } } }, { mood: { connectOrCreate: { where: { slug: 'laugh' }, create: { slug: 'laugh', name: 'อยากหัวเราะ', emoji: '😂' } } } }]
+      },
       seasons: {
         create: [
           {
@@ -224,8 +297,8 @@ async function main() {
             episodeCount: 2,
             episodes: {
               create: [
-                { episodeNumber: 1, title: 'บุกเดี่ยว', description: 'ตอนที่ 1', durationMinutes: 16, thumbnailUrl: '/posters/sena.jpg', coinCost: 0, releaseDate: new Date() },
-                { episodeNumber: 2, title: 'ภารกิจสุดท้าย', description: 'ตอนที่ 2', durationMinutes: 16, thumbnailUrl: '/posters/sena.jpg', coinCost: 10, releaseDate: new Date() },
+                { episodeNumber: 1, title: 'บุกเดี่ยว', description: 'ตอนที่ 1', durationMinutes: 16, thumbnailUrl: '/posters/sena.jpg', releaseDate: new Date() },
+                { episodeNumber: 2, title: 'ภารกิจสุดท้าย', description: 'ตอนที่ 2', durationMinutes: 16, thumbnailUrl: '/posters/sena.jpg', isPremium: true, releaseDate: new Date() },
               ],
             },
           },
@@ -249,12 +322,32 @@ async function main() {
     },
   });
 
-  await prisma.user.create({
-    data: {
+  // upsert, not delete-then-create: PaymentEvent rows accumulated against
+  // this user by other e2e suites would make a delete fail with a
+  // foreign-key violation (see the comment above). update explicitly nulls
+  // passwordHash so re-seeding over a row left behind by an older
+  // password-based seed actually clears it, rather than leaving a stale
+  // hash on a supposedly passwordless account.
+  await prisma.user.upsert({
+    where: { id: 'e2e-free-user' },
+    update: {
+      email: 'e2e-free@flick.test',
+      // The phone IS the login identity now — stored normalized, exactly as
+      // OtpService writes it.
+      phone: '+66800000001',
+      displayName: 'E2E Free User',
+      isVerified: true,
+      passwordHash: null,
+    },
+    create: {
       id: 'e2e-free-user',
       email: 'e2e-free@flick.test',
+      // The phone IS the login identity now — stored normalized, exactly as
+      // OtpService writes it.
+      phone: '+66800000001',
       displayName: 'E2E Free User',
-      passwordHash: await bcrypt.hash('flick-e2e-password', 12),
+      isVerified: true,
+      // passwordHash intentionally absent — passwordless.
     },
   });
 

@@ -25,7 +25,6 @@ export type IconName =
   | 'checkCircle'
   | 'refresh'
   | 'inbox'
-  | 'coin'
   | 'spinner'
   | 'plus'
   | 'volumeOn'
@@ -147,14 +146,6 @@ const paths: Record<IconName, React.ReactNode> = {
     <>
       <path d="M3 12h4l2 3h6l2-3h4" />
       <path d="M5.5 5h13l2.5 7v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7z" />
-    </>
-  ),
-  coin: (
-    <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9.5 9.2c0-1 1.1-1.7 2.5-1.7s2.5.7 2.5 1.6-1 1.4-2.5 1.9-2.5 1-2.5 1.9 1.1 1.6 2.5 1.6 2.5-.7 2.5-1.7" />
-      <line x1="12" y1="6" x2="12" y2="7.4" />
-      <line x1="12" y1="16.6" x2="12" y2="18" />
     </>
   ),
   spinner: (

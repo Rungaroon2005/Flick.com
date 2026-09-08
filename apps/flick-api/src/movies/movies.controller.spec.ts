@@ -6,6 +6,7 @@ describe('MoviesController', () => {
   let controller: MoviesController;
   let moviesService: {
     create: jest.Mock;
+    update: jest.Mock;
     findAll: jest.Mock;
     findOne: jest.Mock;
   };
@@ -13,6 +14,7 @@ describe('MoviesController', () => {
   beforeEach(async () => {
     moviesService = {
       create: jest.fn(),
+      update: jest.fn(),
       findAll: jest.fn(),
       findOne: jest.fn(),
     };
@@ -30,6 +32,16 @@ describe('MoviesController', () => {
     moviesService.findOne.mockResolvedValue(mockMovie);
     const result = await controller.findOne('m1');
     expect(moviesService.findOne).toHaveBeenCalledWith('m1');
+    expect(result).toEqual(mockMovie);
+  });
+
+  it('update calls the service with the id and dto and returns the result', async () => {
+    const mockMovie = { id: 'm1', originCountry: 'KR' };
+    moviesService.update.mockResolvedValue(mockMovie);
+    const result = await controller.update('m1', { originCountry: 'KR' });
+    expect(moviesService.update).toHaveBeenCalledWith('m1', {
+      originCountry: 'KR',
+    });
     expect(result).toEqual(mockMovie);
   });
 });

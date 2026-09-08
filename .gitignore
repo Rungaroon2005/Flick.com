@@ -43,3 +43,7 @@ next-env.d.ts
 # prisma (api)
 generated/prisma/
 .claude/
+
+# local media (dev fixtures — never committed)
+*.mp4
+apps/flick-api/public/videos/

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { useRouter } from 'next/navigation';
+import { useToast } from '@/components/ui/Toast';
 import { ApiError, apiFetch } from '@/lib/apiClient';
 
 export type PendingAction = 'like' | 'favorite' | null;
@@ -10,11 +11,11 @@ export function useMovieActions(
   router: ReturnType<typeof useRouter>,
   enabled = true,
 ) {
+  const { show: showToast } = useToast();
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [actionsForMovieId, setActionsForMovieId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const movieActionsLoading = movieId === null || actionsForMovieId !== movieId;
 
@@ -31,7 +32,7 @@ export function useMovieActions(
       .catch((err: unknown) => {
         if (cancelled) return;
         if (err instanceof ApiError && err.status === 401) router.push('/login');
-        else setNotice('ไม่สามารถโหลดสถานะถูกใจและรายการโปรดได้');
+        else showToast('ไม่สามารถโหลดสถานะถูกใจและรายการโปรดได้');
       })
       .finally(() => {
         if (!cancelled) setActionsForMovieId(movieId);
@@ -40,16 +41,15 @@ export function useMovieActions(
     return () => {
       cancelled = true;
     };
-  }, [actionsForMovieId, enabled, movieId, router]);
+  }, [actionsForMovieId, enabled, movieId, router, showToast]);
 
   const addDownload = async () => {
-    setNotice(null);
     try {
       await apiFetch(`/me/downloads/${episodeId}`, { method: 'PUT' });
-      setNotice('บันทึกรายการดาวน์โหลดแล้ว');
+      showToast('เก็บไว้ในรายการของฉันแล้ว');
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) router.push('/login');
-      else setNotice(err instanceof ApiError ? err.message : 'ไม่สามารถบันทึกรายการดาวน์โหลดได้');
+      else showToast(err instanceof ApiError ? err.message : 'ไม่สามารถเก็บไว้ในรายการของฉันได้');
     }
   };
 
@@ -57,16 +57,15 @@ export function useMovieActions(
     if (!movieId || pendingAction) return;
     const shouldLike = !liked;
     setPendingAction('like');
-    setNotice(null);
     try {
       const result = await apiFetch(`/me/likes/${movieId}`, {
         method: shouldLike ? 'PUT' : 'DELETE',
       });
       setLiked(result.liked);
-      setNotice(result.liked ? 'ถูกใจเรื่องนี้แล้ว' : 'ยกเลิกถูกใจแล้ว');
+      showToast(result.liked ? 'ถูกใจเรื่องนี้แล้ว' : 'ยกเลิกถูกใจแล้ว');
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) router.push('/login');
-      else setNotice(err instanceof ApiError ? err.message : 'ไม่สามารถอัปเดตการถูกใจได้');
+      else showToast(err instanceof ApiError ? err.message : 'ไม่สามารถอัปเดตการถูกใจได้');
     } finally {
       setPendingAction(null);
     }
@@ -76,16 +75,15 @@ export function useMovieActions(
     if (!movieId || pendingAction) return;
     const shouldBookmark = !bookmarked;
     setPendingAction('favorite');
-    setNotice(null);
     try {
       const result = await apiFetch(`/me/bookmarks/${movieId}`, {
         method: shouldBookmark ? 'PUT' : 'DELETE',
       });
       setBookmarked(result.bookmarked);
-      setNotice(result.bookmarked ? 'เพิ่มในรายการโปรดแล้ว' : 'นำออกจากรายการโปรดแล้ว');
+      showToast(result.bookmarked ? 'เพิ่มในรายการโปรดแล้ว' : 'นำออกจากรายการโปรดแล้ว');
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) router.push('/login');
-      else setNotice(err instanceof ApiError ? err.message : 'ไม่สามารถอัปเดตรายการโปรดได้');
+      else showToast(err instanceof ApiError ? err.message : 'ไม่สามารถอัปเดตรายการโปรดได้');
     } finally {
       setPendingAction(null);
     }
@@ -96,7 +94,6 @@ export function useMovieActions(
     bookmarked,
     movieActionsLoading,
     pendingAction,
-    notice,
     toggleLike,
     toggleFavorite,
     addDownload,

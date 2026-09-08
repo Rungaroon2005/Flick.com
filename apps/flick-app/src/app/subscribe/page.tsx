@@ -1,14 +1,15 @@
 import { redirect } from 'next/navigation';
 import SubscribeClient from './SubscribeClient';
 import { ErrorPanel } from '@/components/ui/ErrorPanel';
+import { ToastProvider } from '@/components/ui/Toast';
 import API_BASE_URL from '@/lib/api';
 import { getSession } from '@/lib/session';
-import type { CoinPack, SubscriptionPlan } from '@/types';
+import { withNext } from '@/lib/nextParam';
+import type { SubscriptionPlan } from '@/types';
 import { decodePlans } from '@/types/api';
 
 interface PlansResponse {
   subscriptions: SubscriptionPlan[];
-  coins: CoinPack[];
 }
 
 async function getPlans(): Promise<PlansResponse> {
@@ -25,7 +26,7 @@ async function getPlans(): Promise<PlansResponse> {
 // the time this Server Component runs.
 export default async function SubscribePage() {
   const session = await getSession();
-  if (!session) redirect('/login');
+  if (!session) redirect(withNext('/login', '/subscribe'));
 
   let data: PlansResponse | null = null;
   try {
@@ -42,5 +43,9 @@ export default async function SubscribePage() {
     );
   }
 
-  return <SubscribeClient plans={data.subscriptions} coinPacks={data.coins} />;
+  return (
+    <ToastProvider>
+      <SubscribeClient plans={data.subscriptions} />
+    </ToastProvider>
+  );
 }

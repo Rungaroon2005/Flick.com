@@ -1,50 +1,72 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: { register: jest.Mock; login: jest.Mock };
+  let authService: { requestOtp: jest.Mock; verifyOtp: jest.Mock };
+  let res: { cookie: jest.Mock; clearCookie: jest.Mock };
 
   beforeEach(async () => {
-    authService = { register: jest.fn(), login: jest.fn() };
+    authService = { requestOtp: jest.fn(), verifyOtp: jest.fn() };
+    res = { cookie: jest.fn(), clearCookie: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: authService },
-        {
-          provide: ConfigService,
-          useValue: { get: jest.fn().mockReturnValue('7d') },
-        },
+        { provide: ConfigService, useValue: { get: () => '7d' } },
       ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
   });
 
-  it('login strips access_token from response and sets cookie', async () => {
-    const cookie = jest.fn();
-    const mockRes = {
-      cookie,
-    } as unknown as Response;
-    authService.login.mockResolvedValue({
+  it('passes the caller IP through to the service', async () => {
+    authService.requestOtp.mockResolvedValue({ ref: 'AB2C', expiresIn: 300 });
+
+    await controller.requestOtp({ destination: '0812345678' }, {
+      ip: '9.9.9.9',
+    } as never);
+
+    expect(authService.requestOtp).toHaveBeenCalledWith(
+      { destination: '0812345678' },
+      '9.9.9.9',
+    );
+  });
+
+  it('sets an HttpOnly cookie and strips the token from the body', async () => {
+    authService.verifyOtp.mockResolvedValue({
       success: true,
-      user: { id: 'u1', email: 'a@b.com', displayName: 'A' },
-      access_token: 'tok123',
+      user: { id: 'u1', email: null, phone: '+66812345678', displayName: 'A' },
+      isNewUser: false,
+      access_token: 'tok',
     });
-    const result = await controller.login(
-      { email: 'a@b.com', password: 'pass' },
-      mockRes,
+
+    const body = await controller.verifyOtp(
+      { destination: '0812345678', ref: 'AB2C', code: '123456' },
+      res as unknown as Response,
     );
-    expect(result).not.toHaveProperty('access_token');
-    expect(result).toHaveProperty('success', true);
-    expect(cookie).toHaveBeenCalledWith(
+
+    expect(res.cookie).toHaveBeenCalledWith(
       'access_token',
-      'tok123',
-      expect.objectContaining({ maxAge: 7 * 24 * 60 * 60 * 1000 }),
+      'tok',
+      expect.objectContaining({ httpOnly: true, sameSite: 'lax' }),
     );
+    expect(JSON.stringify(body)).not.toContain('tok');
+    expect(JSON.stringify(body)).not.toContain('access_token');
+    expect(body).toEqual({
+      success: true,
+      user: { id: 'u1', email: null, phone: '+66812345678', displayName: 'A' },
+      isNewUser: false,
+    });
+  });
+
+  it('no longer exposes password endpoints', () => {
+    const asRecord = controller as unknown as Record<string, unknown>;
+    expect(asRecord.login).toBeUndefined();
+    expect(asRecord.register).toBeUndefined();
   });
 });

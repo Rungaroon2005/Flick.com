@@ -22,7 +22,7 @@ Every task's requirements implicitly include this section.
 - **Preserve every `[@media(hover:hover)]` guard.** They are what keep hover affordances off touch devices, and they matter *more* at iPad-landscape width. Never replace one with a bare `hover:`.
 - **CSS budget: 80,000 bytes total** (`performance-budgets.json` → `maxTotalCssBytes`). Baseline at plan time: **67,694 bytes, 12,306 free.** Measured by `npm run performance:check`, enforced in CI.
 - **Any `next/image` whose rendered width grows must have its `sizes` widened in the same commit.** Otherwise the browser picks the old narrow rendition and upscales it — a visibly blurrier desktop than today.
-- **`<video>` elements may exist only in `PlayerClient.tsx` and `DiscoverClient.tsx`** — enforced by `scripts/check-performance-budgets.mjs:47-55`. Do not move one into a new component.
+- **`<video>` elements may exist only in `PlayerClient.tsx` and `DiscoverClient.tsx`** — enforced by `PLAYBACK_SURFACES` in `scripts/performance-budgets.mjs`. Do not move one into a new component.
 - All UI copy is Thai. Reuse existing strings verbatim; do not translate or invent.
 
 **Per-task gate (run before every commit):**
@@ -589,7 +589,11 @@ function sourceFiles(dir: string): string[] {
 describe('page shell', () => {
   it('has no hand-rolled bottom-nav offsets left', () => {
     const offenders = sourceFiles(path.resolve(here, '../../'))
-      .filter((file) => !file.endsWith('PageShell.tsx'))
+      // Excludes PageShell.tsx (the real implementation, which legitimately
+      // contains the string) AND PageShell.test.tsx (Task 1's test asserts
+      // the string as a literal) — endsWith('PageShell.tsx') alone matches
+      // only the former and leaves the latter to trip this test forever.
+      .filter((file) => !path.basename(file).startsWith('PageShell'))
       .filter((file) => readFileSync(file, 'utf8').includes('pb-[calc(96px+env(safe-area-inset-bottom))]'))
       .map((file) => path.relative(process.cwd(), file));
 
@@ -798,10 +802,13 @@ Line 71 — add an `xl` height step to the poster:
               <div className="relative aspect-[9/16] w-48 shrink-0 overflow-hidden rounded-[28px] ring-1 ring-white/15 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.85)] sm:w-60 md:h-[380px] md:w-auto lg:h-[420px] xl:h-[460px]">
 ```
 
-Line 77 — widen the hint to match:
+Line 77 — widen the hint to match. The card is height-driven
+(`aspect-[9/16]`, `w-auto` from `md` up), so rendered width is
+`height * 9/16`, not the height token itself — md 380px tall → 214px wide,
+lg 420px → 236px, xl 460px → 259px:
 
 ```tsx
-                  sizes="(min-width: 1280px) 380px, (min-width: 768px) 340px, (min-width: 640px) 240px, 192px"
+                  sizes="(min-width: 1280px) 259px, (min-width: 1024px) 237px, (min-width: 768px) 214px, (min-width: 640px) 240px, 192px"
 ```
 
 - [ ] **Step 2: Widen the shelf column**

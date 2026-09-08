@@ -72,10 +72,14 @@ describe('GET /me/passport (e2e)', () => {
       .set('Cookie', userCookie)
       .expect(200);
 
+    // toEqual, not toMatchObject: an all-zero passport is the one case where
+    // the exact key set matters. A field added to PassportDto without a zero
+    // value defined for the empty case should fail here.
     expect(res.body).toEqual({
       completedMoviesCount: 0,
       totalWatchedHours: 0,
       topGenre: null,
+      topCountry: null,
       likedMoviesCount: 0,
     });
   });

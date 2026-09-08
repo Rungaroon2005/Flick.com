@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { NotFoundException } from '@nestjs/common';
-import { MoviesService } from './movies.service';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { GENRES_INCLUDE, MoviesService } from './movies.service';
 import { PrismaService } from '../prisma.service';
 import { createPrismaMock } from '../testing/prisma.mock';
 
@@ -67,6 +68,74 @@ describe('MoviesService', () => {
       };
     };
   }
+
+  it('rejects a non-ISO originCountry on create with BadRequestException', async () => {
+    await expect(
+      service.create({ ...validDto, originCountry: 'Korea' }),
+    ).rejects.toThrow(BadRequestException);
+    expect(prismaMock.movie.create).not.toHaveBeenCalled();
+  });
+
+  it('normalizes originCountry to uppercase on create', async () => {
+    prismaMock.movie.create.mockResolvedValue({ id: 'm1', genres: [] });
+    await service.create({ ...validDto, originCountry: 'kr' });
+    const [arg] = prismaMock.movie.create.mock.calls[0] as [
+      { data: { originCountry?: string } },
+    ];
+    expect(arg.data.originCountry).toBe('KR');
+  });
+
+  describe('update', () => {
+    it('calls cacheManager.del with the correct cache key', async () => {
+      prismaMock.movie.update.mockResolvedValue({ id: 'm1', genres: [] });
+      cacheManager.del.mockResolvedValue(undefined);
+      await service.update('m1', { originCountry: 'KR' });
+      expect(cacheManager.del).toHaveBeenCalledWith('movies:all');
+      expect(prismaMock.movie.update).toHaveBeenCalledWith({
+        where: { id: 'm1' },
+        data: { originCountry: 'KR' },
+        include: { genres: GENRES_INCLUDE },
+      });
+    });
+
+    it('still updates a movie when cache invalidation fails', async () => {
+      prismaMock.movie.update.mockResolvedValue({ id: 'm1', genres: [] });
+      cacheManager.del.mockRejectedValue(new Error('redis unavailable'));
+
+      await expect(
+        service.update('m1', { originCountry: 'KR' }),
+      ).resolves.toMatchObject({ id: 'm1' });
+    });
+
+    it('normalizes originCountry to uppercase', async () => {
+      prismaMock.movie.update.mockResolvedValue({ id: 'm1', genres: [] });
+      await service.update('m1', { originCountry: 'jp' });
+      const [arg] = prismaMock.movie.update.mock.calls[0] as [
+        { data: { originCountry?: string } },
+      ];
+      expect(arg.data.originCountry).toBe('JP');
+    });
+
+    it('rejects a non-ISO originCountry with BadRequestException', async () => {
+      await expect(
+        service.update('m1', { originCountry: 'not-a-code' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prismaMock.movie.update).not.toHaveBeenCalled();
+    });
+
+    it('translates a Prisma "record not found" error into NotFoundException', async () => {
+      prismaMock.movie.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('No record', {
+          code: 'P2025',
+          clientVersion: 'test',
+        }),
+      );
+
+      await expect(
+        service.update('missing', { originCountry: 'KR' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
 
   it('maps genre slugs onto the MovieGenre join table', async () => {
     prismaMock.movie.create.mockResolvedValue({ genres: [] });

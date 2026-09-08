@@ -31,6 +31,7 @@ describe('PassportService', () => {
       completedMoviesCount: 0,
       totalWatchedHours: 0,
       topGenre: null,
+      topCountry: null,
       likedMoviesCount: 0,
     });
     // No movies were ever touched, so there's nothing to look up genres for.
@@ -256,6 +257,123 @@ describe('PassportService', () => {
 
     const result = await service.getPassport('u1');
     expect(result.topGenre).toBeNull();
+  });
+
+  it('picks the country spanning the most engaged movies', async () => {
+    prisma.watchHistory.findMany.mockResolvedValue([
+      {
+        progressSeconds: 300,
+        completed: false,
+        episode: { durationMinutes: 10, season: { movieId: 'm1' } },
+      },
+      {
+        progressSeconds: 300,
+        completed: false,
+        episode: { durationMinutes: 10, season: { movieId: 'm2' } },
+      },
+      {
+        progressSeconds: 300,
+        completed: false,
+        episode: { durationMinutes: 10, season: { movieId: 'm3' } },
+      },
+    ]);
+    prisma.movie.findMany.mockResolvedValue([
+      {
+        id: 'm1',
+        genres: [],
+        originCountry: 'KR',
+        seasons: [{ episodes: [{ durationMinutes: 10 }] }],
+      },
+      {
+        id: 'm2',
+        genres: [],
+        originCountry: 'KR',
+        seasons: [{ episodes: [{ durationMinutes: 10 }] }],
+      },
+      {
+        id: 'm3',
+        genres: [],
+        originCountry: 'TH',
+        seasons: [{ episodes: [{ durationMinutes: 10 }] }],
+      },
+    ]);
+
+    const result = await service.getPassport('u1');
+    expect(result.topCountry).toEqual({ code: 'KR', count: 2 });
+  });
+
+  it('breaks a country-count tie alphabetically by code, deterministically', async () => {
+    prisma.watchHistory.findMany.mockResolvedValue([
+      {
+        progressSeconds: 300,
+        completed: false,
+        episode: { durationMinutes: 10, season: { movieId: 'm1' } },
+      },
+      {
+        progressSeconds: 300,
+        completed: false,
+        episode: { durationMinutes: 10, season: { movieId: 'm2' } },
+      },
+    ]);
+    prisma.movie.findMany.mockResolvedValue([
+      {
+        id: 'm1',
+        genres: [],
+        originCountry: 'US',
+        seasons: [{ episodes: [{ durationMinutes: 10 }] }],
+      },
+      {
+        id: 'm2',
+        genres: [],
+        originCountry: 'JP',
+        seasons: [{ episodes: [{ durationMinutes: 10 }] }],
+      },
+    ]);
+
+    const result = await service.getPassport('u1');
+    expect(result.topCountry).toEqual({ code: 'JP', count: 1 });
+  });
+
+  it('excludes a movie with no originCountry from the country tally', async () => {
+    prisma.watchHistory.findMany.mockResolvedValue([
+      {
+        progressSeconds: 300,
+        completed: false,
+        episode: { durationMinutes: 10, season: { movieId: 'm1' } },
+      },
+    ]);
+    prisma.movie.findMany.mockResolvedValue([
+      {
+        id: 'm1',
+        genres: [],
+        originCountry: null,
+        seasons: [{ episodes: [{ durationMinutes: 10 }] }],
+      },
+    ]);
+
+    const result = await service.getPassport('u1');
+    expect(result.topCountry).toBeNull();
+  });
+
+  it('ignores a touched movie with zero actual engagement when tallying the top country', async () => {
+    prisma.watchHistory.findMany.mockResolvedValue([
+      {
+        progressSeconds: 0,
+        completed: false,
+        episode: { durationMinutes: 10, season: { movieId: 'm1' } },
+      },
+    ]);
+    prisma.movie.findMany.mockResolvedValue([
+      {
+        id: 'm1',
+        genres: [],
+        originCountry: 'KR',
+        seasons: [{ episodes: [{ durationMinutes: 10 }] }],
+      },
+    ]);
+
+    const result = await service.getPassport('u1');
+    expect(result.topCountry).toBeNull();
   });
 
   it('counts likes independently of watch history', async () => {

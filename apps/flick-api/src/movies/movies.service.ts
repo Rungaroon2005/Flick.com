@@ -1,9 +1,17 @@
-import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Inject,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { isISO31661Alpha2 } from 'class-validator';
 import { ContentStatus, Genre, Mood, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
+import { UpdateMovieDto } from './dto/update-movie.dto';
 
 const CACHE_KEY_ALL_MOVIES = 'movies:all';
 const CACHE_TTL_MS = 300_000; // 5 minutes
@@ -132,11 +140,32 @@ export class MoviesService {
     };
   }
 
+  // ValidationPipe (registered in main.ts's bootstrap) already rejects a
+  // malformed code in real requests via CreateMovieDto/UpdateMovieDto's
+  // @IsISO31661Alpha2() decorator. This is a second, explicit check for
+  // any caller that reaches the service directly -- including the e2e
+  // suite, which builds Nest's testing module straight from AppModule and
+  // never runs main.ts's bootstrap(). Normalizes to uppercase so the
+  // stored value always matches the case the frontend's country-label map
+  // keys off.
+  private normalizeOriginCountry(
+    value: string | undefined,
+  ): string | undefined {
+    if (value === undefined) return undefined;
+    if (!isISO31661Alpha2(value)) {
+      throw new BadRequestException(
+        'originCountry must be a valid ISO 3166-1 alpha-2 code',
+      );
+    }
+    return value.toUpperCase();
+  }
+
   async create(createMovieDto: CreateMovieDto) {
     const { genreSlugs, ...movieData } = createMovieDto;
     const movie = await this.prisma.movie.create({
       data: {
         ...movieData,
+        originCountry: this.normalizeOriginCountry(movieData.originCountry),
         genres: {
           create: genreSlugs.map((slug) => ({
             genre: {
@@ -152,6 +181,33 @@ export class MoviesService {
     });
     await this.invalidateCache();
     return this.toDto(movie);
+  }
+
+  async update(id: string, updateMovieDto: UpdateMovieDto) {
+    const originCountry = this.normalizeOriginCountry(
+      updateMovieDto.originCountry,
+    );
+    try {
+      const movie = await this.prisma.movie.update({
+        where: { id },
+        data: { originCountry },
+        include: { genres: GENRES_INCLUDE },
+      });
+      await this.invalidateCache();
+      return this.toDto(movie);
+    } catch (err) {
+      // P2025: prisma.update()'s own "record to update not found" error --
+      // caught explicitly rather than left to the global PrismaExceptionFilter,
+      // since that filter is registered only in main.ts's bootstrap() and
+      // the e2e suite builds Nest's testing module straight from AppModule.
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2025'
+      ) {
+        throw new NotFoundException(`Movie ${id} not found`);
+      }
+      throw err;
+    }
   }
 
   async findAll(q?: string): Promise<MovieDto[]> {

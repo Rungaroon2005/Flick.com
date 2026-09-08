@@ -24,6 +24,28 @@ function planLabel(subscription: Subscription | null): string {
   return PLAN_LABELS[subscription.planType] ?? subscription.planType;
 }
 
+/** ISO 3166-1 alpha-2 -> Thai display name, for the Passport card's
+ *  "ประเทศที่ดูมากที่สุด" cell. The API returns only the raw code (NewPlan
+ *  Part D, phase 2 -- there is no Country table to source a name from), so
+ *  the Thai label lives here, same reasoning as PLAN_LABELS above. An
+ *  unmapped code falls back to itself rather than claiming the wrong
+ *  country -- nothing here is ever sent back to the API. */
+const COUNTRY_LABELS: Record<string, string> = {
+  TH: 'ไทย',
+  KR: 'เกาหลีใต้',
+  JP: 'ญี่ปุ่น',
+  US: 'อเมริกา',
+  CN: 'จีน',
+  GB: 'อังกฤษ',
+  FR: 'ฝรั่งเศส',
+  IN: 'อินเดีย',
+};
+
+function countryLabel(topCountry: PassportDto['topCountry']): string {
+  if (!topCountry) return '—';
+  return COUNTRY_LABELS[topCountry.code] ?? topCountry.code;
+}
+
 // Every other settings/support row from the old list had no screen behind
 // it — a chevron that promised navigation to nowhere. These three are kept
 // because they're the only ones backed by real schema (User.language,
@@ -152,6 +174,10 @@ export default async function ProfilePage() {
                 <div>
                   <p className="text-2xl font-bold text-fg">{passport.likedMoviesCount}</p>
                   <p className="text-xs text-fg-mute">เรื่องที่ถูกใจ</p>
+                </div>
+                <div>
+                  <p className="truncate text-2xl font-bold text-fg">{countryLabel(passport.topCountry)}</p>
+                  <p className="text-xs text-fg-mute">ประเทศที่ดูมากที่สุด</p>
                 </div>
               </div>
             </div>

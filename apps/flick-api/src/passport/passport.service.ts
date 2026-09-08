@@ -8,6 +8,9 @@ export interface PassportDto {
   /** Rounded to one decimal place, e.g. 2.5. */
   totalWatchedHours: number;
   topGenre: Genre | null;
+  /** ISO 3166-1 alpha-2 code, e.g. "KR" -- no display name, since there is
+   *  no Country table to source one from. The client owns the Thai label. */
+  topCountry: { code: string; count: number } | null;
   likedMoviesCount: number;
 }
 
@@ -72,6 +75,7 @@ export class PassportService {
             select: {
               id: true,
               genres: GENRES_INCLUDE,
+              originCountry: true,
               seasons: {
                 select: {
                   episodes: {
@@ -88,6 +92,7 @@ export class PassportService {
 
     let completedMoviesCount = 0;
     const genreCounts = new Map<string, { genre: Genre; count: number }>();
+    const countryCounts = new Map<string, number>();
     for (const movie of movies) {
       const totalSeconds = movie.seasons
         .flatMap((season) => season.episodes)
@@ -107,6 +112,12 @@ export class PassportService {
           entry.count += 1;
           genreCounts.set(genre.id, entry);
         }
+        if (movie.originCountry) {
+          countryCounts.set(
+            movie.originCountry,
+            (countryCounts.get(movie.originCountry) ?? 0) + 1,
+          );
+        }
       }
     }
 
@@ -115,10 +126,19 @@ export class PassportService {
         (a, b) => b.count - a.count || a.genre.name.localeCompare(b.genre.name),
       )[0]?.genre ?? null;
 
+    const [topCountryCode, topCountryCount] =
+      [...countryCounts.entries()].sort(
+        (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+      )[0] ?? [];
+    const topCountry = topCountryCode
+      ? { code: topCountryCode, count: topCountryCount }
+      : null;
+
     return {
       completedMoviesCount,
       totalWatchedHours: Math.round((totalWatchedSeconds / 3600) * 10) / 10,
       topGenre,
+      topCountry,
       likedMoviesCount,
     };
   }

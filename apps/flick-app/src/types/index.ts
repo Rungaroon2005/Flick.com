@@ -115,6 +115,9 @@ export interface PassportDto {
   completedMoviesCount: number;
   totalWatchedHours: number;
   topGenre: Genre | null;
+  /** ISO 3166-1 alpha-2 code, e.g. "KR" -- no display name from the API;
+   *  the client maps it to a Thai label (see profile page). */
+  topCountry: { code: string; count: number } | null;
   likedMoviesCount: number;
 }
 

@@ -228,29 +228,33 @@ describe('API contract decoders', () => {
     expect(() => decodeWatchStatus([])).toThrow('Invalid watch status response');
   });
 
-  it('accepts a well-formed passport response with a topGenre', () => {
+  it('accepts a well-formed passport response with a topGenre and topCountry', () => {
     const result = decodePassport({
       completedMoviesCount: 3,
       totalWatchedHours: 12.5,
       topGenre: { id: 'g1', name: 'ดราม่า', slug: 'drama' },
+      topCountry: { code: 'KR', count: 5 },
       likedMoviesCount: 7,
     });
     expect(result).toEqual({
       completedMoviesCount: 3,
       totalWatchedHours: 12.5,
       topGenre: { id: 'g1', name: 'ดราม่า', slug: 'drama' },
+      topCountry: { code: 'KR', count: 5 },
       likedMoviesCount: 7,
     });
   });
 
-  it('accepts a passport response with a null topGenre', () => {
+  it('accepts a passport response with a null topGenre and null topCountry', () => {
     const result = decodePassport({
       completedMoviesCount: 0,
       totalWatchedHours: 0,
       topGenre: null,
+      topCountry: null,
       likedMoviesCount: 0,
     });
     expect(result.topGenre).toBeNull();
+    expect(result.topCountry).toBeNull();
   });
 
   it('rejects a passport response with a non-numeric field', () => {
@@ -259,6 +263,7 @@ describe('API contract decoders', () => {
         completedMoviesCount: '3',
         totalWatchedHours: 0,
         topGenre: null,
+        topCountry: null,
         likedMoviesCount: 0,
       }),
     ).toThrow('Invalid API field: completedMoviesCount');
@@ -270,9 +275,22 @@ describe('API contract decoders', () => {
         completedMoviesCount: 0,
         totalWatchedHours: 0,
         topGenre: { id: 'g1', name: 'ดราม่า' },
+        topCountry: null,
         likedMoviesCount: 0,
       }),
     ).toThrow('Invalid passport topGenre');
+  });
+
+  it('rejects a passport response with a malformed topCountry', () => {
+    expect(() =>
+      decodePassport({
+        completedMoviesCount: 0,
+        totalWatchedHours: 0,
+        topGenre: null,
+        topCountry: { code: 'KR' },
+        likedMoviesCount: 0,
+      }),
+    ).toThrow('Invalid passport topCountry');
   });
 
   it('rejects a non-object passport response', () => {

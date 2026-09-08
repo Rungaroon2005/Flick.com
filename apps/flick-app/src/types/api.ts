@@ -210,6 +210,12 @@ export function decodePassport(value: unknown): PassportDto {
       throw new TypeError('Invalid passport topGenre');
     }
   }
+  if (record.topCountry !== null) {
+    const country = requireRecord(record.topCountry, 'passport topCountry');
+    if (typeof country.code !== 'string' || typeof country.count !== 'number') {
+      throw new TypeError('Invalid passport topCountry');
+    }
+  }
   return record as unknown as PassportDto;
 }
 

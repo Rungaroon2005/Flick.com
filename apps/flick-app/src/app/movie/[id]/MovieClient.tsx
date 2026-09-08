@@ -8,6 +8,9 @@ import { MovieCard } from '@/features/catalog';
 import { Icon } from '@/components/ui/Icon';
 import { ReactionButton } from '@/components/ui/ReactionButton';
 import { ApiError, apiFetch } from '@/lib/apiClient';
+import { estimateFinishTime, formatClockTime, formatDurationThai } from '@/features/playback';
+import { usePreferences } from '@/features/preferences';
+import { useWatchStatus } from '@/features/watchStatus';
 import { Movie } from '@/types';
 
 interface MovieClientProps {
@@ -29,10 +32,30 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
     () => new Set(),
   );
   const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
+  const watchStatus = useWatchStatus(similarMovies.slice(0, 5).map((m) => m.id));
 
+  const { prefs } = usePreferences();
   const currentSeason = movie.seasons?.find(s => s.seasonNumber === selectedSeason);
   const episodes = currentSeason?.episodes || [];
   const firstEpisode = movie.seasons?.flatMap((season) => season.episodes)[0];
+
+  /** "1 ชม 47 นาที · เริ่มตอนนี้จบ 22:07" -- assumes starting fresh from
+   *  now, which is exactly what this pre-play row represents; there is no
+   *  loaded watch-progress figure to subtract on this page. */
+  function finishTimeLabel(ep: { durationMinutes: number; sceneMarkers: { startSeconds: number; endSeconds: number }[] }): string {
+    const skippableSeconds = ep.sceneMarkers.reduce(
+      (total, m) => total + (m.endSeconds - m.startSeconds),
+      0,
+    );
+    const { finishesAt } = estimateFinishTime({
+      now: new Date(),
+      remainingSeconds: ep.durationMinutes * 60,
+      skippableSeconds,
+      autoSkip: prefs.autoSkip,
+      playbackRate: 1,
+    });
+    return `${formatDurationThai(ep.durationMinutes)} · เริ่มตอนนี้จบ ${formatClockTime(finishesAt)}`;
+  }
 
   // Optimistic, with rollback: silently diverging from the server is worse than
   // a brief flicker. A 401 means the session expired — send them to log in
@@ -212,7 +235,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
                           พรีเมียม
                         </span>
                       )}
-                      <span className="text-xs text-fg-mute">{ep.durationMinutes} นาที</span>
+                      <span className="text-xs text-fg-mute">{finishTimeLabel(ep)}</span>
                       <span className="line-clamp-1 text-xs text-fg-mute">{ep.description}</span>
                     </span>
                   </button>
@@ -232,7 +255,7 @@ export default function MovieClient({ movie, similarMovies, initialBookmarked }:
             <h3 className="px-5 md:px-8 lg:px-0 font-display text-lg font-bold text-fg">รายการที่คล้ายกัน</h3>
             <div className="scrollbar-hide mt-3 flex gap-3 overflow-x-auto px-5 md:px-8 lg:px-0 pb-2">
               {similarMovies.slice(0, 5).map((m) => (
-                <MovieCard key={m.id} movie={m} size="medium" />
+                <MovieCard key={m.id} movie={m} size="medium" watchStatus={watchStatus[m.id]} />
               ))}
             </div>
           </div>

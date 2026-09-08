@@ -22,7 +22,7 @@ Every task's requirements implicitly include this section.
 - **Preserve every `[@media(hover:hover)]` guard.** They are what keep hover affordances off touch devices, and they matter *more* at iPad-landscape width. Never replace one with a bare `hover:`.
 - **CSS budget: 80,000 bytes total** (`performance-budgets.json` → `maxTotalCssBytes`). Baseline at plan time: **67,694 bytes, 12,306 free.** Measured by `npm run performance:check`, enforced in CI.
 - **Any `next/image` whose rendered width grows must have its `sizes` widened in the same commit.** Otherwise the browser picks the old narrow rendition and upscales it — a visibly blurrier desktop than today.
-- **`<video>` elements may exist only in `PlayerClient.tsx` and `DiscoverClient.tsx`** — enforced by `scripts/check-performance-budgets.mjs:47-55`. Do not move one into a new component.
+- **`<video>` elements may exist only in `PlayerClient.tsx` and `DiscoverClient.tsx`** — enforced by `PLAYBACK_SURFACES` in `scripts/performance-budgets.mjs`. Do not move one into a new component.
 - All UI copy is Thai. Reuse existing strings verbatim; do not translate or invent.
 
 **Per-task gate (run before every commit):**

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Container } from '@/components/ui/Container';
 import { Icon } from '@/components/ui/Icon';
+import { useBurst } from '@/components/ui/useBurst';
 import { rememberPendingCheckout, startCheckout } from '@/features/payments';
 import { SubscriptionPlan } from '@/types';
 
@@ -20,12 +21,21 @@ function SubscribeForm({ plans }: { plans: SubscriptionPlan[] }) {
   const searchParams = useSearchParams();
   const [busyItem, setBusyItem] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
+  // The highest-intent action in the product had no reward at all. Reuses the
+  // app's one flourish rather than introducing a second vocabulary.
+  const [chosen, setChosen] = useState<string | null>(null);
+  const burst = useBurst(chosen !== null);
 
   const handleBuy = async (itemId: string) => {
+    setChosen(itemId);
     setBusyItem(itemId);
     setError('');
     const result = await startCheckout('SUBSCRIPTION', itemId);
     if (!result.success) {
+      // Without this, `chosen` stays set and useBurst never sees another
+      // transition — a successful checkout navigates away, but a failed one
+      // leaves the user here, and every retry would animate nothing.
+      setChosen(null);
       setBusyItem(null);
       setError(result.error);
       return;
@@ -78,6 +88,12 @@ function SubscribeForm({ plans }: { plans: SubscriptionPlan[] }) {
                   key={plan.id}
                   className={`relative rounded-3xl border p-6 shadow-lg shadow-black/20 transition-all duration-surface ease-enter ${isFree ? 'border-brand-ink' : 'border-white/10'}`}
                 >
+                  {burst && chosen === plan.id && (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 animate-reaction-ring rounded-3xl border-2 border-brand-ink"
+                    />
+                  )}
                   {plan.badge && (
                     <span className="absolute -top-2.5 right-5 rounded-full bg-gold px-3 py-1 text-xs font-semibold text-ink">
                       {plan.badge}

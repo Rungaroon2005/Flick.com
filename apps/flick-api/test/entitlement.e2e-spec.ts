@@ -108,6 +108,28 @@ describe('Content entitlement (e2e)', () => {
       .expect(404);
   });
 
+  // Regression: EpisodesService has its own Prisma include tree, separate
+  // from MoviesService and EngagementService's. Adding sceneMarkers to
+  // those two (NewPlan Phase B) missed this one entirely, so /episodes/:id
+  // -- the endpoint the player page ACTUALLY calls via apiFetchServer --
+  // silently omitted it, and the frontend's decodeEpisodeDetail (which
+  // requires the field) rejected the response outright, breaking every
+  // real player page load. Caught only by driving the real player route
+  // in a browser; no automated test before this one would have failed.
+  it('includes the seeded scene markers on the single-episode endpoint', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/episodes/${PREMIUM_EPISODE_ID}`)
+      .expect(200);
+
+    const markers = (response.body as { episode: { sceneMarkers: unknown[] } })
+      .episode.sceneMarkers;
+    expect(Array.isArray(markers)).toBe(true);
+    expect(markers.length).toBeGreaterThan(0);
+    expect(markers).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: 'INTRO' })]),
+    );
+  });
+
   it('denies a premium episode to a user with no subscription', async () => {
     const response = await request(app.getHttpServer())
       .get(`/playback/${PREMIUM_EPISODE_ID}/authorize`)

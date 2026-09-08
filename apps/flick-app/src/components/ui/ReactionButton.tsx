@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { Icon, IconName } from './Icon';
+import { useBurst } from './useBurst';
 
 interface ReactionButtonProps {
   active: boolean;
@@ -36,18 +36,7 @@ export function ReactionButton({
   showLabel = false,
   size = 44,
 }: ReactionButtonProps) {
-  const [burst, setBurst] = useState(false);
-  const wasActive = useRef(active);
-
-  useEffect(() => {
-    if (active && !wasActive.current) {
-      setBurst(true);
-      const timer = window.setTimeout(() => setBurst(false), 550);
-      wasActive.current = active;
-      return () => window.clearTimeout(timer);
-    }
-    wasActive.current = active;
-  }, [active]);
+  const burst = useBurst(active);
 
   return (
     <div className="flex flex-col items-center gap-1">

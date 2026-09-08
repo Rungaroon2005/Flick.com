@@ -1,5 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { decodeApiResponse, decodeMovies, decodePlans } from './api';
+import {
+  decodeApiResponse,
+  decodeEpisodeDetail,
+  decodeFits,
+  decodeMovies,
+  decodePassport,
+  decodePlans,
+  decodeWatchStatus,
+} from './api';
+
+const validMovie = {
+  id: 'm1',
+  title: 'Movie',
+  description: 'A movie',
+  genres: [],
+};
+
+const validEpisode = {
+  id: 'e1',
+  title: 'Episode',
+  isPremium: false,
+  sceneMarkers: [],
+};
 
 describe('API contract decoders', () => {
   it('accepts a valid playback authorization', () => {
@@ -43,5 +65,235 @@ describe('API contract decoders', () => {
     expect(() =>
       decodeApiResponse('/payments/checkout', { checkoutUrl: 'https://fake-gateway.local' }),
     ).toThrow('Invalid checkout response');
+  });
+
+  it('accepts an episode detail with an empty sceneMarkers array', () => {
+    expect(() =>
+      decodeEpisodeDetail({ episode: validEpisode, movie: validMovie }),
+    ).not.toThrow();
+  });
+
+  it('accepts an episode detail with well-formed markers', () => {
+    const detail = decodeEpisodeDetail({
+      episode: {
+        ...validEpisode,
+        sceneMarkers: [
+          { id: 'sm1', episodeId: 'e1', kind: 'INTRO', startSeconds: 0, endSeconds: 30 },
+        ],
+      },
+      movie: validMovie,
+    });
+    expect(detail.episode).toMatchObject({
+      sceneMarkers: [{ kind: 'INTRO', startSeconds: 0, endSeconds: 30 }],
+    });
+  });
+
+  it('rejects an episode detail with a scene marker kind it does not recognize', () => {
+    expect(() =>
+      decodeEpisodeDetail({
+        episode: {
+          ...validEpisode,
+          sceneMarkers: [{ kind: 'BLOOPER', startSeconds: 0, endSeconds: 30 }],
+        },
+        movie: validMovie,
+      }),
+    ).toThrow('Invalid scene marker kind');
+  });
+
+  it('rejects an episode detail with a non-numeric marker boundary', () => {
+    expect(() =>
+      decodeEpisodeDetail({
+        episode: {
+          ...validEpisode,
+          sceneMarkers: [{ kind: 'INTRO', startSeconds: '0', endSeconds: 30 }],
+        },
+        movie: validMovie,
+      }),
+    ).toThrow('startSeconds');
+  });
+
+  it('rejects an episode detail whose sceneMarkers is missing entirely', () => {
+    const { sceneMarkers: _omitted, ...episodeWithoutMarkers } = validEpisode;
+    expect(() =>
+      decodeEpisodeDetail({ episode: episodeWithoutMarkers, movie: validMovie }),
+    ).toThrow('Invalid sceneMarkers');
+  });
+
+  it('accepts a well-formed fits response', () => {
+    const items = decodeFits([
+      {
+        movie: validMovie,
+        episode: validEpisode,
+        kind: 'first_episode',
+        runtimeMinutes: 20,
+        finishesAtHint: '2026-09-05T22:07:00.000Z',
+      },
+    ]);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ kind: 'first_episode', runtimeMinutes: 20 });
+  });
+
+  it('rejects a fits item with an unrecognized kind', () => {
+    expect(() =>
+      decodeFits([
+        {
+          movie: validMovie,
+          episode: validEpisode,
+          kind: 'director_cut',
+          runtimeMinutes: 20,
+          finishesAtHint: '2026-09-05T22:07:00.000Z',
+        },
+      ]),
+    ).toThrow('Invalid fits item kind');
+  });
+
+  it('rejects a fits item with a non-numeric runtimeMinutes', () => {
+    expect(() =>
+      decodeFits([
+        {
+          movie: validMovie,
+          episode: validEpisode,
+          kind: 'film',
+          runtimeMinutes: '20',
+          finishesAtHint: '2026-09-05T22:07:00.000Z',
+        },
+      ]),
+    ).toThrow('runtimeMinutes');
+  });
+
+  it('rejects a fits item with an unparseable finishesAtHint', () => {
+    expect(() =>
+      decodeFits([
+        {
+          movie: validMovie,
+          episode: validEpisode,
+          kind: 'film',
+          runtimeMinutes: 20,
+          finishesAtHint: 'not a date',
+        },
+      ]),
+    ).toThrow('finishesAtHint');
+  });
+
+  it('rejects a fits item whose episode carries a bad scene marker', () => {
+    expect(() =>
+      decodeFits([
+        {
+          movie: validMovie,
+          episode: { ...validEpisode, sceneMarkers: [{ kind: 'BLOOPER', startSeconds: 0, endSeconds: 1 }] },
+          kind: 'film',
+          runtimeMinutes: 20,
+          finishesAtHint: '2026-09-05T22:07:00.000Z',
+        },
+      ]),
+    ).toThrow('Invalid scene marker kind');
+  });
+
+  it('rejects a non-array fits response', () => {
+    expect(() => decodeFits({})).toThrow('Invalid fits response');
+  });
+
+  it('accepts a well-formed watch status response', () => {
+    const result = decodeWatchStatus({
+      m1: { state: 'partial', percent: 45, lastWatchedAt: '2026-01-01T00:00:00.000Z' },
+      m2: { state: 'none', percent: 0, lastWatchedAt: null },
+    });
+    expect(result.m1).toMatchObject({ state: 'partial', percent: 45 });
+    expect(result.m2.lastWatchedAt).toBeNull();
+  });
+
+  it('rejects a watch status entry with an unrecognized state', () => {
+    expect(() =>
+      decodeWatchStatus({ m1: { state: 'binged', percent: 100, lastWatchedAt: null } }),
+    ).toThrow('Invalid watch status state');
+  });
+
+  it('rejects a watch status entry with a non-numeric percent', () => {
+    expect(() =>
+      decodeWatchStatus({ m1: { state: 'watched', percent: '100', lastWatchedAt: null } }),
+    ).toThrow('percent');
+  });
+
+  it('rejects a watch status entry with an unparseable lastWatchedAt', () => {
+    expect(() =>
+      decodeWatchStatus({ m1: { state: 'watched', percent: 100, lastWatchedAt: 'not a date' } }),
+    ).toThrow('Invalid watch status lastWatchedAt');
+  });
+
+  it('accepts an empty watch status response', () => {
+    expect(decodeWatchStatus({})).toEqual({});
+  });
+
+  it('rejects a non-object watch status response', () => {
+    expect(() => decodeWatchStatus([])).toThrow('Invalid watch status response');
+  });
+
+  it('accepts a well-formed passport response with a topGenre and topCountry', () => {
+    const result = decodePassport({
+      completedMoviesCount: 3,
+      totalWatchedHours: 12.5,
+      topGenre: { id: 'g1', name: 'ดราม่า', slug: 'drama' },
+      topCountry: { code: 'KR', count: 5 },
+      likedMoviesCount: 7,
+    });
+    expect(result).toEqual({
+      completedMoviesCount: 3,
+      totalWatchedHours: 12.5,
+      topGenre: { id: 'g1', name: 'ดราม่า', slug: 'drama' },
+      topCountry: { code: 'KR', count: 5 },
+      likedMoviesCount: 7,
+    });
+  });
+
+  it('accepts a passport response with a null topGenre and null topCountry', () => {
+    const result = decodePassport({
+      completedMoviesCount: 0,
+      totalWatchedHours: 0,
+      topGenre: null,
+      topCountry: null,
+      likedMoviesCount: 0,
+    });
+    expect(result.topGenre).toBeNull();
+    expect(result.topCountry).toBeNull();
+  });
+
+  it('rejects a passport response with a non-numeric field', () => {
+    expect(() =>
+      decodePassport({
+        completedMoviesCount: '3',
+        totalWatchedHours: 0,
+        topGenre: null,
+        topCountry: null,
+        likedMoviesCount: 0,
+      }),
+    ).toThrow('Invalid API field: completedMoviesCount');
+  });
+
+  it('rejects a passport response with a malformed topGenre', () => {
+    expect(() =>
+      decodePassport({
+        completedMoviesCount: 0,
+        totalWatchedHours: 0,
+        topGenre: { id: 'g1', name: 'ดราม่า' },
+        topCountry: null,
+        likedMoviesCount: 0,
+      }),
+    ).toThrow('Invalid passport topGenre');
+  });
+
+  it('rejects a passport response with a malformed topCountry', () => {
+    expect(() =>
+      decodePassport({
+        completedMoviesCount: 0,
+        totalWatchedHours: 0,
+        topGenre: null,
+        topCountry: { code: 'KR' },
+        likedMoviesCount: 0,
+      }),
+    ).toThrow('Invalid passport topCountry');
+  });
+
+  it('rejects a non-object passport response', () => {
+    expect(() => decodePassport([])).toThrow('Invalid passport response');
   });
 });

@@ -2,9 +2,12 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ViewTransition } from 'react';
+import { useState, ViewTransition } from 'react';
 import { MovieCard } from '@/features/catalog';
 import { Icon } from '@/components/ui/Icon';
+import { Shelf } from '@/components/ui/Shelf';
+import { TimeFilterSheet } from '@/features/discovery';
+import { useWatchStatus } from '@/features/watchStatus';
 import { ContinueWatchingItem, Movie } from '@/types';
 
 interface HomeClientProps {
@@ -30,11 +33,24 @@ export default function HomeClient({
   initialBookmarks,
   initialContinueWatching,
 }: HomeClientProps) {
+  const [showTimeFilter, setShowTimeFilter] = useState(false);
   // The catalogue's first entry anchors the hero; the recommended row picks
   // up right after it so nothing appears twice in the same screen.
   const featured = initialMovies[0];
   const recommendedMovies = initialMovies.slice(1, 7);
   const featuredEpisodeId = featured ? firstEpisodeId(featured) : null;
+  const watchStatus = useWatchStatus([
+    ...recommendedMovies.map((m) => m.id),
+    ...initialBookmarks.map((m) => m.id),
+  ]);
+
+  // Hoisted so the "รายการของฉัน" action link isn't duplicated across the
+  // two Shelf branches below (populated rail vs. empty-state body).
+  const myListAction = (
+    <Link href="/bookmarks" className="text-sm font-medium text-fg-mute active:text-fg">
+      ทั้งหมด &gt;
+    </Link>
+  );
 
   return (
     <main className="flex flex-col gap-10 pt-2 sm:gap-14">
@@ -83,7 +99,7 @@ export default function HomeClient({
 
             <div className="flex max-w-xs flex-col items-center gap-2 md:max-w-sm md:items-start">
               <span className="text-[11px] font-medium tracking-wide text-gold">แนะนำวันนี้</span>
-              <h1 className="font-display text-2xl leading-tight font-extrabold text-fg [text-wrap:balance] sm:text-3xl md:text-4xl">
+              <h1 className="font-display text-2xl leading-tight font-extrabold text-fg [text-wrap:balance] sm:text-3xl md:text-display-lg md:leading-(--text-display-lg--line-height)">
                 {featured.title}
               </h1>
               <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-fg-mute md:justify-start">
@@ -114,94 +130,97 @@ export default function HomeClient({
         </section>
       )}
 
-      <div className="mx-auto flex w-full max-w-page flex-col gap-10 sm:gap-14">
+      <div className="mx-auto w-full max-w-page px-5 lg:px-10">
+        <button
+          type="button"
+          onClick={() => setShowTimeFilter(true)}
+          className="focus-ring flex w-full items-center justify-center gap-2 rounded-2xl border border-white/5 bg-ink-1 py-3 text-sm font-medium text-fg-dim transition-all duration-surface ease-enter hover:bg-ink-2 active:scale-[0.98]"
+        >
+          ⏱ มีเวลาเท่าไหร่? ให้เราแนะนำเรื่องที่พอดี
+        </button>
+      </div>
+      <TimeFilterSheet open={showTimeFilter} onClose={() => setShowTimeFilter(false)} />
+
+      <div className="mx-auto flex w-full max-w-page flex-col gap-(--spacing-shelf-stack)">
         {/* Recommended Section */}
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between px-5 md:px-8 lg:px-10">
-            <h2 className="font-display text-2xl font-extrabold tracking-tight text-fg">แนะนำ</h2>
+        <Shelf
+          title="แนะนำ"
+          action={
             <Link href="/discover" className="text-sm font-medium text-fg-mute active:text-fg">
               ทั้งหมด &gt;
             </Link>
-          </div>
-          <div className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 md:px-8 lg:px-10 pb-2 [-webkit-overflow-scrolling:touch]">
-            {recommendedMovies.map((movie) => (
-              <div key={movie.id} className="snap-start">
-                <MovieCard movie={movie} size="medium" />
-              </div>
-            ))}
-          </div>
-        </section>
+          }
+        >
+          {recommendedMovies.map((movie) => (
+            <div key={movie.id} className="snap-start">
+              <MovieCard movie={movie} size="medium" watchStatus={watchStatus[movie.id]} />
+            </div>
+          ))}
+        </Shelf>
 
         {/* Continue Watching — real incomplete watch history. Collapses
             entirely (no header, no empty row) when there is nothing to
             resume: an empty "continue" shelf is not a real section. */}
         {initialContinueWatching.length > 0 && (
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between px-5 md:px-8 lg:px-10">
-              <h2 className="font-display text-2xl font-extrabold tracking-tight text-fg">ดูต่อ</h2>
-              <span className="text-sm font-medium text-fg-mute">ล่าสุด</span>
-            </div>
-            <div className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 md:px-8 lg:px-10 pb-2 [-webkit-overflow-scrolling:touch]">
-              {initialContinueWatching.map((item) => {
-                const totalSeconds = item.episode.durationMinutes * 60;
-                const percentage =
-                  totalSeconds > 0
-                    ? Math.min(100, Math.max(0, (item.progressSeconds / totalSeconds) * 100))
-                    : 0;
-                const artwork = item.episode.thumbnailUrl || item.movie.posterUrl;
-                return (
-                  <Link
-                    key={item.id}
-                    href={`/player/${item.episode.id}`}
-                    className="group flex w-[190px] shrink-0 snap-start flex-col gap-1 text-[13px] text-fg md:w-[240px] xl:w-[280px]"
-                  >
-                    <span className="relative aspect-video w-full overflow-hidden rounded-2xl bg-ink-1 shadow-[0_8px_20px_-10px_rgba(0,0,0,0.7)] transition-all duration-surface ease-enter [@media(hover:hover)]:group-hover:-translate-y-0.5 [@media(hover:hover)]:group-hover:scale-105 [@media(hover:hover)]:group-hover:shadow-[0_18px_34px_-12px_rgba(0,0,0,0.85)]">
-                      {artwork && (
-                        <ViewTransition name={`episode-${item.episode.id}`}>
-                          <Image
-                            src={artwork}
-                            alt=""
-                            fill
-                            sizes="(min-width: 1280px) 280px, (min-width: 768px) 240px, 190px"
-                            className="object-cover"
-                          />
-                        </ViewTransition>
-                      )}
-                      <span className="absolute inset-x-1.5 bottom-1.5 block h-[3px] overflow-hidden rounded-full bg-white/35">
-                        <span className="block h-full bg-brand" style={{ width: `${percentage}%` }} />
-                      </span>
+          <Shelf
+            title="ดูต่อ"
+            action={<span className="text-sm font-medium text-fg-mute">ล่าสุด</span>}
+          >
+            {initialContinueWatching.map((item) => {
+              const totalSeconds = item.episode.durationMinutes * 60;
+              const percentage =
+                totalSeconds > 0
+                  ? Math.min(100, Math.max(0, (item.progressSeconds / totalSeconds) * 100))
+                  : 0;
+              const artwork = item.episode.thumbnailUrl || item.movie.posterUrl;
+              return (
+                <Link
+                  key={item.id}
+                  href={`/player/${item.episode.id}`}
+                  className="group flex w-[190px] shrink-0 snap-start flex-col gap-1 text-[13px] text-fg md:w-[240px] xl:w-[280px]"
+                >
+                  <span className="relative aspect-video w-full overflow-hidden rounded-2xl bg-ink-1 shadow-[0_8px_20px_-10px_rgba(0,0,0,0.7)] transition-all duration-surface ease-enter [@media(hover:hover)]:group-hover:-translate-y-0.5 [@media(hover:hover)]:group-hover:scale-105 [@media(hover:hover)]:group-hover:shadow-[0_18px_34px_-12px_rgba(0,0,0,0.85)]">
+                    {artwork && (
+                      <ViewTransition name={`episode-${item.episode.id}`}>
+                        <Image
+                          src={artwork}
+                          alt=""
+                          fill
+                          sizes="(min-width: 1280px) 280px, (min-width: 768px) 240px, 190px"
+                          className="object-cover"
+                        />
+                      </ViewTransition>
+                    )}
+                    <span className="absolute inset-x-1.5 bottom-1.5 block h-[3px] overflow-hidden rounded-full bg-white/35">
+                      <span className="block h-full bg-brand" style={{ width: `${percentage}%` }} />
                     </span>
-                    <strong className="font-semibold">{item.movie.title}</strong>
-                    <span className="text-fg-mute">ตอนที่ {item.episode.episodeNumber}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
+                  </span>
+                  <strong className="font-semibold">{item.movie.title}</strong>
+                  <span className="text-fg-mute">ตอนที่ {item.episode.episodeNumber}</span>
+                </Link>
+              );
+            })}
+          </Shelf>
         )}
 
         {/* My List Section — real bookmarks from GET /me/bookmarks. */}
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between px-5 md:px-8 lg:px-10">
-            <h2 className="font-display text-2xl font-extrabold tracking-tight text-fg">รายการของฉัน</h2>
-            <Link href="/bookmarks" className="text-sm font-medium text-fg-mute active:text-fg">
-              ทั้งหมด &gt;
-            </Link>
-          </div>
-          {initialBookmarks.length > 0 ? (
-            <div className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 md:px-8 lg:px-10 pb-2 [-webkit-overflow-scrolling:touch]">
-              {/* Every movie in this row is bookmarked by construction, so the
-                  badge reflects real state. */}
-              {initialBookmarks.map((m) => (
-                <div key={m.id} className="snap-start">
-                  <MovieCard movie={m} size="medium" showBookmark />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="px-5 md:px-8 lg:px-10 py-4 text-sm text-fg-mute">ยังไม่มีเรื่องที่บันทึกไว้</p>
-          )}
-        </section>
+        {initialBookmarks.length > 0 ? (
+          <Shelf title="รายการของฉัน" action={myListAction}>
+            {/* Every movie in this row is bookmarked by construction, so the
+                badge reflects real state. */}
+            {initialBookmarks.map((m) => (
+              <div key={m.id} className="snap-start">
+                <MovieCard movie={m} size="medium" showBookmark watchStatus={watchStatus[m.id]} />
+              </div>
+            ))}
+          </Shelf>
+        ) : (
+          <Shelf
+            title="รายการของฉัน"
+            action={myListAction}
+            body={<p className="py-4 text-sm text-fg-mute">ยังไม่มีเรื่องที่บันทึกไว้</p>}
+          />
+        )}
       </div>
     </main>
   );

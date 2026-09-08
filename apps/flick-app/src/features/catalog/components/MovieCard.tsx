@@ -1,8 +1,11 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
+import { usePosterPreview } from '../hooks/usePosterPreview';
 
-import { Movie } from '@/types';
+import { Movie, WatchStatusEntry } from '@/types';
 
 interface MovieCardProps {
   movie: Movie;
@@ -11,6 +14,10 @@ interface MovieCardProps {
    *  the card. */
   size?: 'small' | 'medium' | 'large' | 'fill';
   showBookmark?: boolean;
+  /** From GET /me/watch-status, merged in client-side by the page (never
+   *  server-rendered alongside the shared /movies cache -- design doc
+   *  §2.1). Omitted entirely on pages that don't fetch it. */
+  watchStatus?: WatchStatusEntry;
 }
 
 // Cards grow with the viewport rather than multiplying into a hairline row:
@@ -24,7 +31,13 @@ const sizeClasses = {
   fill: 'w-full',
 };
 
-export default function MovieCard({ movie, size = 'medium', showBookmark = false }: MovieCardProps) {
+export default function MovieCard({
+  movie,
+  size = 'medium',
+  showBookmark = false,
+  watchStatus,
+}: MovieCardProps) {
+  const { previewing, stop, handlers } = usePosterPreview(movie?.trailerUrl);
   if (!movie) return null;
 
   return (
@@ -34,9 +47,11 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
         shadow-[0_8px_20px_-10px_rgba(0,0,0,0.7)]
         [-webkit-tap-highlight-color:transparent]
         transition-all duration-surface ease-enter
-        [@media(hover:hover)]:hover:z-10 [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:scale-105 [@media(hover:hover)]:hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.85)]
+        [@media(hover:hover)]:hover:z-10 [@media(hover:hover)]:hover:[transform:var(--card-raise)] [@media(hover:hover)]:hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.85)]
+        focus-visible:z-10 focus-visible:[transform:var(--card-raise)] focus-visible:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.85)]
         active:scale-95
         ${sizeClasses[size]}`}
+      {...handlers}
     >
       <div className="relative h-full w-full">
         {/* No ViewTransition morph here: MovieCard is reused across rows
@@ -55,16 +70,44 @@ export default function MovieCard({ movie, size = 'medium', showBookmark = false
           sizes="(min-width: 1280px) 220px, (min-width: 1024px) 200px, (min-width: 768px) 184px, 160px"
           className="object-cover transition-[filter] duration-surface"
         />
+        {previewing && movie.trailerUrl && (
+          <video
+            key={movie.trailerUrl}
+            src={movie.trailerUrl}
+            poster={movie.posterUrl ?? undefined}
+            muted
+            playsInline
+            autoPlay
+            loop
+            onError={stop}
+            className="absolute inset-0 z-[1] h-full w-full object-cover"
+          />
+        )}
         {showBookmark && (
           <div className="absolute top-2 right-2 z-[2] flex h-6 w-6 items-center justify-center rounded-full bg-brand text-ink shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
             <Icon name="bookmarkFilled" size={16} />
           </div>
         )}
+        {watchStatus?.state === 'watched' && (
+          <div className="absolute top-2 left-2 z-[2] flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-fg shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+            <Icon name="checkCircle" size={16} />
+          </div>
+        )}
+        {watchStatus?.state === 'partial' && (
+          <div className="absolute inset-x-0 bottom-0 z-[2] h-1 bg-black/40">
+            <div
+              data-testid="watch-progress"
+              className="h-full bg-brand"
+              style={{ width: `${watchStatus.percent}%` }}
+            />
+          </div>
+        )}
       </div>
       <div
         className="absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/90 to-transparent
-          px-2 pt-4 pb-2 opacity-0 transition-opacity duration-surface
-          [@media(hover:hover)]:group-hover:opacity-100"
+          px-2 pt-4 pb-2 transition-opacity duration-surface
+          opacity-100 [@media(hover:hover)]:opacity-0
+          [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-visible:opacity-100"
       >
         {movie.title && (
           <span className="line-clamp-2 text-xs font-semibold text-fg [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">

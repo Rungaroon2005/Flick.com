@@ -52,5 +52,6 @@ const logger = new Logger('MoviesCache');
   ],
   controllers: [MoviesController],
   providers: [MoviesService],
+  exports: [MoviesService],
 })
 export class MoviesModule {}

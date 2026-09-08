@@ -45,6 +45,11 @@ describe('EpisodesService', () => {
         year: 2026,
         contentRating: 'ทั่วไป',
         genres: [{ genre: { id: 'g1', name: 'ดราม่า', slug: 'drama' } }],
+        moods: [
+          {
+            mood: { id: 'md1', slug: 'thrill', name: 'อยากลุ้น', emoji: '😰' },
+          },
+        ],
       },
     },
     ...overrides,
@@ -96,6 +101,25 @@ describe('EpisodesService', () => {
     expect(result.movie.genres).toEqual([
       { id: 'g1', name: 'ดราม่า', slug: 'drama' },
     ]);
+  });
+
+  it('passes scene markers through, alongside the stripped videoUrl', async () => {
+    const markers = [
+      {
+        id: 'sm1',
+        episodeId: 'e1',
+        kind: 'INTRO',
+        startSeconds: 0,
+        endSeconds: 30,
+      },
+    ];
+    prisma.episode.findFirst.mockResolvedValue(
+      episodeRow({ sceneMarkers: markers }),
+    );
+
+    const result = await service.findOne('e1');
+
+    expect(result.episode).toMatchObject({ sceneMarkers: markers });
   });
 
   it('throws NotFoundException when the episode does not exist', async () => {

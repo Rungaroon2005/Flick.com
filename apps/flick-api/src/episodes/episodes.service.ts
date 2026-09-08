@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Genre, Prisma } from '@prisma/client';
+import { Genre, Mood, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { AVAILABLE_EPISODE_FILTER } from '../common/content-availability';
 
@@ -14,9 +14,15 @@ import { AVAILABLE_EPISODE_FILTER } from '../common/content-availability';
  * season back would re-create the payload problem in a new place.
  */
 const EPISODE_WITH_MOVIE_INCLUDE = {
+  sceneMarkers: true,
   season: {
     include: {
-      movie: { include: { genres: { include: { genre: true } } } },
+      movie: {
+        include: {
+          genres: { include: { genre: true } },
+          moods: { include: { mood: true } },
+        },
+      },
     },
   },
 } satisfies Prisma.EpisodeInclude;
@@ -29,7 +35,7 @@ type MovieOf = EpisodeWithMovie['season']['movie'];
 
 export interface EpisodeDetail {
   episode: Omit<EpisodeWithMovie, 'videoUrl' | 'season'>;
-  movie: Omit<MovieOf, 'genres'> & { genres: Genre[] };
+  movie: Omit<MovieOf, 'genres' | 'moods'> & { genres: Genre[]; moods: Mood[] };
 }
 
 @Injectable()
@@ -61,11 +67,15 @@ export class EpisodesService {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { videoUrl: _videoUrl, season, ...episode } = found;
-    const { genres, ...movie } = season.movie;
+    const { genres, moods, ...movie } = season.movie;
 
     return {
       episode,
-      movie: { ...movie, genres: genres.map((g) => g.genre) },
+      movie: {
+        ...movie,
+        genres: genres.map((g) => g.genre),
+        moods: moods.map((m) => m.mood),
+      },
     };
   }
 }

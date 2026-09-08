@@ -87,4 +87,23 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-member-access': 'off',
     },
   },
+  {
+    files: ['src/auth/oauth/oauth-nonce.service.spec.ts'],
+    rules: {
+      // Same rationale as payments.service.spec.ts above: prisma.oAuthNonce.create
+      // is an untyped jest.Mock in the shared PrismaMock, so indexing into
+      // .mock.calls to inspect what was persisted is inherently `any`.
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
+  {
+    files: ['src/auth/oauth/identity-resolver.spec.ts'],
+    rules: {
+      // Same rationale as oauth-nonce.service.spec.ts above: prisma.user.create
+      // and prisma.identity.create are untyped jest.Mocks in the shared
+      // PrismaMock, so indexing into .mock.calls to inspect a persisted value
+      // is inherently `any`.
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
 );

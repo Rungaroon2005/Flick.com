@@ -48,9 +48,9 @@ describe('Auth OTP (e2e)', () => {
    * destination must clear its prior rows first, or it lands inside the
    * cooldown and gets a 429 instead of the 200 it expects.
    *
-   * Deliberately NOT used by the cooldown test itself — that test needs the
-   * second request to actually collide with the first to prove the control
-   * is real.
+   * The cooldown test calls this before its pair of requests but never
+   * between them — that test needs the second request to actually collide
+   * with the first to prove the control is real.
    */
   async function resetOtpRateLimit(destination: string) {
     await prisma.otpChallenge.deleteMany({ where: { destination } });
@@ -99,6 +99,7 @@ describe('Auth OTP (e2e)', () => {
   });
 
   it('answers identically for a destination with no account', async () => {
+    await resetOtpRateLimit('+66800000009');
     // Enumeration safety: this response must be indistinguishable in shape
     // from the seeded (existing) user's.
     const unknown = await request(app.getHttpServer())
@@ -114,6 +115,7 @@ describe('Auth OTP (e2e)', () => {
 
   it('rejects a wrong code and refuses to reuse a consumed one', async () => {
     const phone = '+66800000002';
+    await resetOtpRateLimit(phone);
     const requested = await request(app.getHttpServer())
       .post('/auth/otp/request')
       .send({ destination: phone })
@@ -139,11 +141,14 @@ describe('Auth OTP (e2e)', () => {
   });
 
   it('enforces the per-destination cooldown', async () => {
-    // Deliberately does NOT call resetOtpRateLimit: this test's whole point
-    // is proving that a second request against the same destination, inside
-    // the cooldown window, is refused. Resetting between the two requests
-    // would delete the only coverage of that control.
+    // Reset BEFORE the pair, never between them: the second request has to
+    // collide with the first for this test to prove anything. Clearing up
+    // front only removes rows earlier runs left behind, which would
+    // otherwise make the FIRST request the one that gets refused -- for the
+    // wrong reason, and only after this destination had accumulated
+    // OTP_LONG_WINDOW_MAX rows.
     const phone = '+66800000003';
+    await resetOtpRateLimit(phone);
     await request(app.getHttpServer())
       .post('/auth/otp/request')
       .send({ destination: phone })

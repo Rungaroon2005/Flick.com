@@ -73,5 +73,44 @@ export function validateEnv(config: Record<string, unknown>) {
     }
   }
 
+  const KNOWN_OAUTH_PROVIDERS: Record<string, string[]> = {
+    google: ['GOOGLE_CLIENT_ID'],
+    // No client secret: we verify the id_token and never exchange a code.
+    apple: ['APPLE_CLIENT_ID'],
+    // Test-only. Refused in production below.
+    fake: [],
+  };
+
+  // A typeof guard rather than String(config.OAUTH_PROVIDERS): the config
+  // value is `unknown`, and coercing a non-string with String() would produce
+  // "[object Object]" silently instead of the empty list an unset var means.
+  const oauthProvidersRaw = config.OAUTH_PROVIDERS;
+  const oauthProviders = (
+    typeof oauthProvidersRaw === 'string' ? oauthProvidersRaw : ''
+  )
+    .split(',')
+    .map((name) => name.trim().toLowerCase())
+    .filter(Boolean);
+
+  for (const name of oauthProviders) {
+    const required = KNOWN_OAUTH_PROVIDERS[name];
+    if (required === undefined) {
+      throw new Error(
+        `OAUTH_PROVIDERS lists an unknown provider "${name}". Known: ${Object.keys(KNOWN_OAUTH_PROVIDERS).join(', ')}`,
+      );
+    }
+    if (isProduction && name === 'fake') {
+      throw new Error(
+        'OAUTH_PROVIDERS must not include "fake" in production — it accepts any self-minted token and would hand out sessions',
+      );
+    }
+    const missing = required.filter((key) => !config[key]);
+    if (missing.length > 0) {
+      throw new Error(
+        `OAUTH_PROVIDERS includes "${name}" but is missing: ${missing.join(', ')}`,
+      );
+    }
+  }
+
   return config;
 }

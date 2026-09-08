@@ -7,11 +7,28 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { ReactionButton } from '@/components/ui/ReactionButton';
-import { useEntitlement, useHlsPlayer, useMovieActions, useWatchProgress } from '@/features/playback';
+import { Switch } from '@/components/ui/Switch';
+import {
+  estimateFinishTime,
+  formatClockTime,
+  useEntitlement,
+  useHlsPlayer,
+  useMovieActions,
+  useSleepTimer,
+  useSmartSkip,
+  useWatchProgress,
+} from '@/features/playback';
+import { usePreferences } from '@/features/preferences';
 import { withNext } from '@/lib/nextParam';
 import type { Episode, Movie, PlaybackAuthorization, SubscriptionPlan } from '@/types';
 
 const CHROME_IDLE_MS = 2500;
+
+const SKIP_LABELS: Record<string, string> = {
+  INTRO: 'ข้ามอินโทร',
+  RECAP: 'ข้ามเรื่องย่อ',
+  CREDITS: 'ข้ามเครดิต',
+};
 
 function formatTime(totalSeconds: number): string {
   const seconds = Math.max(0, Math.floor(totalSeconds));
@@ -47,6 +64,7 @@ export default function PlayerClient({
   plans: SubscriptionPlan[];
 }) {
   const router = useRouter();
+  const { prefs, setNight, setAutoSkip } = usePreferences();
   // Every escape from the gate sheet carries this, so paying or subscribing
   // returns to the episode being sold rather than to the lobby.
   const returnPath = `/player/${episodeId}`;
@@ -82,6 +100,38 @@ export default function PlayerClient({
   const { progressSeconds, setProgress, handleTimeUpdate, reportProgress } =
     useWatchProgress(episodeId, router, videoRef);
 
+  // Separate React state, not a direct read of sleepPhase === 'expired':
+  // that phase becomes true the instant the wall clock crosses the
+  // deadline, before the flush below has even been issued. Gating the
+  // dim overlay on THIS state instead means it can only render once the
+  // flush has actually completed -- the ordering the design calls for,
+  // enforced by sequencing rather than by two values happening to update
+  // around the same time.
+  const [sleepDimmed, setSleepDimmed] = useState(false);
+  const handleSleepExpire = useCallback(async () => {
+    await reportProgress(Math.floor(videoRef.current?.currentTime ?? 0));
+    setSleepDimmed(true);
+  }, [reportProgress]);
+  const {
+    phase: sleepPhase,
+    mode: sleepMode,
+    startTimer: startSleepTimer,
+    startEndOfEpisode: startSleepEndOfEpisode,
+    cancel: cancelSleep,
+    notifyEpisodeEnded,
+  } = useSleepTimer(videoRef, handleSleepExpire);
+
+  // Hooks must run unconditionally on every render, including the ones
+  // before `episode` has loaded -- the early `if (!movie || !episode)`
+  // return below happens AFTER this, so it falls back to an empty list
+  // rather than being skipped.
+  const { activeMarker, skip: skipMarker } = useSmartSkip(
+    videoRef,
+    episode?.sceneMarkers ?? [],
+    progressSeconds,
+    prefs.autoSkip,
+  );
+
   const movieId = movie?.id ?? null;
   const {
     liked,
@@ -112,6 +162,12 @@ export default function PlayerClient({
   }, [isPlaying, showSettings, isScrubbing]);
 
   const recallChrome = () => {
+    // Any interaction during the sleep warning cancels it outright, per
+    // the design: a tap here means "I'm still here," and the countdown
+    // has nothing further to prove.
+    if (sleepPhase === 'warning' || sleepPhase === 'fading') {
+      cancelSleep();
+    }
     if (chromeVisible && isPlaying) {
       setChromeVisible(false);
       window.clearTimeout(hideTimerRef.current);
@@ -153,6 +209,24 @@ export default function PlayerClient({
   }
 
   const durationSeconds = mediaDuration || episode.durationMinutes * 60;
+  // Computed inline during render, never memoized: reading `new Date()`
+  // fresh on every render is what makes this correct across a pause --
+  // reopening the chrome after sitting paused for ten minutes must show a
+  // finish time ten minutes later, not the value calculated when playback
+  // began. estimateFinishTime's own behavior with respect to `now` is
+  // covered directly in finishTime.test.ts.
+  const skippableSeconds = episode.sceneMarkers.reduce(
+    (total, m) => total + (m.endSeconds - m.startSeconds),
+    0,
+  );
+  const { finishesAt, savedSeconds } = estimateFinishTime({
+    now: new Date(),
+    remainingSeconds: Math.max(0, durationSeconds - progressSeconds),
+    skippableSeconds,
+    autoSkip: prefs.autoSkip,
+    playbackRate,
+  });
+  const savedMinutes = Math.round(savedSeconds / 60);
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-ink">
@@ -198,6 +272,7 @@ export default function PlayerClient({
               onEnded={() => {
                 setIsPlaying(false);
                 void reportProgress(Math.floor(videoRef.current?.currentTime ?? 0));
+                notifyEpisodeEnded();
               }}
               onError={() => setPlaybackError('เกิดข้อผิดพลาดในการเล่นวิดีโอ')}
             />
@@ -279,6 +354,12 @@ export default function PlayerClient({
             <div className="min-w-0 flex-1 text-center">
               <div className="truncate text-sm font-semibold text-fg">{movie.title}</div>
               <div className="truncate text-xs text-fg-dim">{episode.title}</div>
+              <div className="truncate text-xs text-fg-mute">
+                จบ {formatClockTime(finishesAt)}
+                {prefs.autoSkip && savedMinutes > 0 && (
+                  <> · ข้าม intro/credits แล้วเร็วขึ้น {savedMinutes} นาที</>
+                )}
+              </div>
             </div>
             <button
               onClick={toggleFullscreen}
@@ -350,6 +431,60 @@ export default function PlayerClient({
             ))}
           </div>
         </div>
+
+        <div className="mt-6 flex items-center justify-between border-t border-hairline pt-6">
+          <div>
+            <h4 className="text-xs font-medium text-fg-dim">โหมดกลางคืน</h4>
+            <p className="mt-0.5 text-xs text-fg-mute">ลดความสว่างของหน้าจอ และปิดเล่นตอนถัดไปอัตโนมัติ</p>
+          </div>
+          <Switch checked={prefs.night} onChange={setNight} label="โหมดกลางคืน" />
+        </div>
+
+        <div className="mt-6 flex items-center justify-between border-t border-hairline pt-6">
+          <div>
+            <h4 className="text-xs font-medium text-fg-dim">ข้ามอัตโนมัติ</h4>
+            <p className="mt-0.5 text-xs text-fg-mute">ข้ามอินโทร เรื่องย่อ และเครดิตให้เองทันทีที่เจอ</p>
+          </div>
+          <Switch checked={prefs.autoSkip} onChange={setAutoSkip} label="ข้ามอัตโนมัติ" />
+        </div>
+
+        <div className="mt-6 border-t border-hairline pt-6">
+          <h4 className="mb-2 text-xs font-medium text-fg-dim">ตั้งเวลาปิด</h4>
+          {sleepMode === null ? (
+            <div className="flex flex-wrap gap-2">
+              {[15, 30, 60].map((minutes) => (
+                <button
+                  type="button"
+                  key={minutes}
+                  onClick={() => startSleepTimer(minutes)}
+                  className="rounded-full bg-ink-2 px-4 py-2.5 text-sm font-medium text-fg-dim transition-all duration-surface ease-enter hover:bg-hairline active:scale-95"
+                >
+                  {minutes} นาที
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={startSleepEndOfEpisode}
+                className="rounded-full bg-ink-2 px-4 py-2.5 text-sm font-medium text-fg-dim transition-all duration-surface ease-enter hover:bg-hairline active:scale-95"
+              >
+                จบตอนนี้
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between rounded-xl border border-white/10 bg-ink-2 px-4 py-3">
+              <span className="text-sm text-fg">
+                {sleepMode === 'end-of-episode' ? 'จะหยุดเมื่อจบตอนนี้' : 'ตั้งเวลาปิดอยู่'}
+              </span>
+              <button
+                type="button"
+                onClick={cancelSleep}
+                className="focus-ring text-sm font-medium text-brand-ink"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          )}
+        </div>
       </Sheet>
 
       {/* Paywall gate — a sheet, not a centered modal: it reads as a drawer
@@ -395,6 +530,69 @@ export default function PlayerClient({
         >
           {playbackError}
         </p>
+      )}
+
+      {/* Hidden once autoSkip is on: the hook jumps past the marker on its
+          own a moment after this would render, so showing a button that's
+          about to become moot is confusing rather than helpful. */}
+      {!gate && activeMarker && !prefs.autoSkip && (
+        <button
+          type="button"
+          onClick={skipMarker}
+          className="focus-ring absolute right-4 bottom-24 z-20 rounded-full border border-white/20 bg-black/60 px-4 py-2.5 text-sm font-medium text-white backdrop-blur-xl transition-all duration-surface ease-enter active:scale-95"
+        >
+          {SKIP_LABELS[activeMarker.kind] ?? 'ข้าม'}
+        </button>
+      )}
+
+      {/* One card for both 'warning' and 'fading' -- the volume ramp inside
+          'fading' is audible on its own, so the card doesn't need a second
+          message to announce it. A tap anywhere on the stage (recallChrome)
+          also cancels; this is just the visible, focusable target that
+          names what's about to happen.
+
+          role="alert" sits on the wrapping div, not the button: ARIA roles
+          override an element's NATIVE accessible role, so putting it
+          directly on the <button> would replace its "button" semantics
+          with "alert" and could tell assistive tech this isn't
+          interactive, even though it still visually responds to clicks.
+          A live region announces on insertion regardless of which element
+          in the subtree carries the text, so the button keeps its real
+          role and the card still gets announced. */}
+      {!gate && (sleepPhase === 'warning' || sleepPhase === 'fading') && (
+        <div role="alert" className="absolute inset-x-4 bottom-20 z-30">
+          <button
+            type="button"
+            onClick={cancelSleep}
+            className="focus-ring w-full rounded-2xl border border-white/10 bg-black/80 px-4 py-3 text-center text-sm text-fg backdrop-blur-xl"
+          >
+            จะหยุดใน 1 นาที · แตะเพื่อดูต่อ
+          </button>
+        </div>
+      )}
+
+      {/* The sleep timer's own expiry, separate from the paywall gate: dims
+          the whole player, not just the video box, and only once progress
+          has actually been flushed (sleepDimmed, not sleepPhase directly --
+          see where it's set above). */}
+      {sleepDimmed && (
+        <div
+          role="status"
+          className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-black/90 text-center"
+        >
+          <p className="text-sm text-fg-dim">หยุดชั่วคราวเพราะถึงเวลานอนแล้ว</p>
+          <button
+            type="button"
+            onClick={() => {
+              setSleepDimmed(false);
+              cancelSleep();
+              void togglePlayback();
+            }}
+            className="focus-ring rounded-full bg-brand px-6 py-3 text-sm font-medium text-ink"
+          >
+            แตะเพื่อดูต่อ
+          </button>
+        </div>
       )}
     </div>
   );

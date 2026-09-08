@@ -1,10 +1,17 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { resolveLoginDestination } from './loginRedirect';
 import Link from 'next/link';
-import { requestOtp, verifyOtp } from '@/features/auth';
+import {
+  fetchOAuthProviders,
+  requestOtp,
+  useAppleSignIn,
+  useGoogleSignIn,
+  verifyOtp,
+  type OAuthVerifyResult,
+} from '@/features/auth';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 
@@ -19,6 +26,41 @@ function LoginForm() {
   const [ref, setRef] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [busy, setBusy] = useState<boolean>(false);
+  const [providers, setProviders] = useState<string[]>([]);
+  const [claimed, setClaimed] = useState<boolean>(false);
+
+  // An empty list means no buttons, not a broken page: OTP still works.
+  useEffect(() => {
+    void fetchOAuthProviders().then(setProviders);
+  }, []);
+
+  const handleSocial = useCallback(
+    (result: OAuthVerifyResult) => {
+      if (result.success) {
+        // Same landing rule as OTP, including sending a brand-new account to
+        // /subscribe rather than /home.
+        router.replace(
+          resolveLoginDestination(searchParams.get('next'), result.isNewUser),
+        );
+        router.refresh();
+        return;
+      }
+      // The refuse-to-link case has its own instruction; everything else is
+      // an ordinary error.
+      setClaimed(Boolean(result.claimed));
+      setError(result.claimed ? '' : result.error);
+    },
+    [router, searchParams],
+  );
+
+  const { setContainer: setGoogleContainer } = useGoogleSignIn(
+    providers.includes('google'),
+    handleSocial,
+  );
+  const { signIn: appleSignIn, ready: appleReady } = useAppleSignIn(
+    providers.includes('apple'),
+    handleSocial,
+  );
 
   const handleRequest = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -91,6 +133,15 @@ function LoginForm() {
             : `ส่งรหัส 6 หลักไปที่ ${phone} แล้ว (รหัสอ้างอิง ${ref})`}
         </p>
 
+        {claimed && (
+          <p
+            role="alert"
+            className="mt-4 rounded-xl bg-ink-2 p-3 text-sm text-fg-dim"
+          >
+            มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว กรุณาเข้าสู่ระบบด้วยวิธีเดิม (OTP) แล้วเชื่อมบัญชีโซเชียลในหน้าโปรไฟล์
+          </p>
+        )}
+
         {error && (
           <div role="alert" className="mt-4 flex items-center gap-2 rounded-lg bg-fail/15 px-3 py-2.5 text-sm text-fail">
             <Icon name="alertCircle" size={16} className="shrink-0" />
@@ -155,6 +206,29 @@ function LoginForm() {
               เปลี่ยนเบอร์โทรศัพท์
             </button>
           </form>
+        )}
+
+        {step === 'phone' && providers.length > 0 && (
+          <div className="mt-5 flex flex-col gap-3">
+            <div className="flex items-center gap-3 text-xs text-fg-mute">
+              <span className="h-px flex-1 bg-hairline" />
+              หรือ
+              <span className="h-px flex-1 bg-hairline" />
+            </div>
+            {providers.includes('google') && (
+              <div ref={setGoogleContainer} className="flex justify-center" />
+            )}
+            {providers.includes('apple') && (
+              <button
+                type="button"
+                onClick={() => void appleSignIn()}
+                disabled={!appleReady}
+                className="focus-ring flex w-full items-center justify-center gap-2 rounded-xl border border-hairline py-3 text-sm font-medium text-fg disabled:opacity-50"
+              >
+                เข้าสู่ระบบด้วย Apple
+              </button>
+            )}
+          </div>
         )}
       </div>
 

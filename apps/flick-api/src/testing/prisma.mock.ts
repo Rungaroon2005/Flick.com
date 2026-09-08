@@ -34,6 +34,7 @@ export interface PrismaMock {
     findUnique: jest.Mock;
     upsert: jest.Mock;
     deleteMany: jest.Mock;
+    count: jest.Mock;
   };
   watchHistory: {
     upsert: jest.Mock;
@@ -48,7 +49,25 @@ export interface PrismaMock {
     findFirst: jest.Mock;
     create: jest.Mock;
     updateMany: jest.Mock;
+    deleteMany: jest.Mock;
     count: jest.Mock;
+  };
+  identity: {
+    findUnique: jest.Mock;
+    findFirst: jest.Mock;
+    create: jest.Mock;
+    deleteMany: jest.Mock;
+  };
+  oAuthNonce: {
+    create: jest.Mock;
+    findUnique: jest.Mock;
+    updateMany: jest.Mock;
+    deleteMany: jest.Mock;
+  };
+  sceneMarker: {
+    findMany: jest.Mock;
+    upsert: jest.Mock;
+    deleteMany: jest.Mock;
   };
   paymentIntent: {
     create: jest.Mock;
@@ -100,6 +119,7 @@ export const createPrismaMock = (): PrismaMock => {
       findUnique: jest.fn(),
       upsert: jest.fn(),
       deleteMany: jest.fn(),
+      count: jest.fn(),
     },
     watchHistory: {
       upsert: jest.fn(),
@@ -114,7 +134,25 @@ export const createPrismaMock = (): PrismaMock => {
       findFirst: jest.fn(),
       create: jest.fn(),
       updateMany: jest.fn(),
+      deleteMany: jest.fn(),
       count: jest.fn(),
+    },
+    identity: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    oAuthNonce: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      updateMany: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    sceneMarker: {
+      findMany: jest.fn(),
+      upsert: jest.fn(),
+      deleteMany: jest.fn(),
     },
     paymentIntent: {
       create: jest.fn(),

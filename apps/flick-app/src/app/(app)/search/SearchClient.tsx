@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { PageShell } from '@/components/ui/PageShell';
 import { apiFetch } from '@/lib/apiClient';
+import { useWatchStatus } from '@/features/watchStatus';
 import { Movie } from '@/types';
 
 const RECENT_SEARCHES_KEY = 'flick:recent-searches';
@@ -65,6 +66,7 @@ function saveRecentSearch(term: string, current: string[]): void {
 export default function SearchClient() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Movie[] | null>(null);
+  const watchStatus = useWatchStatus(results?.map((m) => m.id) ?? []);
   const recentSearchesSnapshot = useSyncExternalStore(
     subscribeToRecentSearches,
     getRecentSearchesSnapshot,
@@ -165,7 +167,7 @@ export default function SearchClient() {
           ) : results && results.length > 0 ? (
             <div className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-4 lg:grid-cols-5 xl:grid-cols-6">
               {results.map((movie) => (
-                <MovieCard key={movie.id} movie={movie} size="fill" />
+                <MovieCard key={movie.id} movie={movie} size="fill" watchStatus={watchStatus[movie.id]} />
               ))}
             </div>
           ) : (

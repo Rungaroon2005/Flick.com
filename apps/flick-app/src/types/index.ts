@@ -48,6 +48,19 @@ export interface CheckoutResponse {
   intentId: string;
 }
 
+export type SceneMarkerKind = 'INTRO' | 'RECAP' | 'CREDITS';
+
+/** Timing metadata about content, identical for every viewer -- rides in
+ *  the same cached movie/episode payloads as everything else here, unlike
+ *  videoUrl (see below), which is personal-entitlement-gated. */
+export interface SceneMarkerDto {
+  id: string;
+  episodeId: string;
+  kind: SceneMarkerKind;
+  startSeconds: number;
+  endSeconds: number;
+}
+
 export interface Episode {
   id: string;
   seasonId: string;
@@ -60,6 +73,10 @@ export interface Episode {
   durationMinutes: number;
   isPremium: boolean;
   releaseDate: string; // ISO string from backend
+  /** Named to match the backend's Episode.sceneMarkers relation, not the
+   *  design doc's shorter "markers" sketch -- kept consistent with the
+   *  Prisma model name on the API side rather than renamed for brevity. */
+  sceneMarkers: SceneMarkerDto[];
 }
 
 export type PlaybackAuthorization =
@@ -78,6 +95,43 @@ export interface ContinueWatchingItem {
   progressSeconds: number;
   episode: Episode;
   movie: Movie;
+}
+
+export type WatchStatusState = 'none' | 'partial' | 'watched';
+
+/** GET /me/watch-status -- personal, never reachable through the shared
+ *  /movies cache. Keyed by movie id. */
+export interface WatchStatusEntry {
+  state: WatchStatusState;
+  percent: number;
+  lastWatchedAt: string | null;
+}
+export type WatchStatusResponse = Record<string, WatchStatusEntry>;
+
+/** GET /me/passport (NewPlan Part D, phase 1) -- a read-only rollup over
+ *  data the user already generated. Personal, never reachable through the
+ *  shared /movies cache. */
+export interface PassportDto {
+  completedMoviesCount: number;
+  totalWatchedHours: number;
+  topGenre: Genre | null;
+  /** ISO 3166-1 alpha-2 code, e.g. "KR" -- no display name from the API;
+   *  the client maps it to a Thai label (see profile page). */
+  topCountry: { code: string; count: number } | null;
+  likedMoviesCount: number;
+}
+
+export type FitsKind = 'film' | 'next_episode' | 'first_episode';
+
+/** GET /discovery/fits -- personal (kind can be 'next_episode'), never
+ *  reachable through the shared /movies cache. */
+export interface FitsItem {
+  movie: Movie;
+  episode: Episode;
+  kind: FitsKind;
+  runtimeMinutes: number;
+  /** ISO timestamp; format client-side with formatClockTime. */
+  finishesAtHint: string;
 }
 
 export interface DownloadRecord {
